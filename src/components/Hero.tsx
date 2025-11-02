@@ -3,28 +3,26 @@ import { Github, Linkedin, Mail, FileText } from "lucide-react";
 
 const Hero = () => {
   return (
-    <header className="relative min-h-screen flex items-center justify-end px-8 md:px-16 overflow-hidden">
-      {/* Half Sun - Right Side */}
-      <div className="absolute right-0 top-1/2 -translate-y-1/2 w-[400px] h-[400px] md:w-[600px] md:h-[600px] pointer-events-none">
+    <header className="relative min-h-screen flex items-center px-8 md:px-16 overflow-hidden">
+      {/* Half Sun - Right Edge */}
+      <div className="absolute -right-[250px] md:-right-[350px] top-1/2 -translate-y-1/2 w-[500px] h-[500px] md:w-[700px] md:h-[700px] pointer-events-none">
         <div
-          className="absolute right-0 top-1/2 -translate-y-1/2 w-full h-full rounded-l-full animate-pulse-glow"
+          className="absolute inset-0 rounded-full animate-pulse-glow"
           style={{
             background: "var(--gradient-sun)",
-            clipPath: "inset(0 0 0 50%)",
           }}
         />
         {/* Inner glow layers */}
         <div
-          className="absolute right-0 top-1/2 -translate-y-1/2 w-[85%] h-[85%] rounded-l-full opacity-80"
+          className="absolute inset-0 rounded-full opacity-80"
           style={{
-            background: "radial-gradient(circle at 70% 50%, hsl(var(--sun-glow)), transparent)",
-            clipPath: "inset(0 0 0 50%)",
+            background: "radial-gradient(circle at 40% 50%, hsl(var(--sun-glow)), transparent 60%)",
           }}
         />
       </div>
 
-      {/* Content */}
-      <div className="relative z-10 max-w-2xl text-right space-y-6">
+      {/* Content - Left aligned */}
+      <div className="relative z-10 max-w-2xl space-y-6">
         <div className="space-y-2">
           <h1 className="text-5xl md:text-7xl font-bold tracking-tight">
             Your Name
@@ -34,12 +32,12 @@ const Hero = () => {
           </p>
         </div>
 
-        <p className="text-lg text-muted-foreground max-w-xl ml-auto">
+        <p className="text-lg text-muted-foreground max-w-xl">
           Building stellar digital experiences at the intersection of design and engineering.
           Passionate about creating accessible, performant web applications.
         </p>
 
-        <div className="flex gap-4 justify-end pt-4">
+        <div className="flex gap-4 pt-4">
           <Button variant="default" size="lg" className="gap-2">
             <FileText className="w-4 h-4" />
             View Resume
@@ -50,7 +48,7 @@ const Hero = () => {
           </Button>
         </div>
 
-        <div className="flex gap-4 justify-end pt-4">
+        <div className="flex gap-4 pt-4">
           <a
             href="https://github.com"
             target="_blank"

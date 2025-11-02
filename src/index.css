@@ -127,14 +127,11 @@ All colors MUST be HSL.
   }
 }
 
-/* Orbit Animations */
-@keyframes orbit {
-  from {
-    --angle: 0deg;
-  }
-  to {
-    --angle: 360deg;
-  }
+/* Custom property for smooth progress animation */
+@property --progress-value {
+  syntax: '<number>';
+  initial-value: 0;
+  inherits: false;
 }
 
 /* Pulse Glow */
@@ -167,6 +164,16 @@ All colors MUST be HSL.
   to {
     transform: translateX(100%);
     opacity: 0;
+  }
+}
+
+/* One-time planet travel animation */
+@keyframes travel-orbit {
+  from {
+    offset-distance: 0%;
+  }
+  to {
+    offset-distance: var(--target-distance);
   }
 }
 

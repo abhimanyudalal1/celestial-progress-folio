@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 export interface PlanetProject {
   id: string;
@@ -11,55 +11,58 @@ export interface PlanetProject {
     live?: string;
   };
   accentColor: string;
-  orbitRadius: number;
-  orbitDuration: number;
-  ellipseX: number;
-  ellipseY: number;
+  orbitIndex: number;
 }
 
 interface PlanetProps {
   project: PlanetProject;
   onClick: () => void;
+  orbitPath: string;
 }
 
-const Planet = ({ project, onClick }: PlanetProps) => {
+const Planet = ({ project, onClick, orbitPath }: PlanetProps) => {
   const [showTooltip, setShowTooltip] = useState(false);
-  const [angle, setAngle] = useState(Math.random() * 360);
+  const planetRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (prefersReducedMotion) return;
+    
+    if (planetRef.current) {
+      const element = planetRef.current;
+      
+      if (prefersReducedMotion) {
+        // Instantly set to target position without animation
+        element.style.offsetDistance = `${project.completionPercent}%`;
+      } else {
+        // Animate from 0% to completionPercent with stagger
+        const delay = project.orbitIndex * 150; // Stagger by orbit index
+        
+        setTimeout(() => {
+          element.style.setProperty('--target-distance', `${project.completionPercent}%`);
+          element.style.animation = `travel-orbit ${1000 + project.orbitIndex * 200}ms cubic-bezier(0.4, 0, 0.2, 1) forwards`;
+        }, delay);
+      }
 
-    const duration = project.orbitDuration * 1000;
-    const startTime = Date.now();
-    const startAngle = angle;
-
-    const animate = () => {
-      const elapsed = Date.now() - startTime;
-      const progress = (elapsed % duration) / duration;
-      setAngle(startAngle + progress * 360);
-      requestAnimationFrame(animate);
-    };
-
-    const animationId = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(animationId);
-  }, [project.orbitDuration, angle]);
-
-  // Calculate position using trigonometry
-  const radian = (angle * Math.PI) / 180;
-  const x = Math.cos(radian) * project.ellipseX;
-  const y = Math.sin(radian) * project.ellipseY;
-
-  // Progress ring calculation
-  const progressDegrees = (project.completionPercent / 100) * 360;
+      // Animate progress ring value (delay is defined above)
+      const animationDelay = project.orbitIndex * 150;
+      setTimeout(() => {
+        element.style.setProperty('--progress-value', project.completionPercent.toString());
+      }, animationDelay + 100);
+    }
+  }, [project.completionPercent, project.orbitIndex]);
 
   return (
     <>
       <button
-        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 group focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 rounded-full"
+        ref={planetRef}
+        className="absolute group focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 rounded-full"
         style={{
-          transform: `translate(-50%, -50%) translate(${x}px, ${y}px)`,
-          transition: "transform 0.05s linear",
+          offsetPath: `path('${orbitPath}')`,
+          offsetRotate: '0deg',
+          offsetDistance: '0%',
+          // @ts-ignore - CSS custom property
+          '--progress-value': '0',
+          '--target-distance': '0%',
         }}
         onClick={onClick}
         onMouseEnter={() => setShowTooltip(true)}
@@ -68,13 +71,13 @@ const Planet = ({ project, onClick }: PlanetProps) => {
         onBlur={() => setShowTooltip(false)}
         aria-label={`${project.title} - ${project.completionPercent}% complete`}
       >
-        {/* Progress Ring */}
+        {/* Progress Ring - Donut with conic gradient */}
         <div
-          className="relative w-16 h-16 md:w-20 md:h-20 rounded-full p-1"
+          className="relative w-16 h-16 md:w-20 md:h-20 rounded-full p-1 transition-[--progress-value] duration-1000"
           style={{
             background: `conic-gradient(
-              hsl(${project.accentColor}) ${progressDegrees}deg,
-              hsl(var(--muted)) ${progressDegrees}deg
+              hsl(${project.accentColor}) calc(var(--progress-value) * 3.6deg),
+              hsl(var(--muted)) calc(var(--progress-value) * 3.6deg)
             )`,
           }}
         >
@@ -94,7 +97,7 @@ const Planet = ({ project, onClick }: PlanetProps) => {
 
         {/* Tooltip */}
         {showTooltip && (
-          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-card border border-border rounded-lg shadow-lg whitespace-nowrap pointer-events-none">
+          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-card border border-border rounded-lg shadow-lg whitespace-nowrap pointer-events-none z-50">
             <p className="text-sm font-medium">{project.title}</p>
             <p className="text-xs text-muted-foreground">{project.completionPercent}% Complete</p>
           </div>

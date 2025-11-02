@@ -1,11 +1,10 @@
-import { Button } from "@/components/ui/button";
-import { Github, Linkedin, Mail, FileText } from "lucide-react";
+import { Github, Linkedin, Mail } from "lucide-react";
 
 const Hero = () => {
   return (
-    <header className="relative min-h-screen flex items-center px-8 md:px-16 overflow-hidden">
-      {/* Half Sun - Right Edge */}
-      <div className="absolute -right-[250px] md:-right-[350px] top-1/2 -translate-y-1/2 w-[500px] h-[500px] md:w-[700px] md:h-[700px] pointer-events-none">
+    <header className="absolute inset-0 flex items-center justify-end px-8 md:px-16 overflow-hidden z-20 pointer-events-none">
+      {/* Half Sun - Right Edge with Info Inside */}
+      <div className="absolute -right-[250px] md:-right-[350px] top-1/2 -translate-y-1/2 w-[500px] h-[500px] md:w-[700px] md:h-[700px] pointer-events-none z-0">
         <div
           className="absolute inset-0 rounded-full animate-pulse-glow"
           style={{
@@ -19,54 +18,42 @@ const Hero = () => {
             background: "radial-gradient(circle at 40% 50%, hsl(var(--sun-glow)), transparent 60%)",
           }}
         />
-      </div>
-
-      {/* Content - Left aligned */}
-      <div className="relative z-10 max-w-2xl space-y-6">
-        <div className="space-y-2">
-          <h1 className="text-5xl md:text-7xl font-bold tracking-tight">
+        
+        {/* Info inside the sun - positioned on the visible left half */}
+        <div className="absolute left-[15%] top-1/2 -translate-y-1/2 text-center space-y-3 pointer-events-auto z-10 max-w-[200px]">
+          <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
             Your Name
           </h1>
-          <p className="text-xl md:text-2xl text-muted-foreground">
-            Full-Stack Developer · Creative Technologist
+          <p className="text-sm md:text-base text-white/90 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
+            Full-Stack Developer
           </p>
-        </div>
-
-        <p className="text-lg text-muted-foreground max-w-xl">
-          Building stellar digital experiences at the intersection of design and engineering.
-          Passionate about creating accessible, performant web applications.
-        </p>
-
-        <div className="flex gap-4 pt-4">
-          <Button variant="default" size="lg" className="gap-2">
-            <FileText className="w-4 h-4" />
-            View Resume
-          </Button>
-          <Button variant="outline" size="lg" className="gap-2">
-            <Mail className="w-4 h-4" />
-            Email Me
-          </Button>
-        </div>
-
-        <div className="flex gap-4 pt-4">
-          <a
-            href="https://github.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-muted-foreground hover:text-foreground transition-colors"
-            aria-label="GitHub Profile"
-          >
-            <Github className="w-6 h-6" />
-          </a>
-          <a
-            href="https://linkedin.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-muted-foreground hover:text-foreground transition-colors"
-            aria-label="LinkedIn Profile"
-          >
-            <Linkedin className="w-6 h-6" />
-          </a>
+          <div className="flex gap-3 justify-center pt-2">
+            <a
+              href="https://github.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-white/90 hover:text-white transition-colors drop-shadow-lg"
+              aria-label="GitHub Profile"
+            >
+              <Github className="w-5 h-5" />
+            </a>
+            <a
+              href="https://linkedin.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-white/90 hover:text-white transition-colors drop-shadow-lg"
+              aria-label="LinkedIn Profile"
+            >
+              <Linkedin className="w-5 h-5" />
+            </a>
+            <a
+              href="mailto:your.email@example.com"
+              className="text-white/90 hover:text-white transition-colors drop-shadow-lg"
+              aria-label="Email"
+            >
+              <Mail className="w-5 h-5" />
+            </a>
+          </div>
         </div>
       </div>
     </header>

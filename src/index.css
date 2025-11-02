@@ -9,9 +9,9 @@ All colors MUST be HSL.
 @layer base {
   :root {
     /* Cosmic Space Theme - Light Mode */
-    --background: 220 15% 95%;
-    --foreground: 230 20% 15%;
-    --space: 230 35% 8%;
+    --background: 0 0% 0%;
+    --foreground: 0 0% 98%;
+    --space: 0 0% 0%;
     
     --card: 0 0% 100%;
     --card-foreground: 230 20% 15%;
@@ -57,7 +57,7 @@ All colors MUST be HSL.
     
     /* Gradients */
     --gradient-sun: linear-gradient(135deg, hsl(var(--sun-core)), hsl(var(--sun-glow)));
-    --gradient-space: linear-gradient(180deg, hsl(220 15% 95%), hsl(220 20% 88%));
+    --gradient-space: radial-gradient(ellipse at top, hsl(0 0% 5%), hsl(0 0% 0%));
     
     /* Shadows & Glows */
     --glow-sun: 0 0 60px hsl(var(--sun-glow) / 0.4);
@@ -69,9 +69,9 @@ All colors MUST be HSL.
 
   .dark {
     /* Cosmic Space Theme - Dark Mode */
-    --background: 230 35% 8%;
+    --background: 0 0% 0%;
     --foreground: 0 0% 98%;
-    --space: 230 35% 8%;
+    --space: 0 0% 0%;
     
     --card: 230 25% 12%;
     --card-foreground: 0 0% 98%;

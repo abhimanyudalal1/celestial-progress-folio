@@ -4,8 +4,11 @@ import SolarSystem from "@/components/SolarSystem";
 const Index = () => {
   return (
     <div className="min-h-screen">
-      <Hero />
-      <SolarSystem />
+      {/* Combined Hero and Solar System in the same view */}
+      <div className="relative min-h-screen">
+        <Hero />
+        <SolarSystem />
+      </div>
       
       <footer className="relative py-8 text-center border-t border-border">
         <p className="text-sm text-muted-foreground">

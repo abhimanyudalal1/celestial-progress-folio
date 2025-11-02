@@ -65,25 +65,41 @@ export default {
       },
       keyframes: {
         "accordion-down": {
-          from: {
-            height: "0",
-          },
-          to: {
-            height: "var(--radix-accordion-content-height)",
-          },
+          from: { height: "0" },
+          to: { height: "var(--radix-accordion-content-height)" },
         },
         "accordion-up": {
-          from: {
-            height: "var(--radix-accordion-content-height)",
+          from: { height: "var(--radix-accordion-content-height)" },
+          to: { height: "0" },
+        },
+        orbit: {
+          from: { "--angle": "0deg" },
+          to: { "--angle": "360deg" },
+        },
+        "pulse-glow": {
+          "0%, 100%": { 
+            filter: "drop-shadow(0 0 60px hsl(var(--sun-glow) / 0.4)) brightness(1)" 
           },
-          to: {
-            height: "0",
+          "50%": { 
+            filter: "drop-shadow(0 0 80px hsl(var(--sun-glow) / 0.5)) brightness(1.1)" 
           },
+        },
+        "slide-in-right": {
+          from: { transform: "translateX(100%)", opacity: "0" },
+          to: { transform: "translateX(0)", opacity: "1" },
+        },
+        "slide-out-right": {
+          from: { transform: "translateX(0)", opacity: "1" },
+          to: { transform: "translateX(100%)", opacity: "0" },
         },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        orbit: "orbit var(--orbit-duration, 60s) linear infinite",
+        "pulse-glow": "pulse-glow 3s ease-in-out infinite",
+        "slide-in-right": "slide-in-right 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
+        "slide-out-right": "slide-out-right 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
       },
     },
   },

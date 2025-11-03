@@ -22,14 +22,14 @@ const Hero = () => {
         {/* Info inside the sun - positioned on the visible right half */}
         <div className="absolute right-[15%] top-1/2 -translate-y-1/2 text-center space-y-3 pointer-events-auto z-10 max-w-[200px]">
           <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
-            Your Name
+            Abhimanyu
           </h1>
           <p className="text-sm md:text-base text-white/90 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
-            Full-Stack Developer
+            Machine Learning/ GenAI Engineer
           </p>
           <div className="flex gap-3 justify-center pt-2">
             <a
-              href="https://github.com"
+              href="https://github.com/abhimanyudalal1"
               target="_blank"
               rel="noopener noreferrer"
               className="text-white/90 hover:text-white transition-colors drop-shadow-lg"

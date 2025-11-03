@@ -39,7 +39,7 @@ const Planet = ({ project, onClick, orbitPath }: PlanetProps) => {
         
         setTimeout(() => {
           element.style.setProperty('--target-distance', `${project.completionPercent}%`);
-          element.style.animation = `travel-orbit ${1000 + project.orbitIndex * 100}ms cubic-bezier(0.4, 0, 0.2, 1) forwards`;
+          element.style.animation = `travel-orbit ${3000 + project.orbitIndex * 100}ms cubic-bezier(0.4, 0, 0.2, 1) forwards`;
         }, delay);
       }
 

@@ -215,7 +215,7 @@ All colors MUST be HSL.
 /* Pulse Glow */
 @keyframes pulse-glow {
   0%, 100% {
-    filter: drop-shadow(var(--glow-sun)) brightness(1);
+    filter: drop-shadow(var(--glow-sun)) brightness(1.1);
   }
   50% {
     filter: drop-shadow(var(--glow-sun)) brightness(1.1);

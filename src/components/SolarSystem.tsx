@@ -9,7 +9,7 @@ const projects: PlanetProject[] = [
     title: "E-Commerce Platform",
     description: "A full-stack e-commerce solution with React, Node.js, and Stripe integration. Features include real-time inventory management, user authentication, and a responsive checkout flow.",
     stack: ["React", "Node.js", "PostgreSQL", "Stripe", "Tailwind CSS"],
-    completionPercent: 85,
+    completionPercent: 45,
     links: {
       github: "https://github.com",
       live: "https://example.com",
@@ -22,7 +22,7 @@ const projects: PlanetProject[] = [
     title: "Task Management App",
     description: "A collaborative project management tool with drag-and-drop functionality, real-time updates via WebSockets, and team collaboration features.",
     stack: ["TypeScript", "Next.js", "Prisma", "Socket.io", "shadcn/ui"],
-    completionPercent: 92,
+    completionPercent: 32,
     links: {
       github: "https://github.com",
       live: "https://example.com",
@@ -47,7 +47,7 @@ const projects: PlanetProject[] = [
     title: "Weather Dashboard",
     description: "A beautiful weather forecasting dashboard with interactive maps, hourly predictions, and location-based alerts. Built with modern design patterns.",
     stack: ["Vue.js", "D3.js", "OpenWeather API", "CSS Grid"],
-    completionPercent: 100,
+    completionPercent: 10,
     links: {
       github: "https://github.com",
       live: "https://example.com",
@@ -60,7 +60,7 @@ const projects: PlanetProject[] = [
     title: "Portfolio Analytics",
     description: "Real-time analytics dashboard for tracking portfolio performance, visitor insights, and engagement metrics with beautiful data visualizations.",
     stack: ["React", "Chart.js", "Express", "MongoDB", "AWS"],
-    completionPercent: 45,
+    completionPercent: 75,
     links: {
       github: "https://github.com",
     },
@@ -89,7 +89,7 @@ const SolarSystem = () => {
   // Define orbit radii - increased spacing for more horizontal spread
   // Tokens: r1 through r6 for up to 6 projects
   const orbitRadii = {
-    r1: 350,
+    r1: 300,
     r2: 420,
     r3: 540,
     r4: 660,
@@ -101,7 +101,7 @@ const SolarSystem = () => {
   // These should align with the half-sun position in Hero component
   // The sun is on the left edge, so we position at the far left
   const sunCenterX = 50; // Left edge of the SVG viewBox
-  const sunCenterY = 300; // Centered vertically in the canvas
+  const sunCenterY = 450; // Positioned higher to allow orbits to extend down
 
   return (
     <section className="absolute inset-0 flex items-center justify-center pointer-events-none z-10" aria-label="Projects Solar System">
@@ -109,7 +109,7 @@ const SolarSystem = () => {
       <div className="relative w-full h-full pointer-events-none" role="region" aria-label="Interactive project orbits">
         <svg
           className="absolute inset-0 w-full h-full pointer-events-none"
-          viewBox="0 0 1200 600"
+          viewBox="0 0 1200 900"
           preserveAspectRatio="xMidYMid slice"
         >
           {/* Draw semicircle orbit trails (underlays with rounded caps) */}

@@ -124,6 +124,84 @@ All colors MUST be HSL.
     background: var(--gradient-space);
     min-height: 100vh;
     overflow-x: hidden;
+    position: relative;
+  }
+  
+  /* Starfield background - CSS only, very lightweight */
+  body::before,
+  body::after {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1;
+  }
+  
+  /* Small stars layer */
+  body::before {
+    background-image: 
+      radial-gradient(2px 2px at 20% 30%, white, transparent),
+      radial-gradient(1px 1px at 60% 70%, white, transparent),
+      radial-gradient(2px 2px at 50% 50%, white, transparent),
+      radial-gradient(1px 1px at 80% 10%, white, transparent),
+      radial-gradient(2px 2px at 90% 60%, white, transparent),
+      radial-gradient(1px 1px at 33% 80%, white, transparent),
+      radial-gradient(1px 1px at 15% 90%, white, transparent),
+      radial-gradient(2px 2px at 75% 25%, white, transparent),
+      radial-gradient(1px 1px at 40% 15%, white, transparent),
+      radial-gradient(2px 2px at 65% 85%, white, transparent),
+      radial-gradient(1px 1px at 10% 45%, white, transparent),
+      radial-gradient(1px 1px at 95% 35%, white, transparent),
+      radial-gradient(2px 2px at 25% 60%, white, transparent),
+      radial-gradient(1px 1px at 70% 40%, white, transparent),
+      radial-gradient(1px 1px at 45% 95%, white, transparent),
+      radial-gradient(2px 2px at 85% 75%, white, transparent),
+      radial-gradient(1px 1px at 30% 20%, white, transparent),
+      radial-gradient(2px 2px at 55% 65%, white, transparent),
+      radial-gradient(1px 1px at 12% 72%, white, transparent),
+      radial-gradient(1px 1px at 88% 88%, white, transparent),
+      radial-gradient(2px 2px at 5% 55%, white, transparent),
+      radial-gradient(1px 1px at 68% 12%, white, transparent),
+      radial-gradient(1px 1px at 38% 42%, white, transparent),
+      radial-gradient(2px 2px at 82% 92%, white, transparent),
+      radial-gradient(1px 1px at 52% 28%, white, transparent);
+    background-size: 200% 200%, 250% 250%, 180% 180%, 220% 220%, 190% 190%,
+                     210% 210%, 240% 240%, 195% 195%, 230% 230%, 185% 185%,
+                     225% 225%, 205% 205%, 215% 215%, 235% 235%, 175% 175%,
+                     245% 245%, 200% 200%, 220% 220%, 190% 190%, 210% 210%,
+                     230% 230%, 195% 195%, 215% 215%, 185% 185%, 225% 225%;
+    background-repeat: repeat;
+    opacity: 0.5;
+    animation: twinkle 8s ease-in-out infinite;
+  }
+  
+  /* Tiny stars layer for depth */
+  body::after {
+    background-image: 
+      radial-gradient(1px 1px at 35% 45%, rgba(255,255,255,0.9), transparent),
+      radial-gradient(1px 1px at 72% 18%, rgba(255,255,255,0.9), transparent),
+      radial-gradient(1px 1px at 48% 82%, rgba(255,255,255,0.9), transparent),
+      radial-gradient(1px 1px at 92% 52%, rgba(255,255,255,0.9), transparent),
+      radial-gradient(1px 1px at 18% 68%, rgba(255,255,255,0.9), transparent),
+      radial-gradient(1px 1px at 62% 32%, rgba(255,255,255,0.9), transparent),
+      radial-gradient(1px 1px at 8% 95%, rgba(255,255,255,0.9), transparent),
+      radial-gradient(1px 1px at 78% 8%, rgba(255,255,255,0.9), transparent),
+      radial-gradient(1px 1px at 42% 58%, rgba(255,255,255,0.9), transparent),
+      radial-gradient(1px 1px at 98% 78%, rgba(255,255,255,0.9), transparent),
+      radial-gradient(1px 1px at 22% 38%, rgba(255,255,255,0.9), transparent),
+      radial-gradient(1px 1px at 58% 88%, rgba(255,255,255,0.9), transparent),
+      radial-gradient(1px 1px at 14% 24%, rgba(255,255,255,0.9), transparent),
+      radial-gradient(1px 1px at 86% 64%, rgba(255,255,255,0.9), transparent),
+      radial-gradient(1px 1px at 44% 6%, rgba(255,255,255,0.9), transparent);
+    background-size: 300% 300%, 280% 280%, 320% 320%, 290% 290%, 310% 310%,
+                     270% 270%, 330% 330%, 295% 295%, 285% 285%, 305% 305%,
+                     275% 275%, 315% 315%, 300% 300%, 290% 290%, 320% 320%;
+    background-repeat: repeat;
+    opacity: 0.4;
+    animation: twinkle 12s ease-in-out infinite reverse;
   }
 }
 
@@ -141,6 +219,16 @@ All colors MUST be HSL.
   }
   50% {
     filter: drop-shadow(var(--glow-sun)) brightness(1.1);
+  }
+}
+
+/* Subtle twinkle animation for stars */
+@keyframes twinkle {
+  0%, 100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 0.8;
   }
 }
 

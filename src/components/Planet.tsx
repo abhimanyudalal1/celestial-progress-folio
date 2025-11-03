@@ -17,49 +17,52 @@ export interface PlanetProject {
 interface PlanetProps {
   project: PlanetProject;
   onClick: () => void;
-  position: { x: number; y: number };
+  orbitPath: string;
 }
 
-const Planet = ({ project, onClick, position }: PlanetProps) => {
+const Planet = ({ project, onClick, orbitPath }: PlanetProps) => {
   const [showTooltip, setShowTooltip] = useState(false);
   const planetRef = useRef<HTMLButtonElement>(null);
-  const [currentPos, setCurrentPos] = useState({ x: position.x, y: 300 - (position.y - 300) }); // Start from top
 
   useEffect(() => {
     const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     
-    if (prefersReducedMotion) {
-      // Instantly set to target position
-      setCurrentPos(position);
-    } else {
-      // Animate to target position with stagger
-      const delay = project.orbitIndex * 300;
-      
-      setTimeout(() => {
-        setCurrentPos(position);
-      }, delay);
-    }
-
-    // Animate progress ring value
     if (planetRef.current) {
-      const animationDelay = project.orbitIndex * 300;
+      const element = planetRef.current;
+      
+      if (prefersReducedMotion) {
+        // Instantly set to target position without animation
+        element.style.offsetDistance = `${project.completionPercent}%`;
+      } else {
+        // Animate from 0% to completionPercent with stagger
+        const delay = project.orbitIndex * 100; // Reduced from 300ms to 100ms
+        
+        setTimeout(() => {
+          element.style.setProperty('--target-distance', `${project.completionPercent}%`);
+          element.style.animation = `travel-orbit ${1000 + project.orbitIndex * 100}ms cubic-bezier(0.4, 0, 0.2, 1) forwards`;
+        }, delay);
+      }
+
+      // Animate progress ring value
+      const animationDelay = project.orbitIndex * 100; // Reduced from 300ms to 100ms
       setTimeout(() => {
-        planetRef.current?.style.setProperty('--progress-value', project.completionPercent.toString());
+        element.style.setProperty('--progress-value', project.completionPercent.toString());
       }, animationDelay + 100);
     }
-  }, [project.completionPercent, project.orbitIndex, position]);
+  }, [project.completionPercent, project.orbitIndex]);
 
   return (
     <>
       <button
         ref={planetRef}
-        className="absolute group focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 rounded-full transition-all duration-[2000ms] ease-out"
+        className="absolute group focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 rounded-full"
         style={{
-          left: `${currentPos.x}px`,
-          top: `${currentPos.y}px`,
-          transform: 'translate(-50%, -50%)',
+          offsetPath: `path('${orbitPath}')`,
+          offsetRotate: '0deg',
+          offsetDistance: '0%',
           // @ts-ignore - CSS custom property
           '--progress-value': '0',
+          '--target-distance': '0%',
         }}
         onClick={onClick}
         onMouseEnter={() => setShowTooltip(true)}

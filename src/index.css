@@ -267,12 +267,12 @@ All colors MUST be HSL.
   }
 }
 
-/* Removed travel and percentage animations to keep planets static */
-
-/* SVG Planet hover effects */
-.planet-group:hover .planet-inner {
-  transform: scale(1.2);
+/* 3D Solar System Stage */
+.solar-system-stage:hover {
+  transform: rotateX(30deg) rotateY(-12deg) scale(1.02);
 }
+
+/* No planet hover animations - removed to prevent jumping */
 
 /* Reduced motion support */
 @media (prefers-reduced-motion: reduce) {

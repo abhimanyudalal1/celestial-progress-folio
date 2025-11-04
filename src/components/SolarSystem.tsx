@@ -70,66 +70,85 @@ const projects: PlanetProject[] = [
 ];
 
 /**
- * Calculate planet position on a semicircle orbit
- * @param radius - Orbit radius
- * @param sunCenterX - X coordinate of sun center (off-canvas on right)
+ * Calculate planet position on an elliptical orbit
+ * @param radiusX - Horizontal radius of the ellipse
+ * @param radiusY - Vertical radius of the ellipse (compressed for 3D effect)
+ * @param sunCenterX - X coordinate of sun center
  * @param sunCenterY - Y coordinate of sun center
- * @param angleDeg - Angle in degrees (270 = top, 180 = left, 90 = bottom in standard math, but SVG uses different)
- *                    For SVG: 0° = right, 90° = down, 180° = left, 270° = up
+ * @param angleDeg - Angle in degrees for position on ellipse
  */
 const getPlanetPosition = (
-  radius: number,
+  radiusX: number,
+  radiusY: number,
   sunCenterX: number,
   sunCenterY: number,
   angleDeg: number
 ): { x: number; y: number } => {
   const angleRad = (angleDeg * Math.PI) / 180;
-  const x = sunCenterX + radius * Math.cos(angleRad);
-  const y = sunCenterY + radius * Math.sin(angleRad);
+  const x = sunCenterX + radiusX * Math.cos(angleRad);
+  const y = sunCenterY + radiusY * Math.sin(angleRad);
   return { x, y };
 };
 
 const SolarSystem = () => {
   const [selectedProject, setSelectedProject] = useState<PlanetProject | null>(null);
 
-  // SVG viewBox dimensions - extend left to show full orbits
+  // SVG viewBox dimensions - extend left to show full orbits, shifted for left alignment
   const viewBoxWidth = 1200;
   const viewBoxHeight = 900;
-  const viewBoxLeft = -200; // Start viewBox at x=-200 to show orbits extending from sun at x=0
+  const viewBoxLeft = -300; // Start viewBox further left to accommodate the shifted sun and orbits
 
-  // Sun center position - aligned with Hero component
+  // Sun center position - aligned with Hero component, shifted left
   // Hero component positions sun at -250px (mobile) or -350px (desktop) with width 500px/700px
   // The sun's geometric center should be at the viewport's left edge (x=0 in screen coordinates)
   // For mobile: sun left edge at -250px, width 500px, so center at -250 + 250 = 0px
   // For desktop: sun left edge at -350px, width 700px, so center at -350 + 350 = 0px
   // In SVG coordinates, we need to map this to our viewBox
-  // Since sun center is at screen x=0, and our viewBox starts at 0, we use x=0 for sun center
-  const sunCenterX = 0; // Sun center at left edge of viewport
+  // Shifting the entire setup left by moving sun center from 0 to -100
+  const sunCenterX = -100; // Sun center shifted left
   const sunCenterY = viewBoxHeight / 2; // Vertically centered at 450
 
   // Orbit radii for the 5 planets - these should extend from the sun center at x=0
   const orbitRadii = {
-    r1: 200,
-    r2: 300,
-    r3: 400,
-    r4: 500,
-    r5: 600,
+    r1: 300,
+    r2: 450,
+    r3: 600,
+    r4: 750,
+    r5: 900,
   };
 
   return (
     <section className="absolute inset-0 flex items-center justify-start pointer-events-none z-10" aria-label="Projects Solar System">
       <div className="relative w-full h-full">
-        <svg
-          className="w-full h-full"
-          viewBox={`${viewBoxLeft} 0 ${viewBoxWidth} ${viewBoxHeight}`}
-          preserveAspectRatio="xMinYMid meet"
-          xmlns="http://www.w3.org/2000/svg"
+        {/* 3D Stage Container with Perspective */}
+        <div 
+          className="absolute inset-0"
           style={{
-            position: 'absolute',
-            left: 0,
-            top: 0,
+            perspective: '2000px',
+            perspectiveOrigin: '50% 50%',
           }}
         >
+          <div 
+            className="w-full h-full solar-system-stage"
+            style={{
+              transformStyle: 'preserve-3d',
+              transform: 'rotateX(25deg) rotateY(-8deg)',
+              transformOrigin: 'center center',
+              transition: 'transform 0.6s ease-out',
+            }}
+          >
+            <svg
+              className="w-full h-full"
+              viewBox={`${viewBoxLeft} 0 ${viewBoxWidth} ${viewBoxHeight}`}
+              preserveAspectRatio="xMinYMid meet"
+              xmlns="http://www.w3.org/2000/svg"
+              style={{
+                position: 'absolute',
+                left: 0,
+                top: 0,
+                pointerEvents: 'none', // Allow interactions to pass through to planets
+              }}
+            >
           {/* Define patterns for dashed strokes */}
           <defs>
             <pattern id="dashPattern" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
@@ -141,6 +160,12 @@ const SolarSystem = () => {
               <stop offset="70%" stopColor="hsl(35 100% 50%)" stopOpacity="0.1" />
               <stop offset="100%" stopColor="transparent" stopOpacity="0" />
             </radialGradient>
+            {/* Linear gradient for orbit depth effect */}
+            <linearGradient id="orbitGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="white" stopOpacity="0.8" />
+              <stop offset="50%" stopColor="white" stopOpacity="0.4" />
+              <stop offset="100%" stopColor="white" stopOpacity="0.1" />
+            </linearGradient>
           </defs>
 
           {/* Visual sun marker for alignment (optional, for debugging) */}
@@ -151,10 +176,13 @@ const SolarSystem = () => {
             fill="url(#sunGradient)"
             stroke="hsl(45 100% 60%)"
             strokeWidth="2"
-            opacity="0.3"
+            opacity="0.4"
+            style={{
+              filter: 'drop-shadow(0 0 15px hsl(45 100% 60% / 0.5))',
+            }}
           />
 
-          {/* Draw orbit arcs (semicircles) and planets together - sun is on the left */}
+          {/* Draw full elliptical orbits and planets - orbits go around the back of the sun */}
           {projects.map((project, index) => {
             const radius = orbitRadii[`r${project.orbitIndex}` as keyof typeof orbitRadii] || 200;
             // Distribute planets based on their orbit index and some variation
@@ -163,45 +191,47 @@ const SolarSystem = () => {
             const angleStep = 20; // 20 degrees between each planet
             const angle = (baseAngle + (project.orbitIndex - 1) * angleStep) % 360;
             
-            // Draw right semicircle from top to bottom (right side visible)
-            // SVG angles: 0° = right, 90° = down, 180° = left, 270° = up
-            // For right semicircle: start at 270° (top), end at 90° (bottom)
-            const startAngle = 270; // Top
-            const endAngle = 90;   // Bottom
+            // Create full elliptical orbit that goes around the back of the sun
+            // Use ellipse instead of arc for full 3D effect
+            const ellipseRx = radius; // Horizontal radius
+            const ellipseRy = radius * 0.7; // Vertical radius (compressed for 3D perspective)
             
-            const startX = sunCenterX + radius * Math.cos((startAngle * Math.PI) / 180);
-            const startY = sunCenterY + radius * Math.sin((startAngle * Math.PI) / 180);
-            const endX = sunCenterX + radius * Math.cos((endAngle * Math.PI) / 180);
-            const endY = sunCenterY + radius * Math.sin((endAngle * Math.PI) / 180);
-            
-            // Use large-arc-flag=1 to ensure we get the right semicircle (180° arc)
-            const largeArcFlag = 1; // 1 for arcs > 180°, 0 for arcs ≤ 180°
-            const sweepFlag = 1;    // 1 for clockwise, 0 for counter-clockwise
-            
-            // Calculate planet position on this orbit
-            const position = getPlanetPosition(radius, sunCenterX, sunCenterY, angle);
+            // Calculate planet position on this elliptical orbit
+            const position = getPlanetPosition(ellipseRx, ellipseRy, sunCenterX, sunCenterY, angle);
             const planetRadius = 20; // Size of planet circle
             
             return (
               <g key={`orbit-planet-${project.id}`}>
-                {/* Orbit path */}
-                <path
-                  d={`M ${startX} ${startY} A ${radius} ${radius} 0 ${largeArcFlag} ${sweepFlag} ${endX} ${endY}`}
+                {/* Full elliptical orbit path */}
+                <ellipse
+                  cx={sunCenterX}
+                  cy={sunCenterY}
+                  rx={ellipseRx}
+                  ry={ellipseRy}
                   fill="none"
-                  stroke="white"
+                  stroke="url(#orbitGradient)"
                   strokeWidth="2"
                   strokeDasharray="8 12"
-                  opacity="0.6"
+                  opacity="0.7"
+                  style={{
+                    filter: 'drop-shadow(0 0 4px rgba(255, 255, 255, 0.3))',
+                  }}
                 />
                 
                 {/* Planet positioned on this orbit */}
                 <g
-                  className="pointer-events-auto"
+                  className="pointer-events-auto planet-group"
                   style={{ cursor: 'pointer' }}
                   onClick={() => setSelectedProject(project)}
                   transform={`translate(${position.x}, ${position.y})`}
                 >
-                  <g className="planet-inner" transform="scale(1)" style={{ transition: 'transform 0.2s ease' }}>
+                  <g 
+                    className="planet-inner" 
+                    transform="scale(1)" 
+                    style={{ 
+                      transformOrigin: 'center center',
+                    }}
+                  >
                     {/* Planet circle */}
                     <circle
                       cx="0"
@@ -241,6 +271,8 @@ const SolarSystem = () => {
           })}
 
         </svg>
+          </div>
+        </div>
       </div>
 
       {/* Project Details Panel */}

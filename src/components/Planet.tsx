@@ -89,9 +89,6 @@ const Planet = ({ project, onClick, orbitPath }: PlanetProps) => {
               boxShadow: `0 0 20px hsl(${project.accentColor} / 0.4)`,
             }}
           >
-            <span className="text-white drop-shadow-md">
-              {project.completionPercent}%
-            </span>
           </div>
         </div>
 

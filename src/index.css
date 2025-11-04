@@ -125,19 +125,21 @@ All colors MUST be HSL.
     min-height: 100vh;
     overflow-x: hidden;
     position: relative;
+    cursor: url('/spaceship-cursor.svg') 12 12, auto;
   }
   
   /* Starfield background - CSS only, very lightweight */
   body::before,
   body::after {
     content: '';
-    position: fixed;
+    position: absolute; /* Changed from fixed to absolute */
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
     pointer-events: none;
     z-index: 1;
+    background-attachment: fixed; /* Added for parallax effect */
   }
   
   /* Small stars layer */
@@ -168,11 +170,7 @@ All colors MUST be HSL.
       radial-gradient(1px 1px at 38% 42%, white, transparent),
       radial-gradient(2px 2px at 82% 92%, white, transparent),
       radial-gradient(1px 1px at 52% 28%, white, transparent);
-    background-size: 200% 200%, 250% 250%, 180% 180%, 220% 220%, 190% 190%,
-                     210% 210%, 240% 240%, 195% 195%, 230% 230%, 185% 185%,
-                     225% 225%, 205% 205%, 215% 215%, 235% 235%, 175% 175%,
-                     245% 245%, 200% 200%, 220% 220%, 190% 190%, 210% 210%,
-                     230% 230%, 195% 195%, 215% 215%, 185% 185%, 225% 225%;
+    background-size: 100% 100%; /* Adjusted to cover the entire viewport */
     background-repeat: repeat;
     opacity: 0.5;
     animation: twinkle 8s ease-in-out infinite;
@@ -196,21 +194,25 @@ All colors MUST be HSL.
       radial-gradient(1px 1px at 14% 24%, rgba(255,255,255,0.9), transparent),
       radial-gradient(1px 1px at 86% 64%, rgba(255,255,255,0.9), transparent),
       radial-gradient(1px 1px at 44% 6%, rgba(255,255,255,0.9), transparent);
-    background-size: 300% 300%, 280% 280%, 320% 320%, 290% 290%, 310% 310%,
-                     270% 270%, 330% 330%, 295% 295%, 285% 285%, 305% 305%,
-                     275% 275%, 315% 315%, 300% 300%, 290% 290%, 320% 320%;
+    background-size: 100% 100%; /* Adjusted to cover the entire viewport */
     background-repeat: repeat;
     opacity: 0.4;
     animation: twinkle 12s ease-in-out infinite reverse;
   }
 }
 
-/* Custom property for smooth progress animation */
-@property --progress-value {
-  syntax: '<number>';
-  initial-value: 0;
-  inherits: false;
+/* Motion path support (with WebKit prefix fallback) */
+.orbiting {
+  offset-rotate: 0deg;
+  offset-distance: var(--offset-distance, 0%);
+  -webkit-offset-distance: var(--offset-distance, 0%);
+  offset-path: path(var(--orbit-path));
+  -webkit-offset-path: path(var(--orbit-path));
+  transform: translate(calc(-0.5 * var(--planet-size, 64px) + var(--x-nudge, 0px)),
+                      calc(-0.5 * var(--planet-size, 64px)));
 }
+
+
 
 /* Pulse Glow */
 @keyframes pulse-glow {
@@ -255,14 +257,21 @@ All colors MUST be HSL.
   }
 }
 
-/* One-time planet travel animation */
-@keyframes travel-orbit {
+/* Moon orbit rotation */
+@keyframes moon-orbit {
   from {
-    offset-distance: 0%;
+    transform: rotate(0deg);
   }
   to {
-    offset-distance: var(--target-distance);
+    transform: rotate(360deg);
   }
+}
+
+/* Removed travel and percentage animations to keep planets static */
+
+/* SVG Planet hover effects */
+.planet-group:hover .planet-inner {
+  transform: scale(1.2);
 }
 
 /* Reduced motion support */

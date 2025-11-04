@@ -1,8 +1,8 @@
 import { useState } from "react";
-import Planet, { PlanetProject } from "./Planet";
+import { PlanetProject } from "./Planet";
 import ProjectPanel from "./ProjectPanel";
 
-// Sample project data - 5 projects with different completion percentages
+// Sample project data - 5 projects
 const projects: PlanetProject[] = [
   {
     id: "1",
@@ -70,86 +70,151 @@ const projects: PlanetProject[] = [
 ];
 
 /**
- * Generate SVG circle path (right semicircle only for visibility)
+ * Calculate planet position on a semicircle orbit
+ * @param radius - Orbit radius
+ * @param sunCenterX - X coordinate of sun center (off-canvas on right)
+ * @param sunCenterY - Y coordinate of sun center
+ * @param angleDeg - Angle in degrees (270 = top, 180 = left, 90 = bottom in standard math, but SVG uses different)
+ *                    For SVG: 0° = right, 90° = down, 180° = left, 270° = up
  */
-const generateOrbitPath = (radius: number, cx: number, cy: number): string => {
-  // Draw right semicircle from top to bottom
-  const startX = cx;
-  const startY = cy - radius;
-  const endX = cx;
-  const endY = cy + radius;
-  
-  // Arc going clockwise (right side)
-  return `M ${startX} ${startY} A ${radius} ${radius} 0 0 1 ${endX} ${endY}`;
+const getPlanetPosition = (
+  radius: number,
+  sunCenterX: number,
+  sunCenterY: number,
+  angleDeg: number
+): { x: number; y: number } => {
+  const angleRad = (angleDeg * Math.PI) / 180;
+  const x = sunCenterX + radius * Math.cos(angleRad);
+  const y = sunCenterY + radius * Math.sin(angleRad);
+  return { x, y };
 };
 
 const SolarSystem = () => {
   const [selectedProject, setSelectedProject] = useState<PlanetProject | null>(null);
 
-  // Define orbit radii - increased spacing for more horizontal spread
-  // Tokens: r1 through r6 for up to 6 projects
+  // SVG viewBox dimensions
+  const viewBoxWidth = 1200;
+  const viewBoxHeight = 900;
+
+  // Sun center position - aligned with Hero component
+  // Sun is positioned at left: -250px (mobile) or -350px (desktop)
+  // Width: 500px (mobile) or 700px (desktop)
+  // The sun's geometric center is at x = 0 (where left edge + width/2 = -250 + 250 = 0)
+  // But since the sun is partially off-screen, we position orbits relative to this center
+  // For SVG, we use x = 50 to account for proper positioning within viewBox
+  const sunCenterX = 50; // Left edge position, accounting for sun being partially off-screen
+  const sunCenterY = viewBoxHeight / 2; // Vertically centered at 450
+
+  // Orbit radii for the 5 planets - these should extend from the sun center
   const orbitRadii = {
     r1: 300,
     r2: 420,
     r3: 540,
     r4: 660,
     r5: 780,
-    r6: 900,
   };
 
-  // Sun center position - left side of canvas
-  // These should align with the half-sun position in Hero component
-  // The sun is on the left edge, so we position at the far left
-  const sunCenterX = 50; // Left edge of the SVG viewBox
-  const sunCenterY = 450; // Positioned higher to allow orbits to extend down
+  // Planet positions along the semicircle (angles in degrees for SVG coordinate system)
+  // Sun is on the left, so orbits extend to the right
+  // 0° = right (straight out), 90° = down, 180° = left, 270° = up
+  // We want the right semicircle visible, so angles from 270° (top) to 90° (bottom)
+  const planetAngles = [250, 220, 180, 140, 110]; // From top to bottom of the visible right semicircle
 
   return (
     <section className="absolute inset-0 flex items-center justify-center pointer-events-none z-10" aria-label="Projects Solar System">
-      {/* Solar System Canvas - SVG for orbit paths - Full width for orbits */}
-      <div className="relative w-full h-full pointer-events-none" role="region" aria-label="Interactive project orbits">
+      <div className="relative w-full h-full">
         <svg
-          className="absolute inset-0 w-full h-full pointer-events-none"
-          viewBox="0 0 1200 900"
-          preserveAspectRatio="xMidYMid slice"
+          className="w-full h-full"
+          viewBox={`0 0 ${viewBoxWidth} ${viewBoxHeight}`}
+          preserveAspectRatio="xMidYMid meet"
+          xmlns="http://www.w3.org/2000/svg"
         >
-          {/* Draw semicircle orbit trails (underlays with rounded caps) */}
-          {projects.map((project) => {
+          {/* Define patterns for dashed strokes */}
+          <defs>
+            <pattern id="dashPattern" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
+              <line x1="0" y1="0" x2="20" y2="0" stroke="white" strokeWidth="2" strokeDasharray="8 12" />
+            </pattern>
+          </defs>
+
+          {/* Draw orbit arcs (semicircles) and planets together - sun is on the left */}
+          {projects.map((project, index) => {
             const radius = orbitRadii[`r${project.orbitIndex}` as keyof typeof orbitRadii] || 200;
-            const path = generateOrbitPath(radius, sunCenterX, sunCenterY);
+            const angle = planetAngles[index];
+            
+            // Draw right semicircle from top to bottom (right side visible)
+            // SVG angles: 0° = right, 90° = down, 180° = left, 270° = up
+            // For right semicircle: start at 270° (top), end at 90° (bottom)
+            const startAngle = 270; // Top
+            const endAngle = 90;   // Bottom
+            
+            const startX = sunCenterX + radius * Math.cos((startAngle * Math.PI) / 180);
+            const startY = sunCenterY + radius * Math.sin((startAngle * Math.PI) / 180);
+            const endX = sunCenterX + radius * Math.cos((endAngle * Math.PI) / 180);
+            const endY = sunCenterY + radius * Math.sin((endAngle * Math.PI) / 180);
+            
+            // Calculate planet position on this orbit
+            const position = getPlanetPosition(radius, sunCenterX, sunCenterY, angle);
+            const planetRadius = 20; // Size of planet circle
             
             return (
-              <g key={`orbit-${project.id}`}>
-                {/* Thin dashed neon blue orbit line */}
+              <g key={`orbit-planet-${project.id}`}>
+                {/* Orbit path */}
                 <path
-                  d={path}
+                  d={`M ${startX} ${startY} A ${radius} ${radius} 0 0 1 ${endX} ${endY}`}
                   fill="none"
-                  stroke="hsl(195 100% 50%)"
+                  stroke="white"
                   strokeWidth="2"
-                  strokeLinecap="round"
                   strokeDasharray="8 12"
                   opacity="0.6"
                 />
+                
+                {/* Planet positioned on this orbit */}
+                <g
+                  className="pointer-events-auto"
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => setSelectedProject(project)}
+                  transform={`translate(${position.x}, ${position.y})`}
+                >
+                  <g className="planet-inner" transform="scale(1)" style={{ transition: 'transform 0.2s ease' }}>
+                    {/* Planet circle */}
+                    <circle
+                      cx="0"
+                      cy="0"
+                      r={planetRadius}
+                      fill={`hsl(${project.accentColor})`}
+                      stroke={`hsl(${project.accentColor})`}
+                      strokeWidth="2"
+                      opacity="0.9"
+                      style={{
+                        filter: `drop-shadow(0 0 10px hsl(${project.accentColor} / 0.6))`,
+                      }}
+                    />
+                    {/* Planet inner glow */}
+                    <circle
+                      cx="0"
+                      cy="0"
+                      r={planetRadius * 0.7}
+                      fill={`hsl(${project.accentColor} / 0.5)`}
+                    />
+                  </g>
+                  {/* Project title text */}
+                  <text
+                    x="0"
+                    y={planetRadius + 35}
+                    textAnchor="middle"
+                    fill="white"
+                    fontSize="12"
+                    fontWeight="500"
+                    className="drop-shadow-lg pointer-events-none"
+                  >
+                    {project.title}
+                  </text>
+                </g>
               </g>
             );
           })}
-        </svg>
 
-        {/* Planets positioned using CSS offset-path */}
-        <div className="absolute inset-0 w-full h-full pointer-events-auto">
-          {projects.map((project) => {
-            const radius = orbitRadii[`r${project.orbitIndex}` as keyof typeof orbitRadii] || 200;
-            const orbitPath = generateOrbitPath(radius, sunCenterX, sunCenterY);
-            
-            return (
-              <Planet
-                key={project.id}
-                project={project}
-                orbitPath={orbitPath}
-                onClick={() => setSelectedProject(project)}
-              />
-            );
-          })}
-        </div>
+        </svg>
       </div>
 
       {/* Project Details Panel */}

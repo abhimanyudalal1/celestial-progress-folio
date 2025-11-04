@@ -58,16 +58,18 @@ const ProjectPanel = ({ project, onClose }: ProjectPanelProps) => {
       {/* Panel */}
       <aside
         ref={panelRef}
-        className="fixed right-0 top-0 h-full w-full sm:w-[500px] bg-card border-l border-border shadow-2xl z-50 overflow-y-auto animate-slide-in-right"
+        className="fixed right-0 top-0 h-full w-full sm:w-[500px] bg-white dark:bg-gray-900 border-l border-gray-200 dark:border-gray-700 shadow-2xl z-50 overflow-y-auto animate-slide-in-right pointer-events-auto"
         role="dialog"
         aria-modal="true"
         aria-labelledby="panel-title"
+        onClick={(e) => e.stopPropagation()}
+        style={{ backgroundColor: 'white' }}
       >
         <div className="p-6 space-y-6">
           {/* Header */}
           <div className="flex items-start justify-between">
             <div className="space-y-1 flex-1">
-              <h2 id="panel-title" className="text-2xl font-bold">
+              <h2 id="panel-title" className="text-2xl font-bold" style={{ color: '#1f2937' }}>
                 {project.title}
               </h2>
               <div className="flex items-center gap-3">
@@ -83,8 +85,8 @@ const ProjectPanel = ({ project, onClose }: ProjectPanelProps) => {
                   </span>
                 </div>
                 <div>
-                  <p className="text-sm font-medium">Project Progress</p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-sm font-semibold" style={{ color: '#1f2937' }}>Project Progress</p>
+                  <p className="text-xs font-medium" style={{ color: '#4b5563' }}>
                     {project.completionPercent}% Complete
                   </p>
                 </div>
@@ -94,7 +96,12 @@ const ProjectPanel = ({ project, onClose }: ProjectPanelProps) => {
               ref={closeButtonRef}
               variant="ghost"
               size="icon"
-              onClick={onClose}
+              onClick={(e) => {
+                e.stopPropagation();
+                onClose();
+              }}
+              className="pointer-events-auto z-50"
+              style={{ color: '#1f2937' }}
               aria-label="Close project details"
             >
               <X className="w-5 h-5" />
@@ -103,15 +110,15 @@ const ProjectPanel = ({ project, onClose }: ProjectPanelProps) => {
 
           {/* Description */}
           <div className="space-y-2">
-            <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            <h3 className="text-sm font-semibold uppercase tracking-wide" style={{ color: '#6b7280' }}>
               Description
             </h3>
-            <p className="text-foreground leading-relaxed">{project.description}</p>
+            <p className="font-medium leading-relaxed" style={{ color: '#1f2937' }}>{project.description}</p>
           </div>
 
           {/* Tech Stack */}
           <div className="space-y-3">
-            <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            <h3 className="text-sm font-semibold uppercase tracking-wide" style={{ color: '#6b7280' }}>
               Tech Stack
             </h3>
             <div className="flex flex-wrap gap-2">
@@ -125,7 +132,7 @@ const ProjectPanel = ({ project, onClose }: ProjectPanelProps) => {
 
           {/* Links */}
           <div className="space-y-3">
-            <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            <h3 className="text-sm font-semibold uppercase tracking-wide" style={{ color: '#6b7280' }}>
               Links
             </h3>
             <div className="flex flex-col gap-3">
@@ -165,9 +172,9 @@ const ProjectPanel = ({ project, onClose }: ProjectPanelProps) => {
           </div>
 
           {/* Progress Details */}
-          <div className="p-4 bg-muted rounded-lg space-y-2">
-            <h3 className="text-sm font-semibold">Development Status</h3>
-            <div className="w-full bg-background rounded-full h-2 overflow-hidden">
+          <div className="p-4 rounded-lg space-y-2" style={{ backgroundColor: '#f3f4f6' }}>
+            <h3 className="text-sm font-semibold" style={{ color: '#1f2937' }}>Development Status</h3>
+            <div className="w-full rounded-full h-2 overflow-hidden" style={{ backgroundColor: '#e5e7eb' }}>
               <div
                 className="h-full transition-all duration-500 rounded-full"
                 style={{
@@ -177,7 +184,7 @@ const ProjectPanel = ({ project, onClose }: ProjectPanelProps) => {
                 }}
               />
             </div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs font-medium" style={{ color: '#4b5563' }}>
               {project.completionPercent === 100
                 ? "Project completed and deployed!"
                 : `${100 - project.completionPercent}% remaining to completion`}

@@ -92,54 +92,76 @@ const getPlanetPosition = (
 const SolarSystem = () => {
   const [selectedProject, setSelectedProject] = useState<PlanetProject | null>(null);
 
-  // SVG viewBox dimensions
+  // SVG viewBox dimensions - extend left to show full orbits
   const viewBoxWidth = 1200;
   const viewBoxHeight = 900;
+  const viewBoxLeft = -200; // Start viewBox at x=-200 to show orbits extending from sun at x=0
 
   // Sun center position - aligned with Hero component
-  // Sun is positioned at left: -250px (mobile) or -350px (desktop)
-  // Width: 500px (mobile) or 700px (desktop)
-  // The sun's geometric center is at x = 0 (where left edge + width/2 = -250 + 250 = 0)
-  // But since the sun is partially off-screen, we position orbits relative to this center
-  // For SVG, we use x = 50 to account for proper positioning within viewBox
-  const sunCenterX = 50; // Left edge position, accounting for sun being partially off-screen
+  // Hero component positions sun at -250px (mobile) or -350px (desktop) with width 500px/700px
+  // The sun's geometric center should be at the viewport's left edge (x=0 in screen coordinates)
+  // For mobile: sun left edge at -250px, width 500px, so center at -250 + 250 = 0px
+  // For desktop: sun left edge at -350px, width 700px, so center at -350 + 350 = 0px
+  // In SVG coordinates, we need to map this to our viewBox
+  // Since sun center is at screen x=0, and our viewBox starts at 0, we use x=0 for sun center
+  const sunCenterX = 0; // Sun center at left edge of viewport
   const sunCenterY = viewBoxHeight / 2; // Vertically centered at 450
 
-  // Orbit radii for the 5 planets - these should extend from the sun center
+  // Orbit radii for the 5 planets - these should extend from the sun center at x=0
   const orbitRadii = {
-    r1: 300,
-    r2: 420,
-    r3: 540,
-    r4: 660,
-    r5: 780,
+    r1: 200,
+    r2: 300,
+    r3: 400,
+    r4: 500,
+    r5: 600,
   };
 
-  // Planet positions along the semicircle (angles in degrees for SVG coordinate system)
-  // Sun is on the left, so orbits extend to the right
-  // 0° = right (straight out), 90° = down, 180° = left, 270° = up
-  // We want the right semicircle visible, so angles from 270° (top) to 90° (bottom)
-  const planetAngles = [250, 220, 180, 140, 110]; // From top to bottom of the visible right semicircle
-
   return (
-    <section className="absolute inset-0 flex items-center justify-center pointer-events-none z-10" aria-label="Projects Solar System">
+    <section className="absolute inset-0 flex items-center justify-start pointer-events-none z-10" aria-label="Projects Solar System">
       <div className="relative w-full h-full">
         <svg
           className="w-full h-full"
-          viewBox={`0 0 ${viewBoxWidth} ${viewBoxHeight}`}
-          preserveAspectRatio="xMidYMid meet"
+          viewBox={`${viewBoxLeft} 0 ${viewBoxWidth} ${viewBoxHeight}`}
+          preserveAspectRatio="xMinYMid meet"
           xmlns="http://www.w3.org/2000/svg"
+          style={{
+            position: 'absolute',
+            left: 0,
+            top: 0,
+          }}
         >
           {/* Define patterns for dashed strokes */}
           <defs>
             <pattern id="dashPattern" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
               <line x1="0" y1="0" x2="20" y2="0" stroke="white" strokeWidth="2" strokeDasharray="8 12" />
             </pattern>
+            {/* Radial gradient for sun glow */}
+            <radialGradient id="sunGradient" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stopColor="hsl(45 100% 60%)" stopOpacity="0.3" />
+              <stop offset="70%" stopColor="hsl(35 100% 50%)" stopOpacity="0.1" />
+              <stop offset="100%" stopColor="transparent" stopOpacity="0" />
+            </radialGradient>
           </defs>
+
+          {/* Visual sun marker for alignment (optional, for debugging) */}
+          <circle
+            cx={sunCenterX}
+            cy={sunCenterY}
+            r="25"
+            fill="url(#sunGradient)"
+            stroke="hsl(45 100% 60%)"
+            strokeWidth="2"
+            opacity="0.3"
+          />
 
           {/* Draw orbit arcs (semicircles) and planets together - sun is on the left */}
           {projects.map((project, index) => {
             const radius = orbitRadii[`r${project.orbitIndex}` as keyof typeof orbitRadii] || 200;
-            const angle = planetAngles[index];
+            // Distribute planets based on their orbit index and some variation
+            // Keep angles within right semicircle (270° to 90°, going clockwise)
+            const baseAngle = 300; // Start from upper-right
+            const angleStep = 20; // 20 degrees between each planet
+            const angle = (baseAngle + (project.orbitIndex - 1) * angleStep) % 360;
             
             // Draw right semicircle from top to bottom (right side visible)
             // SVG angles: 0° = right, 90° = down, 180° = left, 270° = up
@@ -152,6 +174,10 @@ const SolarSystem = () => {
             const endX = sunCenterX + radius * Math.cos((endAngle * Math.PI) / 180);
             const endY = sunCenterY + radius * Math.sin((endAngle * Math.PI) / 180);
             
+            // Use large-arc-flag=1 to ensure we get the right semicircle (180° arc)
+            const largeArcFlag = 1; // 1 for arcs > 180°, 0 for arcs ≤ 180°
+            const sweepFlag = 1;    // 1 for clockwise, 0 for counter-clockwise
+            
             // Calculate planet position on this orbit
             const position = getPlanetPosition(radius, sunCenterX, sunCenterY, angle);
             const planetRadius = 20; // Size of planet circle
@@ -160,7 +186,7 @@ const SolarSystem = () => {
               <g key={`orbit-planet-${project.id}`}>
                 {/* Orbit path */}
                 <path
-                  d={`M ${startX} ${startY} A ${radius} ${radius} 0 0 1 ${endX} ${endY}`}
+                  d={`M ${startX} ${startY} A ${radius} ${radius} 0 ${largeArcFlag} ${sweepFlag} ${endX} ${endY}`}
                   fill="none"
                   stroke="white"
                   strokeWidth="2"

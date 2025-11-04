@@ -2,7 +2,7 @@ import { useState } from "react";
 import { PlanetProject } from "./Planet";
 import ProjectPanel from "./ProjectPanel";
 
-// Sample project data - 5 projects
+// Sample projects data
 const projects: PlanetProject[] = [
   {
     id: "1",
@@ -94,9 +94,9 @@ const SolarSystem = () => {
   const [selectedProject, setSelectedProject] = useState<PlanetProject | null>(null);
 
   // SVG viewBox dimensions - extend left to show full orbits, shifted for left alignment
-  const viewBoxWidth = 110;
-  const viewBoxHeight = 900;
-  const viewBoxLeft = -390; // Start viewBox further left to accommodate the shifted sun and orbits
+  const viewBoxWidth = 10;
+  const viewBoxHeight = 700;
+  const viewBoxLeft = -140; // Start viewBox further left to accommodate the shifted sun and orbits
 
   // Sun center position - aligned with Hero component, shifted left
   // Hero component positions sun at -250px (mobile) or -350px (desktop) with width 500px/700px
@@ -120,7 +120,149 @@ const SolarSystem = () => {
   return (
     <section className="absolute inset-0 flex items-center justify-start pointer-events-none z-10" aria-label="Projects Solar System">
       <div className="relative w-full h-full">
-        {/* 3D Stage Container with Perspective */}
+        {/* Clean Sun Element - NO 3D transformations */}
+        <div className="absolute inset-0">
+          <svg
+            className="w-full h-full"
+            viewBox={`${viewBoxLeft} 0 ${viewBoxWidth} ${viewBoxHeight}`}
+            preserveAspectRatio="xMinYMid meet"
+            xmlns="http://www.w3.org/2000/svg"
+            style={{
+              position: 'absolute',
+              left: 0,
+              top: 0,
+              pointerEvents: 'none',
+            }}
+          >
+            <defs>
+              {/* Bright yellowish sun gradient */}
+              <radialGradient id="brightSunGradient" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stopColor="hsl(55 100% 75%)" stopOpacity="1" />
+                <stop offset="40%" stopColor="hsl(50 100% 65%)" stopOpacity="0.9" />
+                <stop offset="80%" stopColor="hsl(45 100% 55%)" stopOpacity="0.85" />
+                <stop offset="100%" stopColor="hsl(40 100% 45%)" stopOpacity="0.8" />
+              </radialGradient>
+            </defs>
+
+            {/* Clean, bright sun */}
+            <g>
+              {/* Main sun circle */}
+              <circle
+                cx={sunCenterX}
+                cy={sunCenterY}
+                r="180"
+                fill="url(#brightSunGradient)"
+                stroke="hsl(45 100% 80%)"
+                strokeWidth="4"
+                style={{
+                  filter: 'drop-shadow(0 0 40px hsl(45 100% 60% / 0.8))',
+                }}
+              />
+
+              {/* Hero text content - NO transformations */}
+              <g>
+                {/* Name */}
+                <text
+                  x={sunCenterX + 80}
+                  y={sunCenterY - 15}
+                  textAnchor="middle"
+                  fill="white"
+                  fontSize="32"
+                  fontWeight="bold"
+                  className="drop-shadow-lg"
+                >
+                  Abhimanyu
+                </text>
+                
+                {/* Title */}
+                <text
+                  x={sunCenterX + 80}
+                  y={sunCenterY + 10}
+                  textAnchor="middle"
+                  fill="rgba(255, 255, 255, 0.95)"
+                  fontSize="13"
+                  className="drop-shadow-md"
+                >
+                Machine Learning/GenAI Engineer
+                </text>
+
+                {/* Social icons */}
+                <g>
+                  {/* GitHub */}
+                  <circle
+                    cx={sunCenterX + 55}
+                    cy={sunCenterY + 40}
+                    r="12"
+                    fill="rgba(255, 255, 255, 0.15)"
+                    stroke="rgba(255, 255, 255, 0.4)"
+                    strokeWidth="1"
+                    style={{ cursor: 'pointer' }}
+                    className="pointer-events-auto"
+                    onClick={() => window.open('https://github.com/abhimanyudalal1', '_blank')}
+                  />
+                  <text
+                    x={sunCenterX + 55}
+                    y={sunCenterY + 44}
+                    textAnchor="middle"
+                    fill="white"
+                    fontSize="10"
+                    style={{ cursor: 'pointer', pointerEvents: 'none' }}
+                  >
+                    GH
+                  </text>
+
+                  {/* LinkedIn */}
+                  <circle
+                    cx={sunCenterX + 80}
+                    cy={sunCenterY + 40}
+                    r="12"
+                    fill="rgba(255, 255, 255, 0.15)"
+                    stroke="rgba(255, 255, 255, 0.4)"
+                    strokeWidth="1"
+                    style={{ cursor: 'pointer' }}
+                    className="pointer-events-auto"
+                    onClick={() => window.open('https://linkedin.com/in/abhimanyudalal1', '_blank')}
+                  />
+                  <text
+                    x={sunCenterX + 80}
+                    y={sunCenterY + 44}
+                    textAnchor="middle"
+                    fill="white"
+                    fontSize="10"
+                    style={{ cursor: 'pointer', pointerEvents: 'none' }}
+                  >
+                    LI
+                  </text>
+
+                  {/* Email */}
+                  <circle
+                    cx={sunCenterX + 105}
+                    cy={sunCenterY + 40}
+                    r="12"
+                    fill="rgba(255, 255, 255, 0.15)"
+                    stroke="rgba(255, 255, 255, 0.4)"
+                    strokeWidth="1"
+                    style={{ cursor: 'pointer' }}
+                    className="pointer-events-auto"
+                    onClick={() => window.open('mailto:your.email@example.com', '_blank')}
+                  />
+                  <text
+                    x={sunCenterX + 105}
+                    y={sunCenterY + 44}
+                    textAnchor="middle"
+                    fill="white"
+                    fontSize="9"
+                    style={{ cursor: 'pointer', pointerEvents: 'none' }}
+                  >
+                    @
+                  </text>
+                </g>
+              </g>
+            </g>
+          </svg>
+        </div>
+
+        {/* 3D Stage Container with Perspective - ONLY for orbits and planets */}
         <div 
           className="absolute inset-0"
           style={{
@@ -146,20 +288,14 @@ const SolarSystem = () => {
                 position: 'absolute',
                 left: 0,
                 top: 0,
-                pointerEvents: 'none', // Allow interactions to pass through to planets
+                pointerEvents: 'none',
               }}
             >
-          {/* Define patterns for dashed strokes */}
+          {/* Define patterns for dashed strokes - only for orbits */}
           <defs>
             <pattern id="dashPattern" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
               <line x1="0" y1="0" x2="20" y2="0" stroke="white" strokeWidth="2" strokeDasharray="8 12" />
             </pattern>
-            {/* Radial gradient for sun glow */}
-            <radialGradient id="sunGradient" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor="hsl(45 100% 60%)" stopOpacity="0.3" />
-              <stop offset="70%" stopColor="hsl(35 100% 50%)" stopOpacity="0.1" />
-              <stop offset="100%" stopColor="transparent" stopOpacity="0" />
-            </radialGradient>
             {/* Linear gradient for orbit depth effect */}
             <linearGradient id="orbitGradient" x1="0%" y1="0%" x2="100%" y2="100%">
               <stop offset="0%" stopColor="white" stopOpacity="0.8" />
@@ -167,20 +303,6 @@ const SolarSystem = () => {
               <stop offset="100%" stopColor="white" stopOpacity="0.1" />
             </linearGradient>
           </defs>
-
-          {/* Visual sun marker for alignment (optional, for debugging) */}
-          <circle
-            cx={sunCenterX}
-            cy={sunCenterY}
-            r="25"
-            fill="url(#sunGradient)"
-            stroke="hsl(45 100% 60%)"
-            strokeWidth="2"
-            opacity="0.4"
-            style={{
-              filter: 'drop-shadow(0 0 15px hsl(45 100% 60% / 0.5))',
-            }}
-          />
 
           {/* Draw full elliptical orbits and planets - orbits go around the back of the sun */}
           {projects.map((project, index) => {

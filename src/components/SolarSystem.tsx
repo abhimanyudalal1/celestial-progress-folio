@@ -94,9 +94,9 @@ const SolarSystem = () => {
   const [selectedProject, setSelectedProject] = useState<PlanetProject | null>(null);
 
   // SVG viewBox dimensions - extend left to show full orbits, shifted for left alignment
-  const viewBoxWidth = 1200;
+  const viewBoxWidth = 110;
   const viewBoxHeight = 900;
-  const viewBoxLeft = -300; // Start viewBox further left to accommodate the shifted sun and orbits
+  const viewBoxLeft = -390; // Start viewBox further left to accommodate the shifted sun and orbits
 
   // Sun center position - aligned with Hero component, shifted left
   // Hero component positions sun at -250px (mobile) or -350px (desktop) with width 500px/700px

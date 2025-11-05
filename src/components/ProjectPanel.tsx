@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { X, Github, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { GradientButton } from "@/components/ui/gradient-button";
 import { Badge } from "@/components/ui/badge";
 import { PlanetProject } from "./Planet";
 
@@ -50,15 +51,20 @@ const ProjectPanel = ({ project, onClose }: ProjectPanelProps) => {
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 animate-in fade-in"
-        onClick={onClose}
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] animate-in fade-in cursor-pointer"
+        onClick={(e) => {
+          console.log('Backdrop clicked'); // Debug log
+          e.preventDefault();
+          e.stopPropagation();
+          onClose();
+        }}
         aria-hidden="true"
       />
 
       {/* Panel */}
       <aside
         ref={panelRef}
-        className="fixed right-0 top-0 h-full w-full sm:w-[500px] bg-white dark:bg-gray-900 border-l border-gray-200 dark:border-gray-700 shadow-2xl z-50 overflow-y-auto animate-slide-in-right pointer-events-auto"
+        className="fixed right-0 top-0 h-full w-full sm:w-[500px] bg-white dark:bg-gray-900 border-l border-gray-200 dark:border-gray-700 shadow-2xl z-[101] overflow-y-auto animate-slide-in-right pointer-events-auto"
         role="dialog"
         aria-modal="true"
         aria-labelledby="panel-title"
@@ -137,8 +143,7 @@ const ProjectPanel = ({ project, onClose }: ProjectPanelProps) => {
             </h3>
             <div className="flex flex-col gap-3">
               {project.links.github && (
-                <Button
-                  variant="outline"
+                <GradientButton
                   className="w-full justify-start gap-2"
                   asChild
                 >
@@ -150,11 +155,11 @@ const ProjectPanel = ({ project, onClose }: ProjectPanelProps) => {
                     <Github className="w-4 h-4" />
                     View on GitHub
                   </a>
-                </Button>
+                </GradientButton>
               )}
               {project.links.live && (
-                <Button
-                  variant="default"
+                <GradientButton
+                  variant="variant"
                   className="w-full justify-start gap-2"
                   asChild
                 >
@@ -166,7 +171,7 @@ const ProjectPanel = ({ project, onClose }: ProjectPanelProps) => {
                     <ExternalLink className="w-4 h-4" />
                     View Live Demo
                   </a>
-                </Button>
+                </GradientButton>
               )}
             </div>
           </div>

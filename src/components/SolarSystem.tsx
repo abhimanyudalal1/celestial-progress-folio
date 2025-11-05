@@ -1,6 +1,9 @@
-import { useState } from "react";
 import { PlanetProject } from "./Planet";
-import ProjectPanel from "./ProjectPanel";
+
+interface SolarSystemProps {
+  selectedProject: PlanetProject | null;
+  setSelectedProject: (project: PlanetProject | null) => void;
+}
 
 // Sample projects data
 const projects: PlanetProject[] = [
@@ -90,8 +93,7 @@ const getPlanetPosition = (
   return { x, y };
 };
 
-const SolarSystem = () => {
-  const [selectedProject, setSelectedProject] = useState<PlanetProject | null>(null);
+const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) => {
 
   // SVG viewBox dimensions - extend left to show full orbits, shifted for left alignment
   const viewBoxWidth = 10;
@@ -105,7 +107,7 @@ const SolarSystem = () => {
   // For desktop: sun left edge at -350px, width 700px, so center at -350 + 350 = 0px
   // In SVG coordinates, we need to map this to our viewBox
   // Shifting the entire setup left by moving sun center from 0 to -100
-  const sunCenterX = -100; // Sun center shifted left
+  const sunCenterX = -110; // Sun center shifted left
   const sunCenterY = viewBoxHeight / 2; // Vertically centered at 450
 
   // Orbit radii for the 5 planets - these should extend from the sun center at x=0
@@ -140,7 +142,7 @@ const SolarSystem = () => {
                 <stop offset="0%" stopColor="hsl(55 100% 75%)" stopOpacity="1" />
                 <stop offset="40%" stopColor="hsl(50 100% 65%)" stopOpacity="0.9" />
                 <stop offset="80%" stopColor="hsl(45 100% 55%)" stopOpacity="0.85" />
-                <stop offset="100%" stopColor="hsl(40 100% 45%)" stopOpacity="0.8" />
+                <stop offset="100%" stopColor="hsl(35 100% 45%)" stopOpacity="0.8" />
               </radialGradient>
             </defs>
 
@@ -396,14 +398,6 @@ const SolarSystem = () => {
           </div>
         </div>
       </div>
-
-      {/* Project Details Panel */}
-      {selectedProject && (
-        <ProjectPanel
-          project={selectedProject}
-          onClose={() => setSelectedProject(null)}
-        />
-      )}
     </section>
   );
 };

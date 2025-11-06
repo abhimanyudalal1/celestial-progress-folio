@@ -9,7 +9,7 @@ interface SolarSystemProps {
 const projects: PlanetProject[] = [
   {
     id: "1",
-    title: "E-Commerce Platform",
+    title: "Human-AI interaction",
     description: "A full-stack e-commerce solution with React, Node.js, and Stripe integration. Features include real-time inventory management, user authentication, and a responsive checkout flow.",
     stack: ["React", "Node.js", "PostgreSQL", "Stripe", "Tailwind CSS"],
     completionPercent: 45,

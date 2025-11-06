@@ -1,4 +1,6 @@
 import { PlanetProject } from "./Planet";
+import Planet from "./Planet";
+import { useState, useEffect } from "react";
 
 interface SolarSystemProps {
   selectedProject: PlanetProject | null;
@@ -12,12 +14,12 @@ const projects: PlanetProject[] = [
     title: "Human-AI interaction",
     description: "A full-stack e-commerce solution with React, Node.js, and Stripe integration. Features include real-time inventory management, user authentication, and a responsive checkout flow.",
     stack: ["React", "Node.js", "PostgreSQL", "Stripe", "Tailwind CSS"],
-    completionPercent: 45,
+    completionPercent: 75,
     links: {
       github: "https://github.com",
       live: "https://example.com",
     },
-    accentColor: "200 85% 55%",
+    accentColor: "200 65% 55%",
     orbitIndex: 1,
   },
   {
@@ -50,7 +52,7 @@ const projects: PlanetProject[] = [
     title: "Weather Dashboard",
     description: "A beautiful weather forecasting dashboard with interactive maps, hourly predictions, and location-based alerts. Built with modern design patterns.",
     stack: ["Vue.js", "D3.js", "OpenWeather API", "CSS Grid"],
-    completionPercent: 10,
+    completionPercent: 50,
     links: {
       github: "https://github.com",
       live: "https://example.com",
@@ -94,29 +96,41 @@ const getPlanetPosition = (
 };
 
 const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) => {
+  const [dimensions, setDimensions] = useState({ width: 1920, height: 1080 });
 
-  // SVG viewBox dimensions - extend left to show full orbits, shifted for left alignment
-  const viewBoxWidth = 10;
-  const viewBoxHeight = 700;
-  const viewBoxLeft = -140; // Start viewBox further left to accommodate the shifted sun and orbits
+  useEffect(() => {
+    const updateDimensions = () => {
+      setDimensions({ 
+        width: window.innerWidth, 
+        height: window.innerHeight 
+      });
+    };
 
-  // Sun center position - aligned with Hero component, shifted left
-  // Hero component positions sun at -250px (mobile) or -350px (desktop) with width 500px/700px
-  // The sun's geometric center should be at the viewport's left edge (x=0 in screen coordinates)
-  // For mobile: sun left edge at -250px, width 500px, so center at -250 + 250 = 0px
-  // For desktop: sun left edge at -350px, width 700px, so center at -350 + 350 = 0px
-  // In SVG coordinates, we need to map this to our viewBox
-  // Shifting the entire setup left by moving sun center from 0 to -100
-  const sunCenterX = -110; // Sun center shifted left
-  const sunCenterY = viewBoxHeight / 2; // Vertically centered at 450
+    updateDimensions(); // Initial call
+    window.addEventListener('resize', updateDimensions);
+    return () => window.removeEventListener('resize', updateDimensions);
+  }, []);
 
-  // Orbit radii for the 5 planets - these should extend from the sun center at x=0
+  // Base dimension for responsive scaling
+  const baseDimension = Math.min(dimensions.width, dimensions.height);
+
+  // SVG viewBox dimensions - expanded to show large orbits
+  const viewBoxWidth = 3000; // Much wider to accommodate large orbits
+  const viewBoxHeight = 1000; // Fixed height that works  
+  const viewBoxLeft = -800; // Further left to show full orbits
+
+  // Sun center position - positioned on the left side like the reference image
+  const sunCenterX = -700; // Move sun much further to the left
+  const sunCenterY = 500; // Center vertically
+
+  // Orbit radii - make them smaller to bring planets closer to the sun
+  const baseRadius = baseDimension * 0.4; // Reduced from 1.2 to 0.4 (much smaller orbits)
   const orbitRadii = {
-    r1: 300,
-    r2: 450,
-    r3: 600,
-    r4: 750,
-    r5: 900,
+    r1: baseRadius * 2.0, // Smaller, tighter orbits
+    r2: baseRadius * 3.0,
+    r3: baseRadius * 4.0, 
+    r4: baseRadius * 5.0,
+    r5: baseRadius * 6.0,
   };
 
   return (
@@ -148,53 +162,53 @@ const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) 
 
             {/* Clean, bright sun */}
             <g>
-              {/* Main sun circle */}
+              {/* Main sun circle - DOUBLED in size */}
               <circle
                 cx={sunCenterX}
                 cy={sunCenterY}
-                r="180"
+                r={baseDimension * 0.5} // DOUBLED from 0.25 to 0.5
                 fill="url(#brightSunGradient)"
                 stroke="hsl(45 100% 80%)"
-                strokeWidth="4"
+                strokeWidth={baseDimension * 0.016} // Doubled stroke width too
                 style={{
-                  filter: 'drop-shadow(0 0 40px hsl(45 100% 60% / 0.8))',
+                  filter: `drop-shadow(0 0 ${baseDimension * 0.12}px hsl(45 100% 60% / 0.8))`,
                 }}
               />
 
               {/* Hero text content - NO transformations */}
               <g>
-                {/* Name */}
+                {/* Name - DOUBLED font size */}
                 <text
-                  x={sunCenterX + 80}
-                  y={sunCenterY - 15}
+                  x={sunCenterX + baseDimension * 0.19} 
+                  y={sunCenterY - baseDimension * 0.03}
                   textAnchor="middle"
                   fill="white"
-                  fontSize="32"
+                  fontSize={baseDimension * 0.095} // DOUBLED from 0.025 to 0.05
                   fontWeight="bold"
                   className="drop-shadow-lg"
                 >
                   Abhimanyu
                 </text>
                 
-                {/* Title */}
+                {/* Title - DOUBLED font size */}
                 <text
-                  x={sunCenterX + 80}
-                  y={sunCenterY + 10}
+                  x={sunCenterX + baseDimension * 0.19}
+                  y={sunCenterY + baseDimension * 0.02}
                   textAnchor="middle"
                   fill="rgba(255, 255, 255, 0.95)"
-                  fontSize="13"
+                  fontSize={baseDimension * 0.038} // DOUBLED from 0.012 to 0.024
                   className="drop-shadow-md"
                 >
                 Machine Learning/GenAI Engineer
                 </text>
 
-                {/* Social icons */}
+                {/* Social icons - DOUBLED sizing and positioning */}
                 <g>
                   {/* GitHub */}
                   <circle
-                    cx={sunCenterX + 55}
-                    cy={sunCenterY + 40}
-                    r="12"
+                    cx={sunCenterX + baseDimension * 0.06} 
+                    cy={sunCenterY + baseDimension * 0.08}
+                    r={baseDimension * 0.044} // DOUBLED from 0.012 to 0.024
                     fill="rgba(255, 255, 255, 0.15)"
                     stroke="rgba(255, 255, 255, 0.4)"
                     strokeWidth="1"
@@ -203,11 +217,11 @@ const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) 
                     onClick={() => window.open('https://github.com/abhimanyudalal1', '_blank')}
                   />
                   <text
-                    x={sunCenterX + 55}
-                    y={sunCenterY + 44}
+                    x={sunCenterX + baseDimension * 0.06}
+                    y={sunCenterY + baseDimension * 0.088}
                     textAnchor="middle"
                     fill="white"
-                    fontSize="10"
+                    fontSize={baseDimension * 0.03} // DOUBLED from 0.01 to 0.02
                     style={{ cursor: 'pointer', pointerEvents: 'none' }}
                   >
                     GH
@@ -215,9 +229,9 @@ const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) 
 
                   {/* LinkedIn */}
                   <circle
-                    cx={sunCenterX + 80}
-                    cy={sunCenterY + 40}
-                    r="12"
+                    cx={sunCenterX + baseDimension * 0.16}
+                    cy={sunCenterY + baseDimension * 0.08}
+                    r={baseDimension * 0.044}
                     fill="rgba(255, 255, 255, 0.15)"
                     stroke="rgba(255, 255, 255, 0.4)"
                     strokeWidth="1"
@@ -226,11 +240,11 @@ const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) 
                     onClick={() => window.open('https://linkedin.com/in/abhimanyudalal1', '_blank')}
                   />
                   <text
-                    x={sunCenterX + 80}
-                    y={sunCenterY + 44}
+                    x={sunCenterX + baseDimension * 0.16}
+                    y={sunCenterY + baseDimension * 0.088}
                     textAnchor="middle"
                     fill="white"
-                    fontSize="10"
+                    fontSize={baseDimension * 0.02}
                     style={{ cursor: 'pointer', pointerEvents: 'none' }}
                   >
                     LI
@@ -238,9 +252,9 @@ const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) 
 
                   {/* Email */}
                   <circle
-                    cx={sunCenterX + 105}
-                    cy={sunCenterY + 40}
-                    r="12"
+                    cx={sunCenterX + baseDimension * 0.26}
+                    cy={sunCenterY + baseDimension * 0.08}
+                    r={baseDimension * 0.044}
                     fill="rgba(255, 255, 255, 0.15)"
                     stroke="rgba(255, 255, 255, 0.4)"
                     strokeWidth="1"
@@ -249,11 +263,11 @@ const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) 
                     onClick={() => window.open('mailto:your.email@example.com', '_blank')}
                   />
                   <text
-                    x={sunCenterX + 105}
-                    y={sunCenterY + 44}
+                    x={sunCenterX + baseDimension * 0.26}
+                    y={sunCenterY + baseDimension * 0.088}
                     textAnchor="middle"
                     fill="white"
-                    fontSize="9"
+                    fontSize={baseDimension * 0.020} // Slightly smaller for @ but still doubled
                     style={{ cursor: 'pointer', pointerEvents: 'none' }}
                   >
                     @
@@ -309,24 +323,31 @@ const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) 
           {/* Draw full elliptical orbits and planets - orbits go around the back of the sun */}
           {projects.map((project, index) => {
             const radius = orbitRadii[`r${project.orbitIndex}` as keyof typeof orbitRadii] || 200;
-            // Distribute planets based on their orbit index and some variation
-            // Keep angles within right semicircle (270° to 90°, going clockwise)
-            const baseAngle = 300; // Start from upper-right
-            const angleStep = 20; // 20 degrees between each planet
-            const angle = (baseAngle + (project.orbitIndex - 1) * angleStep) % 360;
+            // Distribute planets more evenly around the orbits
+            // Spread them out more to match the reference image
+            const baseAngle = 300; // Start from upper area
+            const angleStep = 21; // More degrees between each planet for better spacing
+            // Special positioning for the first planet (blue)
+            let angle;
+            if (project.orbitIndex === 1) {
+              angle = 298; // Move the first planet to a different position
+            
+            } else {
+              angle = (baseAngle + (project.orbitIndex - 1) * angleStep) % 360;
+            }
             
             // Create full elliptical orbit that goes around the back of the sun
             // Use ellipse instead of arc for full 3D effect
             const ellipseRx = radius; // Horizontal radius
-            const ellipseRy = radius * 0.7; // Vertical radius (compressed for 3D perspective)
+            const ellipseRy = radius * 0.65; // Vertical radius (compressed for 3D perspective)
             
             // Calculate planet position on this elliptical orbit
             const position = getPlanetPosition(ellipseRx, ellipseRy, sunCenterX, sunCenterY, angle);
-            const planetRadius = 20; // Size of planet circle
+            const planetRadius = baseDimension * 0.07; // DOUBLED from 0.035 to 0.07
             
             return (
               <g key={`orbit-planet-${project.id}`}>
-                {/* Full elliptical orbit path */}
+                {/* Full elliptical orbit path - responsive stroke but thicker */}
                 <ellipse
                   cx={sunCenterX}
                   cy={sunCenterY}
@@ -334,8 +355,8 @@ const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) 
                   ry={ellipseRy}
                   fill="none"
                   stroke="url(#orbitGradient)"
-                  strokeWidth="2"
-                  strokeDasharray="8 12"
+                  strokeWidth={baseDimension * 0.003} // Increased from 0.001 to 0.003
+                  strokeDasharray="18 28"
                   opacity="0.7"
                   style={{
                     filter: 'drop-shadow(0 0 4px rgba(255, 255, 255, 0.3))',
@@ -356,17 +377,17 @@ const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) 
                       transformOrigin: 'center center',
                     }}
                   >
-                    {/* Planet circle */}
+                    {/* Planet circle - responsive sizing */}
                     <circle
                       cx="0"
                       cy="0"
                       r={planetRadius}
                       fill={`hsl(${project.accentColor})`}
                       stroke={`hsl(${project.accentColor})`}
-                      strokeWidth="2"
+                      strokeWidth={baseDimension * 0.001} // 0.1% of smaller viewport
                       opacity="0.9"
                       style={{
-                        filter: `drop-shadow(0 0 10px hsl(${project.accentColor} / 0.6))`,
+                        filter: `drop-shadow(0 0 ${baseDimension * 0.005}px hsl(${project.accentColor} / 0.6))`,
                       }}
                     />
                     {/* Planet inner glow */}
@@ -377,13 +398,13 @@ const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) 
                       fill={`hsl(${project.accentColor} / 0.5)`}
                     />
                   </g>
-                  {/* Project title text */}
+                  {/* Project title text - responsive font size and positioning */}
                   <text
                     x="0"
-                    y={planetRadius + 35}
+                    y={planetRadius + baseDimension * 0.05}
                     textAnchor="middle"
                     fill="white"
-                    fontSize="12"
+                    fontSize={baseDimension * 0.030} // 0.6% of smaller viewport
                     fontWeight="500"
                     className="drop-shadow-lg pointer-events-none"
                   >

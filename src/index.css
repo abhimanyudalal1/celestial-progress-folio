@@ -512,3 +512,44 @@ All colors MUST be HSL.
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+/* Responsive Design Adjustments */
+@media (max-width: 768px) {
+  /* Mobile devices */
+  .solar-system-stage {
+    transform: rotateX(15deg) rotateY(-5deg) !important;
+  }
+}
+
+@media (max-width: 480px) {
+  /* Small mobile devices */
+  .solar-system-stage {
+    transform: rotateX(10deg) rotateY(-3deg) !important;
+  }
+}
+
+@media (min-width: 1920px) {
+  /* Large desktop screens */
+  .solar-system-stage {
+    transform: rotateX(30deg) rotateY(-10deg) !important;
+  }
+}
+
+/* Ensure minimum font sizes for accessibility */
+@media (max-width: 768px) {
+  svg text {
+    font-size: clamp(10px, 2vw, 16px) !important;
+  }
+}
+
+/* Touch devices - increase interactive areas */
+@media (hover: none) and (pointer: coarse) {
+  .planet-group {
+    transform: scale(1.2);
+  }
+  
+  .pointer-events-auto {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}

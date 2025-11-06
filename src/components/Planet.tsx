@@ -71,10 +71,12 @@ const Planet = ({ project, onClick, orbitPath }: PlanetProps) => {
         onBlur={() => setShowTooltip(false)}
         aria-label={`${project.title} - ${project.completionPercent}% complete`}
       >
-        {/* Progress Ring - Donut with conic gradient */}
+        {/* Progress Ring - Donut with conic gradient - DOUBLED size */}
         <div
-          className="relative w-16 h-16 md:w-20 md:h-20 rounded-full p-1 transition-[--progress-value] duration-1000"
+          className="relative rounded-full p-1 transition-[--progress-value] duration-1000"
           style={{
+            width: 'clamp(8rem, 12vw, 16rem)', // DOUBLED: Min 8rem, preferred 12vw, max 16rem
+            height: 'clamp(8rem, 12vw, 16rem)', // Keep aspect ratio
             background: `conic-gradient(
               hsl(${project.accentColor}) calc(var(--progress-value) * 3.6deg),
               hsl(var(--muted)) calc(var(--progress-value) * 3.6deg)
@@ -86,17 +88,23 @@ const Planet = ({ project, onClick, orbitPath }: PlanetProps) => {
             className="w-full h-full rounded-full flex items-center justify-center text-xs font-semibold transition-transform group-hover:scale-110"
             style={{
               background: `radial-gradient(circle at 30% 30%, hsl(${project.accentColor} / 0.8), hsl(${project.accentColor}))`,
-              boxShadow: `0 0 20px hsl(${project.accentColor} / 0.4)`,
+              boxShadow: `0 0 clamp(1.5rem, 3vw, 6rem) hsl(${project.accentColor} / 0.4)`, // DOUBLED shadow size
             }}
           >
           </div>
         </div>
 
-        {/* Tooltip */}
+        {/* Tooltip - responsive positioning */}
         {showTooltip && (
-          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-card border border-border rounded-lg shadow-lg whitespace-nowrap pointer-events-none z-50">
-            <p className="text-sm font-medium">{project.title}</p>
-            <p className="text-xs text-muted-foreground">{project.completionPercent}% Complete</p>
+          <div 
+            className="absolute left-1/2 -translate-x-1/2 bg-card border border-border rounded-lg shadow-lg whitespace-nowrap pointer-events-none z-50"
+            style={{
+              bottom: 'clamp(3rem, 4vw, 6rem)', // Position based on planet size
+              padding: 'clamp(0.25rem, 0.5vw, 0.75rem) clamp(0.5rem, 1vw, 1rem)', // Responsive padding
+            }}
+          >
+            <p className="font-medium" style={{ fontSize: 'clamp(0.75rem, 1.2vw, 1rem)' }}>{project.title}</p>
+            <p className="text-muted-foreground" style={{ fontSize: 'clamp(0.625rem, 1vw, 0.875rem)' }}>{project.completionPercent}% Complete</p>
           </div>
         )}
       </button>

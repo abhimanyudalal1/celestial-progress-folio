@@ -15,15 +15,35 @@ const Index = () => {
       {/* Starfield background */}
       <Stars />
       
-      {/* Top Navigation */}
-      <nav className="absolute top-0 left-0 right-0 z-40 p-6">
-        <div className="flex justify-center gap-4">
-          <GradientButton variant="variant" className="min-w-[200px] px-12" asChild>
+      {/* Top Navigation - responsive scaling */}
+      <nav className="absolute top-0 left-0 right-0 z-40" style={{ padding: 'clamp(0.75rem, 2vw, 1.5rem)' }}>
+        <div className="flex justify-center" style={{ gap: 'clamp(0.5rem, 1.5vw, 1rem)' }}>
+          <GradientButton 
+            variant="variant" 
+            className="text-center"
+            style={{
+              minWidth: 'clamp(100px, 15vw, 200px)',
+              padding: 'clamp(0.5rem, 1.5vw, 1rem) clamp(1rem, 3vw, 2rem)',
+              fontSize: 'clamp(0.75rem, 1.2vw, 1rem)',
+              fontWeight: '500'
+            }}
+            asChild
+          >
             <Link to="/blogs">
               BLOGS
             </Link>
           </GradientButton>
-          <GradientButton variant="default" className="min-w-[200px] px-12" asChild>
+          <GradientButton 
+            variant="default" 
+            className="text-center"
+            style={{
+              minWidth: 'clamp(100px, 15vw, 200px)',
+              padding: 'clamp(0.5rem, 1.5vw, 1rem) clamp(1rem, 3vw, 2rem)',
+              fontSize: 'clamp(0.75rem, 1.2vw, 1rem)',
+              fontWeight: '500'
+            }}
+            asChild
+          >
             <Link to="/grid-view">
               GRID VIEW
             </Link>

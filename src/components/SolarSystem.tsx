@@ -394,7 +394,7 @@ const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) 
                     <circle
                       cx="0"
                       cy="0"
-                      r={planetRadius * 0.7}
+                      r={planetRadius * 0.3}
                       fill={`hsl(${project.accentColor} / 0.5)`}
                     />
                   </g>

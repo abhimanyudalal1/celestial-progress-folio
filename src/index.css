@@ -12,57 +12,57 @@ All colors MUST be HSL.
     --background: 0 0% 0%;
     --foreground: 0 0% 98%;
     --space: 0 0% 0%;
-    
+
     --card: 0 0% 100%;
     --card-foreground: 230 20% 15%;
-    
+
     --popover: 0 0% 100%;
     --popover-foreground: 230 20% 15%;
-    
+
     --primary: 230 20% 15%;
     --primary-foreground: 0 0% 98%;
-    
+
     --secondary: 220 15% 90%;
     --secondary-foreground: 230 20% 15%;
-    
+
     --muted: 220 15% 90%;
     --muted-foreground: 230 10% 45%;
-    
+
     --accent: 220 15% 88%;
     --accent-foreground: 230 20% 15%;
-    
+
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
-    
+
     --border: 220 13% 85%;
     --input: 220 13% 85%;
     --ring: 230 20% 15%;
-    
+
     --radius: 0.5rem;
-    
+
     /* Solar System Colors */
     --sun-core: 35 100% 50%;
     --sun-glow: 45 100% 55%;
     --sun-outer: 25 95% 45%;
-    
+
     --orbit-line: 220 10% 70%;
     --orbit-glow: 220 10% 80%;
-    
+
     /* Planet Accent Colors */
     --planet-1: 200 85% 55%;
     --planet-2: 280 70% 60%;
     --planet-3: 140 70% 50%;
     --planet-4: 15 85% 55%;
     --planet-5: 260 75% 65%;
-    
+
     /* Gradients */
     --gradient-sun: linear-gradient(135deg, hsl(var(--sun-core)), hsl(var(--sun-glow)));
     --gradient-space: radial-gradient(ellipse at top, hsl(0 0% 5%), hsl(0 0% 0%));
-    
+
     /* Shadows & Glows */
     --glow-sun: 0 0 60px hsl(var(--sun-glow) / 0.4);
     --glow-planet: 0 0 20px hsl(var(--planet-1) / 0.3);
-    
+
     /* Animation */
     --transition-smooth: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   }
@@ -175,43 +175,43 @@ All colors MUST be HSL.
     --background: 0 0% 0%;
     --foreground: 0 0% 98%;
     --space: 0 0% 0%;
-    
+
     --card: 230 25% 12%;
     --card-foreground: 0 0% 98%;
-    
+
     --popover: 230 25% 12%;
     --popover-foreground: 0 0% 98%;
-    
+
     --primary: 0 0% 98%;
     --primary-foreground: 230 20% 15%;
-    
+
     --secondary: 230 20% 18%;
     --secondary-foreground: 0 0% 98%;
-    
+
     --muted: 230 20% 18%;
     --muted-foreground: 220 10% 65%;
-    
+
     --accent: 230 20% 20%;
     --accent-foreground: 0 0% 98%;
-    
+
     --destructive: 0 70% 45%;
     --destructive-foreground: 0 0% 98%;
-    
+
     --border: 230 20% 18%;
     --input: 230 20% 18%;
     --ring: 220 10% 75%;
-    
+
     /* Solar System Colors - Enhanced for dark */
     --sun-core: 35 100% 50%;
     --sun-glow: 45 100% 60%;
     --sun-outer: 25 95% 45%;
-    
+
     --orbit-line: 220 10% 30%;
     --orbit-glow: 220 20% 40%;
-    
+
     --gradient-sun: linear-gradient(135deg, hsl(var(--sun-core)), hsl(var(--sun-glow)));
     --gradient-space: radial-gradient(ellipse at top, hsl(230 30% 12%), hsl(230 35% 8%));
-    
+
     --glow-sun: 0 0 80px hsl(var(--sun-glow) / 0.5), 0 0 120px hsl(var(--sun-core) / 0.3);
     --glow-planet: 0 0 25px hsl(var(--planet-1) / 0.4);
   }
@@ -230,7 +230,7 @@ All colors MUST be HSL.
     position: relative;
     cursor: url('/spaceship-cursor.svg') 12 12, auto;
   }
-  
+
   /* Starfield background - CSS only, very lightweight */
   body::before,
   body::after {
@@ -244,7 +244,7 @@ All colors MUST be HSL.
     z-index: 1;
     background-attachment: fixed; /* Added for parallax effect */
   }
-  
+
   /* Small stars layer */
   body::before {
     background-image: 
@@ -278,7 +278,7 @@ All colors MUST be HSL.
     opacity: 0.5;
     animation: twinkle 8s ease-in-out infinite;
   }
-  
+
   /* Tiny stars layer for depth */
   body::after {
     background-image: 
@@ -314,8 +314,6 @@ All colors MUST be HSL.
   transform: translate(calc(-0.5 * var(--planet-size, 64px) + var(--x-nudge, 0px)),
                       calc(-0.5 * var(--planet-size, 64px)));
 }
-
-
 
 /* Pulse Glow */
 @keyframes pulse-glow {
@@ -547,9 +545,21 @@ All colors MUST be HSL.
   .planet-group {
     transform: scale(1.2);
   }
-  
+
   .pointer-events-auto {
     min-width: 44px;
     min-height: 44px;
+  }
+}
+/* ---break---
+*/
+@theme inline {
+  @keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+    }
+  50% {
+    transform: translateY(-10px);
+    }
   }
 }

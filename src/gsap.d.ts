@@ -18,6 +18,7 @@ interface GSAPTimeline extends GSAPTween {
   from(targets: any, vars: any, position?: number | string): this;
   fromTo(targets: any, fromVars: any, toVars: any, position?: number | string): this;
   clear(): this;
+  addLabel(label: string, position?: number | string): this;
 }
 
 interface ScrollTriggerConfig {

@@ -113,6 +113,19 @@ const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) 
   // Map planet refs to an array for easier access
   const planetRefs = [planet1Ref, planet2Ref, planet3Ref, planet4Ref, planet5Ref];
 
+  // Create refs for project landing spots
+  const project1SpotRef = useRef<HTMLDivElement>(null);
+  const project2SpotRef = useRef<HTMLDivElement>(null);
+  const project3SpotRef = useRef<HTMLDivElement>(null);
+  const project4SpotRef = useRef<HTMLDivElement>(null);
+  const project5SpotRef = useRef<HTMLDivElement>(null);
+
+  // Map project spot refs to an array
+  const projectSpotRefs = [project1SpotRef, project2SpotRef, project3SpotRef, project4SpotRef, project5SpotRef];
+
+  // Ref for the project list container
+  const projectListRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     const updateDimensions = () => {
       setDimensions({ 
@@ -141,79 +154,154 @@ const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) 
     // Register GSAP plugins
     gsap.registerPlugin(ScrollTrigger, MotionPathPlugin);
 
-    // Create a GSAP context for scoped animations and easy cleanup
-    const ctx = gsap.context(() => {
-      // Create the master timeline with ScrollTrigger
-      const masterTimeline = gsap.timeline({
-        scrollTrigger: {
-          trigger: '.scroll-track',
-          start: 'top top',
-          end: '+=200%', // Scroll for 2 viewport heights
-          pin: '.hero-pin',
-          scrub: 1,
-          markers: false, // Set to true for debugging
-          anticipatePin: 1,
-        }
-      });
+    // Wait for next frame to ensure DOM is ready and refs are populated
+    requestAnimationFrame(() => {
+      // Get final coordinates for all landing spots
+      const spot1Rect = project1SpotRef.current?.getBoundingClientRect();
+      const spot2Rect = project2SpotRef.current?.getBoundingClientRect();
+      const spot3Rect = project3SpotRef.current?.getBoundingClientRect();
+      const spot4Rect = project4SpotRef.current?.getBoundingClientRect();
+      const spot5Rect = project5SpotRef.current?.getBoundingClientRect();
 
-      // ============================================
-      // STAGE 1: All Planets Move Along Their Orbits
-      // ============================================
-      
-      // Animate all planets along their orbits simultaneously
-      planetRefs.forEach((planetRef, index) => {
-        if (planetRef.current) {
-          const orbitPathId = `#orbit-path-${index + 1}`;
-          
-          // Add planet motion path animation to the timeline at time 0
-          masterTimeline.to(planetRef.current, {
-            motionPath: {
-              path: orbitPathId,
-              align: orbitPathId,
-              alignOrigin: [0.5, 0.5],
-              start: 0,
-              end: 0.75, // Move 75% around the orbit
-            },
-            duration: 2,
-            ease: 'none',
-          }, 0); // All start at time 0 (simultaneously)
-        }
-      });
+      // Store all spot rectangles in an array
+      const spotRects = [spot1Rect, spot2Rect, spot3Rect, spot4Rect, spot5Rect];
 
-      // ============================================
-      // STAGE 2: Additional Animations (placeholder)
-      // ============================================
-      
-      // Fade out orbits after planets move
-      if (orbitsRef.current) {
-        masterTimeline.to(orbitsRef.current, {
+      // Check if all refs are available
+      if (!spotRects.every(rect => rect)) {
+        console.warn('Not all project spot refs are available');
+        return;
+      }
+
+      // Create a GSAP context for scoped animations and easy cleanup
+      const ctx = gsap.context(() => {
+        // Create the master timeline with ScrollTrigger
+        const masterTimeline = gsap.timeline({
+          scrollTrigger: {
+            trigger: '.scroll-track',
+            start: 'top top',
+            end: '+=200%', // Scroll for 2 viewport heights
+            pin: '.hero-pin',
+            scrub: 1,
+            markers: false, // Set to true for debugging
+            anticipatePin: 1,
+          }
+        });
+
+        // ============================================
+        // STAGE 1: All Planets Move Along Their Orbits
+        // ============================================
+        
+        // Position planets at the START of their orbit paths using motionPath
+        // This ensures they're properly attached to the path before animation
+        planetRefs.forEach((planetRef, index) => {
+          if (planetRef.current) {
+            const orbitPathId = `#orbit-path-${index + 1}`;
+            
+            // Set initial position at path start (0%)
+            gsap.set(planetRef.current, {
+              motionPath: {
+                path: orbitPathId,
+                align: orbitPathId,
+                alignOrigin: [0.5, 0.5],
+                start: 0, // Start at beginning of path
+                end: 0,   // End at beginning (no movement yet)
+              },
+            });
+          }
+        });
+        
+        // Animate all planets along their orbits simultaneously
+        planetRefs.forEach((planetRef, index) => {
+          if (planetRef.current) {
+            const orbitPathId = `#orbit-path-${index + 1}`;
+            
+            // Add planet motion path animation to the timeline at time 0
+            masterTimeline.to(planetRef.current, {
+              motionPath: {
+                path: orbitPathId,
+                align: orbitPathId,
+                alignOrigin: [0.5, 0.5],
+                start: 0,
+                end: 0.75, // Move 75% around the orbit
+              },
+              duration: 2,
+              ease: 'none',
+            }, 0); // All start at time 0 (simultaneously)
+          }
+        });
+
+        // Add a label at the detachment point
+        masterTimeline.addLabel("detach_point");
+
+        // ============================================
+        // STAGE 2: All Planets Detach to Landing Spots
+        // ============================================
+        
+        // All planets detach from orbits and move to their exact landing spot coordinates
+        planetRefs.forEach((planetRef, index) => {
+          if (planetRef.current && spotRects[index]) {
+            const spotRect = spotRects[index]!;
+            
+            // Get the center of the landing spot
+            const finalX = spotRect.left + spotRect.width / 2;
+            const finalY = spotRect.top + spotRect.height / 2;
+            
+            masterTimeline.to(planetRef.current, {
+              x: finalX,
+              y: finalY,
+              scale: 0.8,
+              opacity: 1,
+              duration: 1.5,
+              ease: 'power2.out',
+            }, "detach_point"); // All start at the detach_point label (simultaneously)
+          }
+        });
+        
+        // Fade out orbits during detachment
+        if (orbitsRef.current) {
+          masterTimeline.to(orbitsRef.current, {
+            opacity: 0,
+            duration: 1,
+          }, "detach_point"); // Fade orbits at same time as detachment
+        }
+
+        // ============================================
+        // STAGE 3: Cross-Fade Between Worlds
+        // ============================================
+
+        // Fade out the entire Solar System SVG
+        masterTimeline.to('.solar-system', {
           opacity: 0,
-          duration: 1,
-        }, 2.5); // Start after planet motion
-      }
-
-      // Shrink and move sun to top-left corner
-      if (sunRef.current) {
-        masterTimeline.to(sunRef.current, {
-          scale: 0.2,
-          x: -window.innerWidth / 2 + 100,
-          y: -window.innerHeight / 2 + 100,
           duration: 1.5,
-        }, 2); // Start slightly before orbits fade
-      }
+          ease: 'power2.inOut',
+        }, "detach_point"); // Start at detach_point
 
-      // Fade in the project list section
-      masterTimeline.to('.project-list', {
-        opacity: 1,
-        duration: 1,
-      }, 3);
+        // Fade in the project list container at the same time
+        if (projectListRef.current) {
+          masterTimeline.to(projectListRef.current, {
+            opacity: 1,
+            duration: 1.5,
+            ease: 'power2.inOut',
+          }, "detach_point"); // Start at detach_point (simultaneously with solar system fade)
+        }
 
-    }, containerRef); // Scope to containerRef
+        // Shrink and move sun to top-left corner
+        if (sunRef.current) {
+          masterTimeline.to(sunRef.current, {
+            scale: 0.2,
+            x: -window.innerWidth / 2 + 100,
+            y: -window.innerHeight / 2 + 100,
+            duration: 1.5,
+          }, "detach_point"); // Also start at detach_point
+        }
 
-    // Cleanup function
-    return () => {
-      ctx.revert(); // This will kill all animations and ScrollTriggers created in this context
-    };
+      }, containerRef); // Scope to containerRef
+
+      // Cleanup function
+      return () => {
+        ctx.revert(); // This will kill all animations and ScrollTriggers created in this context
+      };
+    });
   }, []); // Empty dependency array - only run once on mount
 
   // Base dimension for responsive scaling
@@ -245,8 +333,11 @@ const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) 
       aria-label="Projects Solar System"
     >
       <div className="relative w-full h-full">
-        {/* Clean Sun Element - NO 3D transformations */}
-        <div className="absolute inset-0">
+        
+        {/* WORLD 1: The Solar System - Visible initially */}
+        <div className="solar-system absolute inset-0" style={{ zIndex: 5 }}>
+          {/* Clean Sun Element - NO 3D transformations */}
+          <div className="absolute inset-0">
           <svg
             className="w-full h-full"
             viewBox={`${viewBoxLeft} 0 ${viewBoxWidth} ${viewBoxHeight}`}
@@ -479,13 +570,12 @@ const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) 
                   }}
                 />
                 
-                {/* Planet positioned on this orbit */}
+                {/* Planet positioned on this orbit - NO initial transform, GSAP will handle positioning */}
                 <g
                   ref={planetRef}
                   className="pointer-events-auto planet-group"
                   style={{ cursor: 'pointer' }}
                   onClick={() => setSelectedProject(project)}
-                  transform={`translate(${position.x}, ${position.y})`}
                 >
                   <g 
                     className="planet-inner" 
@@ -536,6 +626,89 @@ const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) 
         </svg>
           </div>
         </div>
+        </div> {/* End of WORLD 1: Solar System */}
+
+        {/* WORLD 2: The Final Project List - Hidden initially, planets will land here */}
+        <div 
+          ref={projectListRef}
+          className="absolute inset-0 pointer-events-auto overflow-y-auto" 
+          style={{ 
+            zIndex: 1, 
+            opacity: 0, // Hidden initially, will be revealed by GSAP
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'flex-start', // Start from top
+            alignItems: 'center',
+            padding: '2rem',
+            paddingTop: '8rem', // Space for top navigation
+            paddingBottom: '4rem',
+            gap: '2rem'
+          }}
+        >
+          {/* "All Projects" heading */}
+          <h2 className="text-4xl font-bold text-center mb-4 text-white">
+            All Projects
+          </h2>
+          
+          {projects.map((project, index) => (
+            <div
+              key={project.id}
+              ref={projectSpotRefs[index]}
+              className="project-item bg-card border border-border rounded-lg shadow-lg p-6 w-full max-w-2xl cursor-pointer hover:shadow-xl transition-shadow"
+              onClick={() => setSelectedProject(project)}
+              style={{
+                backgroundColor: `hsl(${project.accentColor} / 0.1)`,
+                borderColor: `hsl(${project.accentColor} / 0.3)`,
+              }}
+            >
+              <h2 className="text-2xl font-bold mb-2" style={{ color: `hsl(${project.accentColor})` }}>
+                {project.title}
+              </h2>
+              <p className="text-muted-foreground mb-3">
+                {project.description}
+              </p>
+              <div className="flex flex-wrap gap-2 mb-3">
+                {project.stack.map((tech, i) => (
+                  <span 
+                    key={i}
+                    className="px-3 py-1 text-xs rounded-full"
+                    style={{
+                      backgroundColor: `hsl(${project.accentColor} / 0.2)`,
+                      color: `hsl(${project.accentColor})`,
+                    }}
+                  >
+                    {tech}
+                  </span>
+                ))}
+              </div>
+              <div className="flex gap-3">
+                {project.links.github && (
+                  <a 
+                    href={project.links.github}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm underline hover:no-underline"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    GitHub →
+                  </a>
+                )}
+                {project.links.live && (
+                  <a 
+                    href={project.links.live}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm underline hover:no-underline"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    Live Demo →
+                  </a>
+                )}
+              </div>
+            </div>
+          ))}
+        </div> {/* End of WORLD 2: Project List */}
+
       </div>
     </section>
   );

@@ -2,7 +2,6 @@ import { Link } from "react-router-dom";
 import { useState } from "react";
 import { PlanetProject } from "@/components/Planet";
 import ProjectPanel from "@/components/ProjectPanel";
-import AnimatedShaderBackground from "@/components/ui/animated-shader-background";
 
 // Sample projects data - same as in SolarSystem
 const projects: PlanetProject[] = [
@@ -21,7 +20,7 @@ const projects: PlanetProject[] = [
   },
   {
     id: "2",
-    title: "Task Management App",
+    title: "Land Use and Land Cover Classification",
     description: "A collaborative project management tool with drag-and-drop functionality, real-time updates via WebSockets, and team collaboration features.",
     stack: ["TypeScript", "Next.js", "Prisma", "Socket.io", "shadcn/ui"],
     completionPercent: 32,
@@ -75,16 +74,25 @@ const GridView = () => {
   const [selectedProject, setSelectedProject] = useState<PlanetProject | null>(null);
 
   return (
-    <div className="min-h-screen relative">
-      {/* Animated Shader Background */}
-      <AnimatedShaderBackground />
+    <div className="min-h-screen relative bg-white">
+      {/* Grid Lines Background */}
+      <div 
+        className="fixed inset-0 pointer-events-none"
+        style={{
+          backgroundImage: `
+            linear-gradient(to right, rgba(0, 0, 0, 0.05) 1px, transparent 1px),
+            linear-gradient(to bottom, rgba(0, 0, 0, 0.05) 1px, transparent 1px)
+          `,
+          backgroundSize: '40px 40px',
+        }}
+      />
       
       {/* Header */}
-      <header className="relative z-10 pt-8 pb-4">
+      <header className="relative z-10 pt-8 pb-4 bg-white/80 backdrop-blur-sm border-b border-gray-200">
         <div className="container mx-auto px-4">
           <Link 
             to="/" 
-            className="inline-flex items-center text-blue-400 hover:text-blue-300 transition-colors mb-6"
+            className="inline-flex items-center text-gray-700 hover:text-gray-900 transition-colors mb-6 font-medium"
           >
             <svg 
               xmlns="http://www.w3.org/2000/svg" 
@@ -100,8 +108,8 @@ const GridView = () => {
             </svg>
             Back to Portfolio
           </Link>
-          <h1 className="text-5xl font-bold text-white mb-2">All Projects</h1>
-          <p className="text-gray-300 text-lg">Explore my work in a grid layout</p>
+          <h1 className="text-6xl font-bold text-gray-900 mb-2">My Projects</h1>
+          <p className="text-gray-600 text-lg">Clean.</p>
         </div>
       </header>
 
@@ -112,61 +120,25 @@ const GridView = () => {
             {projects.map((project) => (
               <div
                 key={project.id}
-                className="group bg-card/50 backdrop-blur-sm border border-border rounded-xl shadow-2xl p-8 cursor-pointer hover:shadow-3xl transition-all duration-300 hover:scale-[1.02] hover:border-opacity-60"
+                className="group bg-white border-2 border-gray-200 rounded-2xl shadow-sm p-8 cursor-pointer hover:shadow-xl hover:border-gray-900 transition-all duration-300 hover:scale-[1.02]"
                 onClick={() => setSelectedProject(project)}
-                style={{
-                  borderColor: `hsl(${project.accentColor} / 0.3)`,
-                  backgroundColor: `hsl(${project.accentColor} / 0.05)`,
-                }}
               >
                 {/* Project Header */}
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">
-                    <h2 
-                      className="text-3xl font-bold mb-2 group-hover:underline" 
-                      style={{ color: `hsl(${project.accentColor})` }}
-                    >
+                    <h2 className="text-3xl font-bold mb-4 text-gray-900 group-hover:underline">
                       {project.title}
                     </h2>
-                    <div className="flex items-center gap-2 mb-4">
-                      <div className="flex-1 bg-gray-700/30 rounded-full h-2 overflow-hidden">
-                        <div 
-                          className="h-full rounded-full transition-all duration-500"
-                          style={{ 
-                            width: `${project.completionPercent}%`,
-                            backgroundColor: `hsl(${project.accentColor})` 
-                          }}
-                        />
-                      </div>
-                      <span 
-                        className="text-sm font-semibold"
-                        style={{ color: `hsl(${project.accentColor})` }}
-                      >
-                        {project.completionPercent}%
-                      </span>
-                    </div>
                   </div>
                   
-                  {/* Planet-like Icon */}
-                  <div 
-                    className="w-16 h-16 rounded-full flex items-center justify-center shrink-0 ml-4"
-                    style={{
-                      backgroundColor: `hsl(${project.accentColor} / 0.2)`,
-                      boxShadow: `0 0 20px hsl(${project.accentColor} / 0.4)`,
-                    }}
-                  >
-                    <div 
-                      className="w-12 h-12 rounded-full"
-                      style={{
-                        backgroundColor: `hsl(${project.accentColor})`,
-                        boxShadow: `inset 0 0 10px rgba(0,0,0,0.3)`,
-                      }}
-                    />
+                  {/* Monochromatic Icon */}
+                  <div className="w-16 h-16 rounded-full flex items-center justify-center shrink-0 ml-4 bg-gray-100 border-2 border-gray-300 group-hover:border-gray-900 transition-colors">
+                    <div className="w-12 h-12 rounded-full bg-gray-900" />
                   </div>
                 </div>
 
                 {/* Description */}
-                <p className="text-muted-foreground mb-6 leading-relaxed">
+                <p className="text-gray-600 mb-6 leading-relaxed">
                   {project.description}
                 </p>
 
@@ -175,12 +147,7 @@ const GridView = () => {
                   {project.stack.map((tech, i) => (
                     <span 
                       key={i}
-                      className="px-3 py-1.5 text-sm rounded-full font-medium transition-colors"
-                      style={{
-                        backgroundColor: `hsl(${project.accentColor} / 0.15)`,
-                        color: `hsl(${project.accentColor})`,
-                        border: `1px solid hsl(${project.accentColor} / 0.3)`,
-                      }}
+                      className="px-3 py-1.5 text-sm rounded-full font-medium bg-gray-100 text-gray-900 border border-gray-300 hover:bg-gray-900 hover:text-white transition-colors"
                     >
                       {tech}
                     </span>
@@ -188,14 +155,13 @@ const GridView = () => {
                 </div>
 
                 {/* Links */}
-                <div className="flex gap-4 pt-4 border-t border-border/50">
+                <div className="flex gap-4 pt-4 border-t border-gray-200">
                   {project.links.github && (
                     <a 
                       href={project.links.github}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-2 text-sm font-medium hover:underline transition-colors"
-                      style={{ color: `hsl(${project.accentColor})` }}
+                      className="flex items-center gap-2 text-sm font-medium text-gray-900 hover:underline transition-colors"
                       onClick={(e) => e.stopPropagation()}
                     >
                       <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -209,8 +175,7 @@ const GridView = () => {
                       href={project.links.live}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-2 text-sm font-medium hover:underline transition-colors"
-                      style={{ color: `hsl(${project.accentColor})` }}
+                      className="flex items-center gap-2 text-sm font-medium text-gray-900 hover:underline transition-colors"
                       onClick={(e) => e.stopPropagation()}
                     >
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

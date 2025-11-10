@@ -1,6 +1,6 @@
 import { PlanetProject } from "./Planet";
 import Planet from "./Planet";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 interface SolarSystemProps {
   selectedProject: PlanetProject | null;
@@ -12,7 +12,7 @@ const projects: PlanetProject[] = [
   {
     id: "1",
     title: "Human-AI interaction",
-    description: "A full-stack e-commerce solution with React, Node.js, and Stripe integration. Features include real-time inventory management, user authentication, and a responsive checkout flow.",
+    description: "Developed a real-time multi-modal pipeline combining computer vision (OpenCV, MediaPipe for human pose estimation) and NLP (Whisper ASR), achieving 85% classification accuracy.",
     stack: ["React", "Node.js", "PostgreSQL", "Stripe", "Tailwind CSS"],
     completionPercent: 75,
     links: {
@@ -98,6 +98,21 @@ const getPlanetPosition = (
 const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) => {
   const [dimensions, setDimensions] = useState({ width: 1920, height: 1080 });
 
+  // Create refs for all elements we need to animate
+  const containerRef = useRef<HTMLDivElement>(null);
+  const sunRef = useRef<SVGGElement>(null);
+  const orbitsRef = useRef<SVGGElement>(null);
+  
+  // Create refs for each planet
+  const planet1Ref = useRef<SVGGElement>(null);
+  const planet2Ref = useRef<SVGGElement>(null);
+  const planet3Ref = useRef<SVGGElement>(null);
+  const planet4Ref = useRef<SVGGElement>(null);
+  const planet5Ref = useRef<SVGGElement>(null);
+
+  // Map planet refs to an array for easier access
+  const planetRefs = [planet1Ref, planet2Ref, planet3Ref, planet4Ref, planet5Ref];
+
   useEffect(() => {
     const updateDimensions = () => {
       setDimensions({ 
@@ -110,6 +125,96 @@ const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) 
     window.addEventListener('resize', updateDimensions);
     return () => window.removeEventListener('resize', updateDimensions);
   }, []);
+
+  // GSAP ScrollTrigger Animation Setup
+  useEffect(() => {
+    // Check if GSAP is loaded
+    if (typeof window === 'undefined' || !window.gsap || !window.ScrollTrigger || !window.MotionPathPlugin) {
+      console.warn('GSAP, ScrollTrigger, or MotionPathPlugin not loaded');
+      return;
+    }
+
+    const gsap = window.gsap;
+    const ScrollTrigger = window.ScrollTrigger;
+    const MotionPathPlugin = window.MotionPathPlugin;
+
+    // Register GSAP plugins
+    gsap.registerPlugin(ScrollTrigger, MotionPathPlugin);
+
+    // Create a GSAP context for scoped animations and easy cleanup
+    const ctx = gsap.context(() => {
+      // Create the master timeline with ScrollTrigger
+      const masterTimeline = gsap.timeline({
+        scrollTrigger: {
+          trigger: '.scroll-track',
+          start: 'top top',
+          end: '+=200%', // Scroll for 2 viewport heights
+          pin: '.hero-pin',
+          scrub: 1,
+          markers: false, // Set to true for debugging
+          anticipatePin: 1,
+        }
+      });
+
+      // ============================================
+      // STAGE 1: All Planets Move Along Their Orbits
+      // ============================================
+      
+      // Animate all planets along their orbits simultaneously
+      planetRefs.forEach((planetRef, index) => {
+        if (planetRef.current) {
+          const orbitPathId = `#orbit-path-${index + 1}`;
+          
+          // Add planet motion path animation to the timeline at time 0
+          masterTimeline.to(planetRef.current, {
+            motionPath: {
+              path: orbitPathId,
+              align: orbitPathId,
+              alignOrigin: [0.5, 0.5],
+              start: 0,
+              end: 0.75, // Move 75% around the orbit
+            },
+            duration: 2,
+            ease: 'none',
+          }, 0); // All start at time 0 (simultaneously)
+        }
+      });
+
+      // ============================================
+      // STAGE 2: Additional Animations (placeholder)
+      // ============================================
+      
+      // Fade out orbits after planets move
+      if (orbitsRef.current) {
+        masterTimeline.to(orbitsRef.current, {
+          opacity: 0,
+          duration: 1,
+        }, 2.5); // Start after planet motion
+      }
+
+      // Shrink and move sun to top-left corner
+      if (sunRef.current) {
+        masterTimeline.to(sunRef.current, {
+          scale: 0.2,
+          x: -window.innerWidth / 2 + 100,
+          y: -window.innerHeight / 2 + 100,
+          duration: 1.5,
+        }, 2); // Start slightly before orbits fade
+      }
+
+      // Fade in the project list section
+      masterTimeline.to('.project-list', {
+        opacity: 1,
+        duration: 1,
+      }, 3);
+
+    }, containerRef); // Scope to containerRef
+
+    // Cleanup function
+    return () => {
+      ctx.revert(); // This will kill all animations and ScrollTriggers created in this context
+    };
+  }, []); // Empty dependency array - only run once on mount
 
   // Base dimension for responsive scaling
   const baseDimension = Math.min(dimensions.width, dimensions.height);
@@ -134,7 +239,11 @@ const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) 
   };
 
   return (
-    <section className="absolute inset-0 flex items-center justify-start pointer-events-none z-10" aria-label="Projects Solar System">
+    <section 
+      ref={containerRef}
+      className="absolute inset-0 flex items-center justify-start pointer-events-none z-10" 
+      aria-label="Projects Solar System"
+    >
       <div className="relative w-full h-full">
         {/* Clean Sun Element - NO 3D transformations */}
         <div className="absolute inset-0">
@@ -161,7 +270,7 @@ const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) 
             </defs>
 
             {/* Clean, bright sun */}
-            <g>
+            <g ref={sunRef}>
               {/* Main sun circle - DOUBLED in size */}
               <circle
                 cx={sunCenterX}
@@ -321,6 +430,7 @@ const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) 
           </defs>
 
           {/* Draw full elliptical orbits and planets - orbits go around the back of the sun */}
+          <g ref={orbitsRef}>
           {projects.map((project, index) => {
             const radius = orbitRadii[`r${project.orbitIndex}` as keyof typeof orbitRadii] || 200;
             // Distribute planets more evenly around the orbits
@@ -341,18 +451,24 @@ const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) 
             const ellipseRx = radius; // Horizontal radius
             const ellipseRy = radius * 0.65; // Vertical radius (compressed for 3D perspective)
             
+            // Generate SVG path for the ellipse (needed for MotionPathPlugin)
+            const ellipsePath = `M ${sunCenterX - ellipseRx},${sunCenterY} 
+              a ${ellipseRx},${ellipseRy} 0 1,0 ${ellipseRx * 2},0 
+              a ${ellipseRx},${ellipseRy} 0 1,0 ${-ellipseRx * 2},0`;
+            
             // Calculate planet position on this elliptical orbit
             const position = getPlanetPosition(ellipseRx, ellipseRy, sunCenterX, sunCenterY, angle);
             const planetRadius = baseDimension * 0.07; // DOUBLED from 0.035 to 0.07
             
+            // Get the appropriate ref for this planet
+            const planetRef = planetRefs[index];
+            
             return (
               <g key={`orbit-planet-${project.id}`}>
                 {/* Full elliptical orbit path - responsive stroke but thicker */}
-                <ellipse
-                  cx={sunCenterX}
-                  cy={sunCenterY}
-                  rx={ellipseRx}
-                  ry={ellipseRy}
+                <path
+                  id={`orbit-path-${index + 1}`}
+                  d={ellipsePath}
                   fill="none"
                   stroke="url(#orbitGradient)"
                   strokeWidth={baseDimension * 0.003} // Increased from 0.001 to 0.003
@@ -365,6 +481,7 @@ const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) 
                 
                 {/* Planet positioned on this orbit */}
                 <g
+                  ref={planetRef}
                   className="pointer-events-auto planet-group"
                   style={{ cursor: 'pointer' }}
                   onClick={() => setSelectedProject(project)}
@@ -394,7 +511,7 @@ const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) 
                     <circle
                       cx="0"
                       cy="0"
-                      r={planetRadius * 0.3}
+                      r={planetRadius * 0.7}
                       fill={`hsl(${project.accentColor} / 0.5)`}
                     />
                   </g>
@@ -414,6 +531,7 @@ const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) 
               </g>
             );
           })}
+          </g>
 
         </svg>
           </div>

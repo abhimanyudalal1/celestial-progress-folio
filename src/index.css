@@ -553,3 +553,45 @@ All colors MUST be HSL.
     min-height: 44px;
   }
 }
+
+/* GSAP ScrollTrigger Structure */
+.scroll-track {
+  position: relative;
+  width: 100%;
+  min-height: 100vh;
+}
+
+.hero-pin {
+  position: relative;
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.project-list {
+  position: relative;
+  width: 100%;
+  min-height: 100vh;
+  background: linear-gradient(to bottom, transparent, hsl(var(--background)) 20%);
+  padding-top: 5rem;
+  opacity: 0; /* Hidden by default, will be animated by GSAP */
+  z-index: 10;
+}
+
+.project-list h2 {
+  color: hsl(var(--foreground));
+  text-shadow: 0 0 20px hsl(var(--sun-glow) / 0.3);
+}
+
+/* Ensure smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Disable scroll behavior when GSAP is controlling */
+html.gsap-controlling {
+  scroll-behavior: auto;
+}

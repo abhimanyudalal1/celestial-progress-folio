@@ -29,6 +29,16 @@ export function MiniNavbar() {
           setHoveredIndex(null);
         }}
       >
+        {/* Subtle glassy blur background */}
+        <div 
+          className={`absolute inset-0 backdrop-blur-sm pointer-events-none ${
+            isDarkMode ? 'bg-white/5' : 'bg-black/5'
+          }`}
+          style={{
+            borderRadius: '9999px',
+          }}
+        />
+
         {/* Navbar Container Outline - appears on hover */}
         <div 
           className={`absolute inset-0 border transition-opacity duration-500 pointer-events-none ${

@@ -7,7 +7,7 @@ const blogPosts = [
     id: "1",
     title: "Transformer Circuits",
     description: "The attention head terms describe the effects of attention heads in linking input tokens to logits. A^h describes which...",
-    image: "/placeholder.svg",
+    image: "/Screenshot 2025-11-11 at 4.43.39 PM.svg",
     tag: "ML Research",
   },
   {
@@ -36,7 +36,7 @@ const Blogs = () => {
       <div 
         className="fixed inset-0 z-0"
         style={{
-          backgroundImage: 'url(/domedarks.svg)',
+          backgroundImage: isDarkMode ? 'url(/domedarks.svg)' : 'url(/domelight.svg)',
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat',
@@ -65,7 +65,7 @@ const Blogs = () => {
                 transition: 'color 0.5s ease'
               }}
             >
-              colah's blog
+              abhimanyu's blog
             </h1>
             <p 
               className="text-xl"

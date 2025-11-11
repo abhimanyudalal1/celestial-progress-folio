@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { GradientButton } from "@/components/ui/gradient-button";
 import { Badge } from "@/components/ui/badge";
 import { PlanetProject } from "./Planet";
+import { useTheme } from "@/contexts/ThemeContext";
 
 interface ProjectPanelProps {
   project: PlanetProject;
@@ -13,6 +14,7 @@ interface ProjectPanelProps {
 const ProjectPanel = ({ project, onClose }: ProjectPanelProps) => {
   const panelRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const { isDarkMode } = useTheme();
 
   useEffect(() => {
     // Focus close button when panel opens
@@ -51,7 +53,11 @@ const ProjectPanel = ({ project, onClose }: ProjectPanelProps) => {
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] animate-in fade-in cursor-pointer"
+        className="fixed inset-0 backdrop-blur-sm z-[100] animate-in fade-in cursor-pointer"
+        style={{
+          backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.5)' : 'rgba(0, 0, 0, 0.5)',
+          transition: 'background-color 0.5s ease'
+        }}
         onClick={(e) => {
           console.log('Backdrop clicked'); // Debug log
           e.preventDefault();
@@ -64,26 +70,42 @@ const ProjectPanel = ({ project, onClose }: ProjectPanelProps) => {
       {/* Panel */}
       <aside
         ref={panelRef}
-        className="fixed right-0 top-0 h-full w-full sm:w-[500px] bg-white dark:bg-gray-900 border-l border-gray-200 dark:border-gray-700 shadow-2xl z-[101] overflow-y-auto animate-slide-in-right pointer-events-auto"
+        className="fixed right-0 top-0 h-full w-full sm:w-[500px] border-l shadow-2xl z-[101] overflow-y-auto animate-slide-in-right pointer-events-auto"
         role="dialog"
         aria-modal="true"
         aria-labelledby="panel-title"
         onClick={(e) => e.stopPropagation()}
-        style={{ backgroundColor: 'white' }}
+        style={{ 
+          backgroundColor: isDarkMode ? '#1a1a1a' : 'white',
+          borderLeftColor: isDarkMode ? '#333333' : '#e5e7eb',
+          transition: 'background-color 0.5s ease, border-color 0.5s ease'
+        }}
       >
         <div className="p-6 space-y-6">
           {/* Header */}
           <div className="flex items-start justify-between">
             <div className="space-y-1 flex-1">
-              <h2 id="panel-title" className="text-2xl font-bold" style={{ color: '#1f2937' }}>
+              <h2 
+                id="panel-title" 
+                className="text-2xl font-bold" 
+                style={{ 
+                  color: isDarkMode ? '#e5e5e5' : '#1f2937',
+                  transition: 'color 0.5s ease'
+                }}
+              >
                 {project.title}
               </h2>
               <div className="flex items-center gap-3">
                 <div
                   className="w-12 h-12 rounded-full flex items-center justify-center text-sm font-semibold"
                   style={{
-                    background: `radial-gradient(circle at 30% 30%, hsl(${project.accentColor} / 0.8), hsl(${project.accentColor}))`,
-                    boxShadow: `0 0 20px hsl(${project.accentColor} / 0.4)`,
+                    background: isDarkMode 
+                      ? `radial-gradient(circle at 30% 30%, hsl(0 0% 30% / 0.8), hsl(0 0% 20%))`
+                      : `radial-gradient(circle at 30% 30%, hsl(${project.accentColor} / 0.8), hsl(${project.accentColor}))`,
+                    boxShadow: isDarkMode 
+                      ? '0 0 20px rgba(0, 0, 0, 0.4)'
+                      : `0 0 20px hsl(${project.accentColor} / 0.4)`,
+                    transition: 'background 0.5s ease, box-shadow 0.5s ease'
                   }}
                 >
                   <span className="text-white drop-shadow-md">
@@ -91,8 +113,22 @@ const ProjectPanel = ({ project, onClose }: ProjectPanelProps) => {
                   </span>
                 </div>
                 <div>
-                  <p className="text-sm font-semibold" style={{ color: '#1f2937' }}>Project Progress</p>
-                  <p className="text-xs font-medium" style={{ color: '#4b5563' }}>
+                  <p 
+                    className="text-sm font-semibold" 
+                    style={{ 
+                      color: isDarkMode ? '#e5e5e5' : '#1f2937',
+                      transition: 'color 0.5s ease'
+                    }}
+                  >
+                    Project Progress
+                  </p>
+                  <p 
+                    className="text-xs font-medium" 
+                    style={{ 
+                      color: isDarkMode ? '#a3a3a3' : '#4b5563',
+                      transition: 'color 0.5s ease'
+                    }}
+                  >
                     {project.completionPercent}% Complete
                   </p>
                 </div>
@@ -107,7 +143,10 @@ const ProjectPanel = ({ project, onClose }: ProjectPanelProps) => {
                 onClose();
               }}
               className="pointer-events-auto z-50"
-              style={{ color: '#1f2937' }}
+              style={{ 
+                color: isDarkMode ? '#e5e5e5' : '#1f2937',
+                transition: 'color 0.5s ease'
+              }}
               aria-label="Close project details"
             >
               <X className="w-5 h-5" />
@@ -116,15 +155,35 @@ const ProjectPanel = ({ project, onClose }: ProjectPanelProps) => {
 
           {/* Description */}
           <div className="space-y-2">
-            <h3 className="text-sm font-semibold uppercase tracking-wide" style={{ color: '#6b7280' }}>
+            <h3 
+              className="text-sm font-semibold uppercase tracking-wide" 
+              style={{ 
+                color: isDarkMode ? '#a3a3a3' : '#6b7280',
+                transition: 'color 0.5s ease'
+              }}
+            >
               Description
             </h3>
-            <p className="font-medium leading-relaxed" style={{ color: '#1f2937' }}>{project.description}</p>
+            <p 
+              className="font-medium leading-relaxed" 
+              style={{ 
+                color: isDarkMode ? '#d4d4d4' : '#1f2937',
+                transition: 'color 0.5s ease'
+              }}
+            >
+              {project.description}
+            </p>
           </div>
 
           {/* Tech Stack */}
           <div className="space-y-3">
-            <h3 className="text-sm font-semibold uppercase tracking-wide" style={{ color: '#6b7280' }}>
+            <h3 
+              className="text-sm font-semibold uppercase tracking-wide" 
+              style={{ 
+                color: isDarkMode ? '#a3a3a3' : '#6b7280',
+                transition: 'color 0.5s ease'
+              }}
+            >
               Tech Stack
             </h3>
             <div className="flex flex-wrap gap-2">
@@ -138,7 +197,13 @@ const ProjectPanel = ({ project, onClose }: ProjectPanelProps) => {
 
           {/* Links */}
           <div className="space-y-3">
-            <h3 className="text-sm font-semibold uppercase tracking-wide" style={{ color: '#6b7280' }}>
+            <h3 
+              className="text-sm font-semibold uppercase tracking-wide" 
+              style={{ 
+                color: isDarkMode ? '#a3a3a3' : '#6b7280',
+                transition: 'color 0.5s ease'
+              }}
+            >
               Links
             </h3>
             <div className="flex flex-col gap-3">
@@ -177,19 +242,49 @@ const ProjectPanel = ({ project, onClose }: ProjectPanelProps) => {
           </div>
 
           {/* Progress Details */}
-          <div className="p-4 rounded-lg space-y-2" style={{ backgroundColor: '#f3f4f6' }}>
-            <h3 className="text-sm font-semibold" style={{ color: '#1f2937' }}>Development Status</h3>
-            <div className="w-full rounded-full h-2 overflow-hidden" style={{ backgroundColor: '#e5e7eb' }}>
+          <div 
+            className="p-4 rounded-lg space-y-2" 
+            style={{ 
+              backgroundColor: isDarkMode ? '#262626' : '#f3f4f6',
+              transition: 'background-color 0.5s ease'
+            }}
+          >
+            <h3 
+              className="text-sm font-semibold" 
+              style={{ 
+                color: isDarkMode ? '#e5e5e5' : '#1f2937',
+                transition: 'color 0.5s ease'
+              }}
+            >
+              Development Status
+            </h3>
+            <div 
+              className="w-full rounded-full h-2 overflow-hidden" 
+              style={{ 
+                backgroundColor: isDarkMode ? '#404040' : '#e5e7eb',
+                transition: 'background-color 0.5s ease'
+              }}
+            >
               <div
                 className="h-full transition-all duration-500 rounded-full"
                 style={{
                   width: `${project.completionPercent}%`,
-                  background: `hsl(${project.accentColor})`,
-                  boxShadow: `0 0 10px hsl(${project.accentColor} / 0.5)`,
+                  background: isDarkMode 
+                    ? 'linear-gradient(90deg, hsl(0 0% 30%), hsl(0 0% 20%))'
+                    : `hsl(${project.accentColor})`,
+                  boxShadow: isDarkMode 
+                    ? '0 0 10px rgba(0, 0, 0, 0.5)'
+                    : `0 0 10px hsl(${project.accentColor} / 0.5)`,
                 }}
               />
             </div>
-            <p className="text-xs font-medium" style={{ color: '#4b5563' }}>
+            <p 
+              className="text-xs font-medium" 
+              style={{ 
+                color: isDarkMode ? '#a3a3a3' : '#4b5563',
+                transition: 'color 0.5s ease'
+              }}
+            >
               {project.completionPercent === 100
                 ? "Project completed and deployed!"
                 : `${100 - project.completionPercent}% remaining to completion`}

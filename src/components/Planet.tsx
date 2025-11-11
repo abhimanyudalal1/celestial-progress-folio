@@ -12,6 +12,7 @@ export interface PlanetProject {
   };
   accentColor: string;
   orbitIndex: number;
+  planetSize?: number; // Size multiplier for planet radius (optional, defaults to 0.07)
 }
 
 interface PlanetProps {

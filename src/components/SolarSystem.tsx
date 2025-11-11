@@ -1,12 +1,13 @@
 import { PlanetProject } from "./Planet";
 import Planet from "./Planet";
 import { useState, useEffect } from "react";
+import { useTheme } from "@/contexts/ThemeContext";
 
 interface SolarSystemProps {
   selectedProject: PlanetProject | null;
   setSelectedProject: (project: PlanetProject | null) => void;
 }
-
+{/* <iframe data-testid="embed-iframe" style="border-radius:12px" src="https://open.spotify.com/embed/track/6pWgRkpqVfxnj3WuIcJ7WP?utm_source=generator&theme=0" width="100%" height="152" frameBorder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe> */}
 // Sample projects data
 const projects: PlanetProject[] = [
   {
@@ -21,6 +22,7 @@ const projects: PlanetProject[] = [
     },
     accentColor: "200 65% 55%",
     orbitIndex: 1,
+    planetSize: 0.04, // Small planet (Mercury-like)
   },
   {
     id: "2",
@@ -34,6 +36,7 @@ const projects: PlanetProject[] = [
     },
     accentColor: "280 70% 60%",
     orbitIndex: 2,
+    planetSize: 0.085, // Small-medium planet (Venus-like)
   },
   {
     id: "3",
@@ -46,6 +49,7 @@ const projects: PlanetProject[] = [
     },
     accentColor: "140 70% 50%",
     orbitIndex: 3,
+    planetSize: 0.075, // Medium planet (Earth-like)
   },
   {
     id: "4",
@@ -57,8 +61,9 @@ const projects: PlanetProject[] = [
       github: "https://github.com",
       live: "https://example.com",
     },
-    accentColor: "15 85% 55%",
+    accentColor: "15 65% 55%",
     orbitIndex: 4,
+    planetSize: 0.055, // Small-medium planet (Mars-like)
   },
   {
     id: "5",
@@ -71,6 +76,7 @@ const projects: PlanetProject[] = [
     },
     accentColor: "260 75% 65%",
     orbitIndex: 5,
+    planetSize: 0.09, // Large planet (Jupiter-like)
   },
 ];
 
@@ -97,6 +103,7 @@ const getPlanetPosition = (
 
 const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) => {
   const [dimensions, setDimensions] = useState({ width: 1920, height: 1080 });
+  const { isDarkMode } = useTheme();
 
   useEffect(() => {
     const updateDimensions = () => {
@@ -151,12 +158,26 @@ const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) 
             }}
           >
             <defs>
-              {/* Bright yellowish sun gradient */}
+              {/* Bright yellowish sun gradient for light mode */}
               <radialGradient id="brightSunGradient" cx="50%" cy="50%" r="50%">
                 <stop offset="0%" stopColor="hsl(55 100% 75%)" stopOpacity="1" />
                 <stop offset="40%" stopColor="hsl(50 100% 65%)" stopOpacity="0.9" />
                 <stop offset="80%" stopColor="hsl(45 100% 55%)" stopOpacity="0.85" />
                 <stop offset="100%" stopColor="hsl(35 100% 45%)" stopOpacity="0.8" />
+              </radialGradient>
+              
+              {/* Dark sun gradient for dark mode */}
+              <radialGradient id="brightSunGradient" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stopColor="hsl(55 100% 75%)" stopOpacity="1" />
+                <stop offset="40%" stopColor="hsl(50 100% 65%)" stopOpacity="0.9" />
+                <stop offset="80%" stopColor="hsl(45 100% 55%)" stopOpacity="0.85" />
+                <stop offset="100%" stopColor="hsl(35 100% 45%)" stopOpacity="0.8" />
+              </radialGradient>
+              <radialGradient id="darkSunGradient" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stopColor="hsl(0 0% 15%)" stopOpacity="1" />
+                <stop offset="40%" stopColor="hsl(0 0% 10%)" stopOpacity="1" />
+                <stop offset="80%" stopColor="hsl(0 0% 5%)" stopOpacity="1.85" />
+                <stop offset="100%" stopColor="hsl(0 0% 0%)" stopOpacity="1.8" />
               </radialGradient>
             </defs>
 
@@ -167,11 +188,14 @@ const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) 
                 cx={sunCenterX}
                 cy={sunCenterY}
                 r={baseDimension * 0.5} // DOUBLED from 0.25 to 0.5
-                fill="url(#brightSunGradient)"
-                stroke="hsl(45 100% 80%)"
+                fill={isDarkMode ? "url(#darkSunGradient)" : "url(#brightSunGradient)"}
+                stroke={isDarkMode ? "hsl(0 0% 20%)" : "hsl(45 100% 80%)"}
                 strokeWidth={baseDimension * 0.016} // Doubled stroke width too
                 style={{
-                  filter: `drop-shadow(0 0 ${baseDimension * 0.12}px hsl(45 100% 60% / 0.8))`,
+                  filter: isDarkMode 
+                    ? 'none'
+                    : `drop-shadow(0 0 ${baseDimension * 0.12}px hsl(45 100% 60% / 0.8))`,
+                  transition: 'fill 0.5s ease, stroke 0.5s ease, filter 0.5s ease'
                 }}
               />
 
@@ -182,10 +206,13 @@ const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) 
                   x={sunCenterX + baseDimension * 0.19} 
                   y={sunCenterY - baseDimension * 0.03}
                   textAnchor="middle"
-                  fill="white"
+                  fill={isDarkMode ? "#ffffff" : "white"}
                   fontSize={baseDimension * 0.095} // DOUBLED from 0.025 to 0.05
                   fontWeight="bold"
                   className="drop-shadow-lg"
+                  style={{
+                    transition: 'fill 0.5s ease'
+                  }}
                 >
                   Abhimanyu
                 </text>
@@ -195,9 +222,12 @@ const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) 
                   x={sunCenterX + baseDimension * 0.19}
                   y={sunCenterY + baseDimension * 0.02}
                   textAnchor="middle"
-                  fill="rgba(255, 255, 255, 0.95)"
+                  fill={isDarkMode ? "rgba(255, 255, 255, 0.95)" : "rgba(255, 255, 255, 0.95)"}
                   fontSize={baseDimension * 0.038} // DOUBLED from 0.012 to 0.024
                   className="drop-shadow-md"
+                  style={{
+                    transition: 'fill 0.5s ease'
+                  }}
                 >
                 Machine Learning/GenAI Engineer
                 </text>
@@ -209,10 +239,10 @@ const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) 
                     cx={sunCenterX + baseDimension * 0.06} 
                     cy={sunCenterY + baseDimension * 0.08}
                     r={baseDimension * 0.044} // DOUBLED from 0.012 to 0.024
-                    fill="rgba(255, 255, 255, 0.15)"
-                    stroke="rgba(255, 255, 255, 0.4)"
+                    fill={isDarkMode ? "rgba(255, 255, 255, 0.15)" : "rgba(255, 255, 255, 0.15)"}
+                    stroke={isDarkMode ? "rgba(255, 255, 255, 0.4)" : "rgba(255, 255, 255, 0.4)"}
                     strokeWidth="1"
-                    style={{ cursor: 'pointer' }}
+                    style={{ cursor: 'pointer', transition: 'fill 0.5s ease, stroke 0.5s ease' }}
                     className="pointer-events-auto"
                     onClick={() => window.open('https://github.com/abhimanyudalal1', '_blank')}
                   />
@@ -220,9 +250,9 @@ const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) 
                     x={sunCenterX + baseDimension * 0.06}
                     y={sunCenterY + baseDimension * 0.088}
                     textAnchor="middle"
-                    fill="white"
+                    fill={isDarkMode ? "white" : "white"}
                     fontSize={baseDimension * 0.03} // DOUBLED from 0.01 to 0.02
-                    style={{ cursor: 'pointer', pointerEvents: 'none' }}
+                    style={{ cursor: 'pointer', pointerEvents: 'none', transition: 'fill 0.5s ease' }}
                   >
                     GH
                   </text>
@@ -232,10 +262,10 @@ const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) 
                     cx={sunCenterX + baseDimension * 0.16}
                     cy={sunCenterY + baseDimension * 0.08}
                     r={baseDimension * 0.044}
-                    fill="rgba(255, 255, 255, 0.15)"
-                    stroke="rgba(255, 255, 255, 0.4)"
+                    fill={isDarkMode ? "rgba(255, 255, 255, 0.15)" : "rgba(255, 255, 255, 0.15)"}
+                    stroke={isDarkMode ? "rgba(255, 255, 255, 0.4)" : "rgba(255, 255, 255, 0.4)"}
                     strokeWidth="1"
-                    style={{ cursor: 'pointer' }}
+                    style={{ cursor: 'pointer', transition: 'fill 0.5s ease, stroke 0.5s ease' }}
                     className="pointer-events-auto"
                     onClick={() => window.open('https://linkedin.com/in/abhimanyudalal1', '_blank')}
                   />
@@ -243,9 +273,9 @@ const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) 
                     x={sunCenterX + baseDimension * 0.16}
                     y={sunCenterY + baseDimension * 0.088}
                     textAnchor="middle"
-                    fill="white"
+                    fill={isDarkMode ? "white" : "white"}
                     fontSize={baseDimension * 0.02}
-                    style={{ cursor: 'pointer', pointerEvents: 'none' }}
+                    style={{ cursor: 'pointer', pointerEvents: 'none', transition: 'fill 0.5s ease' }}
                   >
                     LI
                   </text>
@@ -255,10 +285,10 @@ const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) 
                     cx={sunCenterX + baseDimension * 0.26}
                     cy={sunCenterY + baseDimension * 0.08}
                     r={baseDimension * 0.044}
-                    fill="rgba(255, 255, 255, 0.15)"
-                    stroke="rgba(255, 255, 255, 0.4)"
+                    fill={isDarkMode ? "rgba(255, 255, 255, 0.15)" : "rgba(255, 255, 255, 0.15)"}
+                    stroke={isDarkMode ? "rgba(255, 255, 255, 0.4)" : "rgba(255, 255, 255, 0.4)"}
                     strokeWidth="1"
-                    style={{ cursor: 'pointer' }}
+                    style={{ cursor: 'pointer', transition: 'fill 0.5s ease, stroke 0.5s ease' }}
                     className="pointer-events-auto"
                     onClick={() => window.open('mailto:your.email@example.com', '_blank')}
                   />
@@ -266,9 +296,9 @@ const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) 
                     x={sunCenterX + baseDimension * 0.26}
                     y={sunCenterY + baseDimension * 0.088}
                     textAnchor="middle"
-                    fill="white"
+                    fill={isDarkMode ? "white" : "white"}
                     fontSize={baseDimension * 0.020} // Slightly smaller for @ but still doubled
-                    style={{ cursor: 'pointer', pointerEvents: 'none' }}
+                    style={{ cursor: 'pointer', pointerEvents: 'none', transition: 'fill 0.5s ease' }}
                   >
                     @
                   </text>
@@ -343,7 +373,12 @@ const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) 
             
             // Calculate planet position on this elliptical orbit
             const position = getPlanetPosition(ellipseRx, ellipseRy, sunCenterX, sunCenterY, angle);
-            const planetRadius = baseDimension * 0.07; // DOUBLED from 0.035 to 0.07
+            const planetRadius = baseDimension * (project.planetSize || 0.07); // Use custom size or default
+            
+            // Determine planet color based on theme
+            const planetColor = isDarkMode 
+              ? `0 0% ${20 + (project.orbitIndex * 10)}%` // Monochrome: dark grey to darker grey
+              : project.accentColor; // Original colors
             
             return (
               <g key={`orbit-planet-${project.id}`}>
@@ -354,12 +389,13 @@ const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) 
                   rx={ellipseRx}
                   ry={ellipseRy}
                   fill="none"
-                  stroke="url(#orbitGradient)"
+                  stroke={isDarkMode ? "rgba(0, 0, 0, 0.5)" : "url(#orbitGradient)"}
                   strokeWidth={baseDimension * 0.003} // Increased from 0.001 to 0.003
                   strokeDasharray="18 28"
                   opacity="0.7"
                   style={{
-                    filter: 'drop-shadow(0 0 4px rgba(255, 255, 255, 0.3))',
+                    filter: isDarkMode ? 'none' : 'drop-shadow(0 0 4px rgba(255, 255, 255, 0.3))',
+                    transition: 'stroke 0.5s ease, filter 0.5s ease'
                   }}
                 />
                 
@@ -382,12 +418,15 @@ const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) 
                       cx="0"
                       cy="0"
                       r={planetRadius}
-                      fill={`hsl(${project.accentColor})`}
-                      stroke={`hsl(${project.accentColor})`}
+                      fill={`hsl(${planetColor})`}
+                      stroke={`hsl(${planetColor})`}
                       strokeWidth={baseDimension * 0.001} // 0.1% of smaller viewport
                       opacity="0.9"
                       style={{
-                        filter: `drop-shadow(0 0 ${baseDimension * 0.005}px hsl(${project.accentColor} / 0.6))`,
+                        filter: isDarkMode 
+                          ? 'none'
+                          : `drop-shadow(0 0 ${baseDimension * 0.005}px hsl(${planetColor} / 0.6))`,
+                        transition: 'fill 0.5s ease, stroke 0.5s ease, filter 0.5s ease'
                       }}
                     />
                     {/* Planet inner glow */}
@@ -395,7 +434,10 @@ const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) 
                       cx="0"
                       cy="0"
                       r={planetRadius * 0.3}
-                      fill={`hsl(${project.accentColor} / 0.5)`}
+                      fill={`hsl(${planetColor} / ${isDarkMode ? 0.3 : 0.5})`}
+                      style={{
+                        transition: 'fill 0.5s ease'
+                      }}
                     />
                   </g>
                   {/* Project title text - responsive font size and positioning */}
@@ -403,10 +445,13 @@ const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) 
                     x="0"
                     y={planetRadius + baseDimension * 0.05}
                     textAnchor="middle"
-                    fill="white"
+                    fill={isDarkMode ? "#000000" : "white"}
                     fontSize={baseDimension * 0.030} // 0.6% of smaller viewport
                     fontWeight="500"
                     className="drop-shadow-lg pointer-events-none"
+                    style={{
+                      transition: 'fill 0.5s ease'
+                    }}
                   >
                     {project.title}
                   </text>

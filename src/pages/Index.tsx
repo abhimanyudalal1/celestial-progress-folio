@@ -1,55 +1,26 @@
-import { Link } from "react-router-dom";
 import { useState } from "react";
+import { useTheme } from "@/contexts/ThemeContext";
 import Hero from "@/components/Hero";
 import SolarSystem from "@/components/SolarSystem";
 import Stars from "@/components/Stars";
 import ProjectPanel from "@/components/ProjectPanel";
-import { GradientButton } from "@/components/ui/gradient-button";
+import Navbar from "@/components/Navbar";
 import { PlanetProject } from "@/components/Planet";
 
 const Index = () => {
   const [selectedProject, setSelectedProject] = useState<PlanetProject | null>(null);
-
+  const { isDarkMode } = useTheme();
+  
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen" style={{ 
+      backgroundColor: isDarkMode ? '#ffffff' : 'transparent',
+      transition: 'background-color 0.5s ease'
+    }}>
       {/* Starfield background */}
       <Stars />
       
-      {/* Top Navigation - responsive scaling */}
-      <nav className="absolute top-0 left-0 right-0 z-40" style={{ padding: 'clamp(0.75rem, 2vw, 1.5rem)' }}>
-        <div className="flex justify-center" style={{ gap: 'clamp(0.5rem, 1.5vw, 1rem)' }}>
-          <GradientButton 
-            variant="variant" 
-            className="text-center"
-            style={{
-              minWidth: 'clamp(100px, 15vw, 200px)',
-              padding: 'clamp(0.5rem, 1.5vw, 1rem) clamp(1rem, 3vw, 2rem)',
-              fontSize: 'clamp(0.75rem, 1.2vw, 1rem)',
-              fontWeight: '500'
-            }}
-            asChild
-          >
-            <Link to="/blogs">
-              BLOGS
-            </Link>
-          </GradientButton>
-          <GradientButton 
-            variant="default" 
-            className="text-center"
-            style={{
-              minWidth: 'clamp(100px, 15vw, 200px)',
-              padding: 'clamp(0.5rem, 1.5vw, 1rem) clamp(1rem, 3vw, 2rem)',
-              fontSize: 'clamp(0.75rem, 1.2vw, 1rem)',
-              fontWeight: '500'
-            }}
-            asChild
-          >
-            <Link to="/grid-view">
-              GRID VIEW
-            </Link>
-          </GradientButton>
-        </div>
-      </nav>
+      {/* Navigation Bar */}
+      <Navbar />
       
       {/* Combined Hero and Solar System in the same view */}
       <div className="relative min-h-screen">
@@ -58,6 +29,54 @@ const Index = () => {
           selectedProject={selectedProject}
           setSelectedProject={setSelectedProject}
         />
+        
+        {/* Subtle Hint Text - pointing to planets */}
+        {!selectedProject && (
+          <div 
+            className="absolute z-20 pointer-events-none"
+            style={{
+              top: '30%',
+              right: '25%',
+              transform: 'translateY(-50%)',
+            }}
+          >
+            <div className="relative animate-pulse">
+              {/* Arrow pointing left towards planets */}
+              <svg 
+                width="80" 
+                height="40" 
+                viewBox="0 0 80 40" 
+                className="absolute -left-20 top-1/2 -translate-y-1/2"
+                style={{
+                  opacity: isDarkMode ? 0.3 : 0.5,
+                  filter: isDarkMode ? 'none' : 'drop-shadow(0 0 8px rgba(255, 255, 255, 0.8))'
+                }}
+              >
+                <path 
+                  d="M 70 20 L 10 20 M 10 20 L 20 15 M 10 20 L 20 25" 
+                  stroke={isDarkMode ? "#000000" : "#ffffff"} 
+                  strokeWidth="2" 
+                  fill="none"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+              
+              {/* Hint Text */}
+              <p 
+                className="text-sm font-medium whitespace-nowrap"
+                style={{
+                  color: isDarkMode ? '#000000' : '#ffffff',
+                  opacity: isDarkMode ? 0.4 : 0.6,
+                  textShadow: isDarkMode ? 'none' : '0 0 10px rgba(255, 255, 255, 0.5)',
+                  transition: 'color 0.5s ease, opacity 0.5s ease, text-shadow 0.5s ease'
+                }}
+              >
+                Click on a planet to explore projects
+              </p>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Project Details Panel - rendered at root level */}
@@ -67,6 +86,22 @@ const Index = () => {
           onClose={() => setSelectedProject(null)}
         />
       )}
+
+      {/* Spotify Mini Player - Bottom Left Corner */}
+      <div className="fixed bottom-4 left-4 z-30 opacity-15 hover:opacity-80 transition-opacity ">
+        <iframe 
+          data-testid="embed-iframe" 
+          style={{ borderRadius: '1px' }} 
+          src="https://open.spotify.com/embed/track/6pWgRkpqVfxnj3WuIcJ7WP?utm_source=generator&theme=0" 
+          width="-200" 
+          height="80" 
+          frameBorder="0" 
+          allowFullScreen={false}
+          allow="autoplay; clipboard-write; encrypted-media;" 
+          loading="lazy"
+          title="Spotify Player"
+        />
+      </div>
     </div>
   );
 };

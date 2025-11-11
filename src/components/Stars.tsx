@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { useTheme } from '@/contexts/ThemeContext';
 
 interface Star {
   x: number;
@@ -14,6 +15,7 @@ const Stars = () => {
   const animationRef = useRef<number>();
   const starsRef = useRef<Star[]>([]);
   const mouseRef = useRef({ x: 0, y: 0 });
+  const { isDarkMode } = useTheme();
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -89,12 +91,17 @@ const Stars = () => {
         // Draw star with glow effect
         ctx.beginPath();
         
+        // Determine colors based on theme
+        const starColor = isDarkMode ? '0, 0, 0' : '255, 255, 255';
+        const glowColor1 = isDarkMode ? '0, 0, 0' : '200, 220, 255';
+        const glowColor2 = isDarkMode ? '50, 50, 50' : '100, 150, 255';
+        
         // Outer glow (larger, more transparent)
         const glowSize = star.size * 3;
         const gradient = ctx.createRadialGradient(finalX, finalY, 0, finalX, finalY, glowSize);
-        gradient.addColorStop(0, `rgba(255, 255, 255, ${currentOpacity * 0.8})`);
-        gradient.addColorStop(0.3, `rgba(200, 220, 255, ${currentOpacity * 0.4})`);
-        gradient.addColorStop(1, `rgba(100, 150, 255, 0)`);
+        gradient.addColorStop(0, `rgba(${starColor}, ${currentOpacity * 0.8})`);
+        gradient.addColorStop(0.3, `rgba(${glowColor1}, ${currentOpacity * 0.4})`);
+        gradient.addColorStop(1, `rgba(${glowColor2}, 0)`);
         
         ctx.fillStyle = gradient;
         ctx.arc(finalX, finalY, glowSize, 0, Math.PI * 2);
@@ -102,14 +109,14 @@ const Stars = () => {
 
         // Inner bright core
         ctx.beginPath();
-        ctx.fillStyle = `rgba(255, 255, 255, ${currentOpacity})`;
+        ctx.fillStyle = `rgba(${starColor}, ${currentOpacity})`;
         ctx.arc(finalX, finalY, star.size, 0, Math.PI * 2);
         ctx.fill();
 
         // Sparkle effect for larger stars
         if (star.size > 2 && Math.random() > 0.98) {
           ctx.beginPath();
-          ctx.strokeStyle = `rgba(255, 255, 255, ${currentOpacity * 0.8})`;
+          ctx.strokeStyle = `rgba(${starColor}, ${currentOpacity * 0.8})`;
           ctx.lineWidth = 0.5;
           
           // Draw cross sparkle
@@ -144,13 +151,16 @@ const Stars = () => {
       window.removeEventListener('resize', resizeCanvas);
       window.removeEventListener('mousemove', handleMouseMove);
     };
-  }, []);
+  }, [isDarkMode]);
 
   return (
     <canvas
       ref={canvasRef}
       className="fixed inset-0 pointer-events-none z-0"
-      style={{ background: 'radial-gradient(ellipse at center, #0f1419 0%, #000000 70%)' }}
+      style={{ 
+        background: isDarkMode ? 'transparent' : 'radial-gradient(ellipse at center, #0f1419 0%, #000000 70%)',
+        transition: 'background 0.5s ease'
+      }}
       aria-hidden="true"
     />
   );

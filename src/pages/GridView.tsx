@@ -1,7 +1,7 @@
-import { Link } from "react-router-dom";
 import { useState } from "react";
 import { PlanetProject } from "@/components/Planet";
 import ProjectPanel from "@/components/ProjectPanel";
+import Navbar from "@/components/Navbar";
 
 // Sample projects data - same as in SolarSystem
 const projects: PlanetProject[] = [
@@ -75,6 +75,9 @@ const GridView = () => {
 
   return (
     <div className="min-h-screen relative bg-white">
+      {/* Navigation Bar */}
+      <Navbar />
+      
       {/* Grid Lines Background */}
       <div 
         className="fixed inset-0 pointer-events-none"
@@ -88,26 +91,8 @@ const GridView = () => {
       />
       
       {/* Header */}
-      <header className="relative z-10 pt-8 pb-4 bg-white/80 backdrop-blur-sm border-b border-gray-200">
+      <header className="relative z-10 pt-24 pb-4 bg-white/80 backdrop-blur-sm">
         <div className="container mx-auto px-4">
-          <Link 
-            to="/" 
-            className="inline-flex items-center text-gray-700 hover:text-gray-900 transition-colors mb-6 font-medium"
-          >
-            <svg 
-              xmlns="http://www.w3.org/2000/svg" 
-              className="h-5 w-5 mr-2" 
-              viewBox="0 0 20 20" 
-              fill="currentColor"
-            >
-              <path 
-                fillRule="evenodd" 
-                d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" 
-                clipRule="evenodd" 
-              />
-            </svg>
-            Back to Portfolio
-          </Link>
           <h1 className="text-6xl font-bold text-gray-900 mb-2">My Projects</h1>
           <p className="text-gray-600 text-lg">Clean.</p>
         </div>

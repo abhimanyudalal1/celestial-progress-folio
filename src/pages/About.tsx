@@ -51,7 +51,7 @@ const About = () => {
                   transition: 'color 0.5s ease'
                 }}
               >
-                About Me
+                Abhimanyu
               </h1>
               
               {/* Subtitle */}

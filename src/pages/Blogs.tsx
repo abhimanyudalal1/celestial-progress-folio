@@ -34,7 +34,7 @@ const Blogs = () => {
     <div className="min-h-screen relative">
       {/* Background Image - Full Screen */}
       <div 
-        className="fixed inset-0 z-0"
+        className="fixed inset-0 z-0 transition-opacity duration-500 ease-in-out"
         style={{
           backgroundImage: isDarkMode ? 'url(/domedarks.svg)' : 'url(/domelight.svg)',
           backgroundSize: 'cover',

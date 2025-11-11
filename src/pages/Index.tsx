@@ -14,7 +14,7 @@ const Index = () => {
   return (
     <div className="min-h-screen" style={{ 
       backgroundColor: isDarkMode ? '#ffffff' : 'transparent',
-      transition: 'background-color 0.5s ease'
+      transition: 'background-color 1.7s ease-in-out'
     }}>
       {/* Starfield background */}
       <Stars />

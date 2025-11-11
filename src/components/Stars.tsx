@@ -159,7 +159,7 @@ const Stars = () => {
       className="fixed inset-0 pointer-events-none z-0"
       style={{ 
         background: isDarkMode ? 'transparent' : 'radial-gradient(ellipse at center, #0f1419 0%, #000000 70%)',
-        transition: 'background 0.5s ease'
+        transition: 'background 0.7s ease-in-out'
       }}
       aria-hidden="true"
     />

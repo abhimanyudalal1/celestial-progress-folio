@@ -13,6 +13,7 @@ export interface PlanetProject {
   accentColor: string;
   orbitIndex: number;
   planetSize?: number; // Size multiplier for planet radius (optional, defaults to 0.07)
+  planetImage?: number; // 1, 2, or 3 for planet1.svg, planet2.svg, or planet3.svg
 }
 
 interface PlanetProps {
@@ -72,28 +73,21 @@ const Planet = ({ project, onClick, orbitPath }: PlanetProps) => {
         onBlur={() => setShowTooltip(false)}
         aria-label={`${project.title} - ${project.completionPercent}% complete`}
       >
-        {/* Progress Ring - Donut with conic gradient - DOUBLED size */}
+        {/* Planet - Single circle with SVG background */}
         <div
-          className="relative rounded-full p-1 transition-[--progress-value] duration-1000"
+          className="relative rounded-full transition-transform group-hover:scale-110"
           style={{
-            width: 'clamp(8rem, 12vw, 16rem)', // DOUBLED: Min 8rem, preferred 12vw, max 16rem
-            height: 'clamp(8rem, 12vw, 16rem)', // Keep aspect ratio
-            background: `conic-gradient(
-              hsl(${project.accentColor}) calc(var(--progress-value) * 3.6deg),
-              hsl(var(--muted)) calc(var(--progress-value) * 3.6deg)
-            )`,
+            width: 'clamp(6rem, 8vw, 10rem)',
+            height: 'clamp(6rem, 8vw, 10rem)',
+            boxShadow: `0 0 clamp(1.5rem, 3vw, 6rem) hsl(${project.accentColor} / 0.4)`,
+            backgroundImage: `url(/planet${project.planetImage || 1}.svg)`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat',
+            // Fallback gradient if image doesn't load
+            backgroundColor: `hsl(${project.accentColor} / 0.2)`,
           }}
-        >
-          {/* Planet Inner Circle */}
-          <div
-            className="w-full h-full rounded-full flex items-center justify-center text-xs font-semibold transition-transform group-hover:scale-110"
-            style={{
-              background: `radial-gradient(circle at 30% 30%, hsl(${project.accentColor} / 0.8), hsl(${project.accentColor}))`,
-              boxShadow: `0 0 clamp(1.5rem, 3vw, 6rem) hsl(${project.accentColor} / 0.4)`, // DOUBLED shadow size
-            }}
-          >
-          </div>
-        </div>
+        />
 
         {/* Tooltip - responsive positioning */}
         {showTooltip && (

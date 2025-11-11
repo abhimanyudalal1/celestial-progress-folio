@@ -17,6 +17,7 @@ const projects: PlanetProject[] = [
     },
     accentColor: "200 65% 55%",
     orbitIndex: 1,
+    planetImage: 1, // Using planet1.svg
   },
   {
     id: "2",
@@ -30,6 +31,7 @@ const projects: PlanetProject[] = [
     },
     accentColor: "280 70% 60%",
     orbitIndex: 2,
+    planetImage: 2, // Using planet2.svg
   },
   {
     id: "3",
@@ -42,6 +44,7 @@ const projects: PlanetProject[] = [
     },
     accentColor: "140 70% 50%",
     orbitIndex: 3,
+    planetImage: 3, // Using planet3.svg
   },
   {
     id: "4",
@@ -55,6 +58,7 @@ const projects: PlanetProject[] = [
     },
     accentColor: "15 85% 55%",
     orbitIndex: 4,
+    planetImage: 1, // Using planet1.svg (reusing)
   },
   {
     id: "5",
@@ -67,6 +71,7 @@ const projects: PlanetProject[] = [
     },
     accentColor: "260 75% 65%",
     orbitIndex: 5,
+    planetImage: 2, // Using planet2.svg (reusing)
   },
 ];
 

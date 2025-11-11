@@ -2,6 +2,7 @@ import { PlanetProject } from "./Planet";
 import Planet from "./Planet";
 import { useState, useEffect } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
+import MeteorCursor from "./MeteorCursor";
 
 interface SolarSystemProps {
   selectedProject: PlanetProject | null;
@@ -23,6 +24,7 @@ const projects: PlanetProject[] = [
     accentColor: "200 65% 55%",
     orbitIndex: 1,
     planetSize: 0.04, // Small planet (Mercury-like)
+    planetImage: 1, // Using planet1.svg
   },
   {
     id: "2",
@@ -37,6 +39,7 @@ const projects: PlanetProject[] = [
     accentColor: "280 70% 60%",
     orbitIndex: 2,
     planetSize: 0.085, // Small-medium planet (Venus-like)
+    planetImage: 2, // Using planet2.svg
   },
   {
     id: "3",
@@ -50,6 +53,7 @@ const projects: PlanetProject[] = [
     accentColor: "140 70% 50%",
     orbitIndex: 3,
     planetSize: 0.075, // Medium planet (Earth-like)
+    planetImage: 3, // Using planet3.svg
   },
   {
     id: "4",
@@ -64,6 +68,7 @@ const projects: PlanetProject[] = [
     accentColor: "15 65% 55%",
     orbitIndex: 4,
     planetSize: 0.055, // Small-medium planet (Mars-like)
+    planetImage: 1, // Using planet1.svg (reusing)
   },
   {
     id: "5",
@@ -77,6 +82,7 @@ const projects: PlanetProject[] = [
     accentColor: "260 75% 65%",
     orbitIndex: 5,
     planetSize: 0.09, // Large planet (Jupiter-like)
+    planetImage: 2, // Using planet2.svg (reusing)
   },
 ];
 
@@ -464,6 +470,9 @@ const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) 
           </div>
         </div>
       </div>
+
+      {/* Meteor Cursor */}
+      <MeteorCursor />
     </section>
   );
 };

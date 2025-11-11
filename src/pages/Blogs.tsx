@@ -1,4 +1,4 @@
-import Navbar from "@/components/Navbar";
+import { MiniNavbar } from "@/components/ui/mini-navbar";
 import { useTheme } from "@/contexts/ThemeContext";
 
 // Sample blog data
@@ -44,7 +44,7 @@ const Blogs = () => {
       />
 
       {/* Navigation */}
-      <Navbar />
+      <MiniNavbar />
 
       {/* Content Container - Solid Panel */}
       <div className="relative z-10 pt-24 pb-16 flex justify-center px-4">

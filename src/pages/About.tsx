@@ -1,5 +1,5 @@
 import Stars from "@/components/Stars";
-import Navbar from "@/components/Navbar";
+import { MiniNavbar } from "@/components/ui/mini-navbar";
 import { useTheme } from "@/contexts/ThemeContext";
 
 const About = () => {
@@ -11,7 +11,7 @@ const About = () => {
       <Stars />
       
       {/* Navigation Bar */}
-      <Navbar />
+      <MiniNavbar />
 
       {/* About Content */}
       <main className="relative z-10 pt-24 pb-16">

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { PlanetProject } from "@/components/Planet";
 import ProjectPanel from "@/components/ProjectPanel";
-import Navbar from "@/components/Navbar";
+import { MiniNavbar } from "@/components/ui/mini-navbar";
 
 // Sample projects data - same as in SolarSystem
 const projects: PlanetProject[] = [
@@ -76,7 +76,7 @@ const GridView = () => {
   return (
     <div className="min-h-screen relative bg-white">
       {/* Navigation Bar */}
-      <Navbar />
+      <MiniNavbar />
       
       {/* Grid Lines Background */}
       <div 

@@ -4,7 +4,7 @@ import Hero from "@/components/Hero";
 import SolarSystem from "@/components/SolarSystem";
 import Stars from "@/components/Stars";
 import ProjectPanel from "@/components/ProjectPanel";
-import Navbar from "@/components/Navbar";
+import { MiniNavbar } from "@/components/ui/mini-navbar";
 import { PlanetProject } from "@/components/Planet";
 
 const Index = () => {
@@ -20,7 +20,7 @@ const Index = () => {
       <Stars />
       
       {/* Navigation Bar */}
-      <Navbar />
+      <MiniNavbar />
       
       {/* Combined Hero and Solar System in the same view */}
       <div className="relative min-h-screen">

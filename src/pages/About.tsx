@@ -1,6 +1,7 @@
 import Stars from "@/components/Stars";
 import { MiniNavbar } from "@/components/ui/mini-navbar";
 import { useTheme } from "@/contexts/ThemeContext";
+import notapainting from "../../notapainting.jpeg"
 
 const About = () => {
   const { isDarkMode } = useTheme();
@@ -28,7 +29,7 @@ const About = () => {
                 }}
               >
                 <img
-                  src="/painting.svg"
+                  src={notapainting}
                   alt="Profile Photo"
                   className="w-full h-full object-cover"
                 />

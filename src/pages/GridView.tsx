@@ -7,12 +7,12 @@ import { MiniNavbar } from "@/components/ui/mini-navbar";
 const projects: PlanetProject[] = [
   {
     id: "1",
-    title: "Human-AI interaction",
-    description: "Developed a real-time multi-modal pipeline combining computer vision (OpenCV, MediaPipe for human pose estimation) and NLP (Whisper ASR), achieving 85% classification accuracy.",
-    stack: ["React", "Node.js", "PostgreSQL", "Stripe", "Tailwind CSS"],
-    completionPercent: 75,
+    title: "Rehearso.ai",
+    description: "An AI-powered web platform that helps users improve their public speaking skills through solo and group sessions. It provides real-time coaching, AI analysis, peer evaluation, and post-session feedback focused on voice clarity, confidence, gestures, and body language.",
+    stack: ["React", "Node.js", "PostgreSQL", "openCV", "",],
+    completionPercent: 85,
     links: {
-      github: "https://github.com",
+      github: "https://github.com/abhimanyudalal1/rehearso.ai",
       live: "https://example.com",
     },
     accentColor: "200 65% 55%",

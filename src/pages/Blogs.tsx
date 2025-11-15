@@ -1,6 +1,6 @@
 import { MiniNavbar } from "@/components/ui/mini-navbar";
 import { useTheme } from "@/contexts/ThemeContext";
-
+import {}
 // Sample blog data
 const blogPosts = [
   {
@@ -15,7 +15,7 @@ const blogPosts = [
     title: "Multimodal Neurons",
     subtitle: "On Distill",
     description: "Exploring the fascinating world of neurons that respond to multiple modalities in deep neural networks.",
-    image: "/placeholder.svg",
+    image: "/planet1.svg",
     tag: "Deep Learning",
   },
   {

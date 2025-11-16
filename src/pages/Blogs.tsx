@@ -1,6 +1,6 @@
 import { MiniNavbar } from "@/components/ui/mini-navbar";
 import { useTheme } from "@/contexts/ThemeContext";
-import {}
+
 // Sample blog data
 const blogPosts = [
   {

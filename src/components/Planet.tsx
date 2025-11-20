@@ -14,6 +14,8 @@ export interface PlanetProject {
   orbitIndex: number;
   planetSize?: number; // Size multiplier for planet radius (optional, defaults to 0.07)
   planetImage?: number; // 1, 2, or 3 for planet1.svg, planet2.svg, or planet3.svg
+  texture?: string; // Path to 3D texture
+  orbitSpeed?: number; // Orbit speed multiplier
 }
 
 interface PlanetProps {
@@ -28,17 +30,17 @@ const Planet = ({ project, onClick, orbitPath }: PlanetProps) => {
 
   useEffect(() => {
     const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    
+
     if (planetRef.current) {
       const element = planetRef.current;
-      
+
       if (prefersReducedMotion) {
         // Instantly set to target position without animation
         element.style.offsetDistance = `${project.completionPercent}%`;
       } else {
         // Animate from 0% to completionPercent with stagger
         const delay = project.orbitIndex * 100; // Reduced from 300ms to 100ms
-        
+
         setTimeout(() => {
           element.style.setProperty('--target-distance', `${project.completionPercent}%`);
           element.style.animation = `travel-orbit ${3000 + project.orbitIndex * 100}ms cubic-bezier(0.4, 0, 0.2, 1) forwards`;
@@ -91,7 +93,7 @@ const Planet = ({ project, onClick, orbitPath }: PlanetProps) => {
 
         {/* Tooltip - responsive positioning */}
         {showTooltip && (
-          <div 
+          <div
             className="absolute left-1/2 -translate-x-1/2 bg-card border border-border rounded-lg shadow-lg whitespace-nowrap pointer-events-none z-50"
             style={{
               bottom: 'clamp(3rem, 4vw, 6rem)', // Position based on planet size

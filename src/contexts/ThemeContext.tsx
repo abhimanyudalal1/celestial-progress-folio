@@ -11,7 +11,21 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   const [isDarkMode, setIsDarkMode] = useState(false);
 
   const toggleTheme = () => {
-    setIsDarkMode(prev => !prev);
+    if (!document.startViewTransition) {
+      setIsDarkMode((prev) => !prev);
+      return;
+    }
+
+    const nextThemeIsDark = !isDarkMode;
+    document.documentElement.dataset.transitionDirection = nextThemeIsDark ? 'to-dark' : 'to-light';
+
+    const transition = document.startViewTransition(() => {
+      setIsDarkMode(nextThemeIsDark);
+    });
+
+    transition.finished.finally(() => {
+      delete document.documentElement.dataset.transitionDirection;
+    });
   };
 
   return (

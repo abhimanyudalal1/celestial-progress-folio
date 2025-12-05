@@ -1,54 +1,31 @@
-"I want to implement a 'Planet Split' animation for opening my project details.
+I want to upgrade my Theme Toggle logic to use the View Transitions API for a specific animation effect.
 
-Currently, my planet is a single div. I need to refactor the Planet component to support 'splitting in half' to reveal a modal.
+Currently, my theme switches instantly. I want to create a 'Solar Wind' effect where the new theme expands from the Right (where the toggle is) towards the Left (where the Sun is).
 
-Please update my Planet.tsx (and associated CSS) with this logic:
+Please update my code in two parts:
 
-1. The HTML Structure: Replace the single .planet div with this wrapper structure:
+1. The React Logic (in ThemeToggle.tsx or similar): Refactor my toggleTheme function.
 
-JavaScript
-<div className='planet-wrapper' onClick={handlePlanetClick}>
-  {/* The Hidden Modal (z-index: 0) */}
-  <div className='space-window' ref={windowRef}>
-    <ProjectDetails data={projectData} />
-  </div>
+Check if document.startViewTransition is supported.
 
-  {/* Left Half of Planet (z-index: 1) */}
-  <div className='planet-half left-half' ref={leftHalfRef}>
-    <div className='planet-sprite' /> {/* Same spinning animation */}
-  </div>
+If supported, wrap my setTheme state update inside document.startViewTransition(() => { setTheme(newTheme) }).
 
-  {/* Right Half of Planet (z-index: 1) */}
-  <div className='planet-half right-half' ref={rightHalfRef}>
-    <div className='planet-sprite right-offset' /> {/* Same spinning animation */}
-  </div>
-</div>
-2. The CSS:
+If not supported, just call setTheme(newTheme) directly (fallback).
 
-.planet-wrapper: Relative position, centered.
+2. The CSS (in index.css or App.css): Add the CSS View Transition rules to animate the switch.
 
-.planet-half: Absolute position, width 50%, height 100%, overflow: hidden.
+Target: ::view-transition-new(root).
 
-.left-half: left: 0.
+Animation: Create a keyframe animation called solar-wind-wipe.
 
-.right-half: right: 0.
+Geometry: Use clip-path: circle(...).
 
-.planet-sprite: The existing spinning pixel art animation.
+Start: circle(0% at 100% 50%) (A tiny dot on the far right edge).
 
-Crucial: For the .right-half .planet-sprite, set margin-left: -100% (or similar) so it aligns perfectly to show the right side of the image.
+End: circle(150% at 100% 50%) (A huge circle expanding leftward to cover the screen).
 
-.space-window: Absolute center, distinct 'Holographic' border styling, initially scale: 0 and opacity: 0.
+Layering: Ensure ::view-transition-old(root) stays stationary behind the new view (z-index: -1, animation: none).
 
-3. The GSAP Animation (onClick):
+Timing: Make it 1.5s ease-in-out so it feels substantial.
 
-Create a GSAP timeline.
-
-Animate .left-half to x: -60px (move left).
-
-Animate .right-half to x: 60px (move right).
-
-Simultaneously, animate .space-window to scale: 1 and opacity: 1 (springy ease).
-
-Add a 'Close' function that reverses this timeline.
-
-Please generate the complete React component and CSS."
+Please write the updated React function and the exact CSS needed.

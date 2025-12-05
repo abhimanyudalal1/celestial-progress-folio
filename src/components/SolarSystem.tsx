@@ -24,7 +24,7 @@ const projects: PlanetProject[] = [
     },
     accentColor: "200 65% 55%",
     orbitIndex: 1,
-    planetSize: 0.04, // Small planet (Mercury-like)
+    planetSize: 0.08, // Small planet (Mercury-like)
     planetImage: 1, // Using planet1.svg
   },
   {
@@ -39,7 +39,7 @@ const projects: PlanetProject[] = [
     },
     accentColor: "280 70% 60%",
     orbitIndex: 2,
-    planetSize: 0.085, // Small-medium planet (Venus-like)
+    planetSize: 0.09, // Small-medium planet (Venus-like)
     planetImage: 2, // Using planet2.svg
   },
   {
@@ -53,7 +53,7 @@ const projects: PlanetProject[] = [
     },
     accentColor: "140 70% 50%",
     orbitIndex: 3,
-    planetSize: 0.075, // Medium planet (Earth-like)
+    planetSize: 0.105, // Medium planet (Earth-like)
     planetImage: 3, // Using planet3.svg
   },
   {
@@ -68,7 +68,7 @@ const projects: PlanetProject[] = [
     },
     accentColor: "15 65% 55%",
     orbitIndex: 4,
-    planetSize: 0.195, // Small-medium planet (Mars-like)
+    planetSize: 0.215, // Small-medium planet (Mars-like)
     planetImage: 1, // Using planet1.svg (reusing)
   },
   {
@@ -82,7 +82,7 @@ const projects: PlanetProject[] = [
     },
     accentColor: "260 75% 65%",
     orbitIndex: 5,
-    planetSize: 0.09, // Large planet (Jupiter-like)
+    planetSize: 0.11, // Large planet (Jupiter-like)
     planetImage: 2, // Using planet2.svg (reusing)
   },
 ];

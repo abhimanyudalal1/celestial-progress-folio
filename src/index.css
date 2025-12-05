@@ -588,7 +588,7 @@ All colors MUST be HSL.
 /* Light -> Dark: Old view shrinks into Sun (Left) */
 html[data-transition-direction="to-dark"]::view-transition-old(root) {
   z-index: 1;
-  animation: solar-wind-suck 1s ease-in-out;
+  animation: solar-wind-suck 10s ease-in-out;
 }
 
 html[data-transition-direction="to-dark"]::view-transition-new(root) {
@@ -599,7 +599,7 @@ html[data-transition-direction="to-dark"]::view-transition-new(root) {
 /* Dark -> Light: New view expands from Sun (Left) */
 html[data-transition-direction="to-light"]::view-transition-new(root) {
   z-index: 1;
-  animation: solar-wind-expand 1s ease-in-out;
+  animation: solar-wind-expand 3s ease-in-out;
 }
 
 html[data-transition-direction="to-light"]::view-transition-old(root) {

@@ -1,4 +1,7 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
+import gsap from "gsap";
+import "./PlanetSplit.css";
+import { useTheme } from "@/contexts/ThemeContext";
 
 export interface PlanetProject {
   id: string;
@@ -12,16 +15,16 @@ export interface PlanetProject {
   };
   accentColor: string;
   orbitIndex: number;
-  planetSize?: number; // Size multiplier for planet radius (optional, defaults to 0.07)
-  planetImage?: number; // 1, 2, or 3 for planet1.svg, planet2.svg, or planet3.svg
+  planetSize?: number;
+  planetImage?: number;
   texture?: string; // Path to 3D texture
   orbitSpeed?: number; // Orbit speed multiplier
 }
 
 interface PlanetProps {
   project: PlanetProject;
-  onClick: () => void;
-  orbitPath: string;
+  planetRadius: number;
+  imageSrc: string;
 }
 
 const Planet = ({ project, onClick, orbitPath }: PlanetProps) => {
@@ -56,10 +59,16 @@ const Planet = ({ project, onClick, orbitPath }: PlanetProps) => {
   }, [project.completionPercent, project.orbitIndex]);
 
   return (
-    <>
-      <button
-        ref={planetRef}
-        className="absolute group focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 rounded-full"
+    <div
+      className="planet-wrapper relative flex justify-center items-center w-full h-full pointer-events-auto cursor-pointer transition-transform duration-300 hover:scale-110"
+      style={{
+        width: planetRadius * 2,
+        height: planetRadius * 2,
+      }}
+    >
+      {/* Planet Image */}
+      <div
+        className="planet-sprite absolute inset-0 bg-cover bg-center bg-no-repeat"
         style={{
           offsetPath: `path('${orbitPath}')`,
           offsetRotate: '0deg',

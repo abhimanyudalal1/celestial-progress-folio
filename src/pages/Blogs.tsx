@@ -1,5 +1,7 @@
 import { MiniNavbar } from "@/components/ui/mini-navbar";
 import { useTheme } from "@/contexts/ThemeContext";
+import domedark from "../../domedark.png"
+import domelight from "../../domelight.png"
 
 // Sample blog data
 const blogPosts = [
@@ -29,17 +31,18 @@ const blogPosts = [
 
 const Blogs = () => {
   const { isDarkMode } = useTheme();
-  
+
   return (
-    <div className="min-h-screen relative">
+    <div className="min-h-screen relative overflow-x-hidden">
       {/* Background Image - Full Screen */}
-      <div 
+      <div
         className="fixed inset-0 z-0 transition-opacity duration-500 ease-in-out"
         style={{
-          backgroundImage: isDarkMode ? 'url(/domedarks.svg)' : 'url(/domelight.svg)',
+          backgroundImage: `url(${isDarkMode ? domedark : domelight})`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat',
+          willChange: 'opacity',
         }}
       />
 
@@ -48,29 +51,29 @@ const Blogs = () => {
 
       {/* Content Container - Solid Panel */}
       <div className="relative z-10 pt-24 pb-16 flex justify-center px-4">
-        <div 
+        <div
           className="w-full max-w-5xl rounded-2xl shadow-2xl"
           style={{
-            backgroundColor: isDarkMode ? '#ffffff' : '#000000',
+            backgroundColor: isDarkMode ? 'rgba(0, 0, 0, 0.6)' : 'rgba(255, 255, 255, 0.6)',
             transition: 'background-color 0.5s ease',
             padding: '3rem 2rem'
           }}
         >
           {/* Header */}
           <header className="mb-12 text-center">
-            <h1 
+            <h1
               className="text-5xl md:text-6xl font-bold mb-4"
               style={{
-                color: isDarkMode ? '#000000' : '#ffffff',
+                color: isDarkMode ? '#ffffff' : '#000000',
                 transition: 'color 0.5s ease'
               }}
             >
               abhimanyu's blog
             </h1>
-            <p 
+            <p
               className="text-xl"
               style={{
-                color: isDarkMode ? '#374151' : '#e5e7eb',
+                color: isDarkMode ? '#e5e7eb' : '#374151',
                 transition: 'color 0.5s ease'
               }}
             >
@@ -105,7 +108,7 @@ const Blogs = () => {
                     )}
 
                     {/* Title */}
-                    <h2 
+                    <h2
                       className="text-2xl font-bold mb-2 group-hover:underline"
                       style={{
                         color: isDarkMode ? '#111827' : '#f9fafb',
@@ -117,7 +120,7 @@ const Blogs = () => {
 
                     {/* Subtitle if exists */}
                     {post.subtitle && (
-                      <p 
+                      <p
                         className="text-sm italic mb-3"
                         style={{
                           color: isDarkMode ? '#6b7280' : '#9ca3af',
@@ -129,7 +132,7 @@ const Blogs = () => {
                     )}
 
                     {/* Description */}
-                    <p 
+                    <p
                       className="mb-4 leading-relaxed"
                       style={{
                         color: isDarkMode ? '#374151' : '#d1d5db',
@@ -141,7 +144,7 @@ const Blogs = () => {
 
                     {/* Tag */}
                     {post.tag && (
-                      <span 
+                      <span
                         className="inline-block px-3 py-1 text-xs font-medium rounded-full"
                         style={{
                           backgroundColor: isDarkMode ? '#111827' : '#f9fafb',
@@ -159,7 +162,7 @@ const Blogs = () => {
 
             {/* Third Row - Full Width */}
             <div className="mt-6">
-              <article 
+              <article
                 className="rounded-lg overflow-hidden border-2 shadow-xl hover:shadow-2xl hover:scale-[1.01] transition-all duration-300 cursor-pointer group"
                 style={{
                   backgroundColor: isDarkMode ? '#f9fafb' : '#1f2937',
@@ -182,7 +185,7 @@ const Blogs = () => {
 
                     {/* Right side - Content */}
                     <div className="md:w-2/3">
-                      <h2 
+                      <h2
                         className="text-3xl font-bold mb-3 group-hover:underline"
                         style={{
                           color: isDarkMode ? '#111827' : '#f9fafb',
@@ -191,17 +194,17 @@ const Blogs = () => {
                       >
                         Neural Networks (General)
                       </h2>
-                      <p 
+                      <p
                         className="mb-4 leading-relaxed"
                         style={{
                           color: isDarkMode ? '#374151' : '#d1d5db',
                           transition: 'color 0.5s ease'
                         }}
                       >
-                        A comprehensive overview of neural network architectures, training methods, and applications in modern AI. 
+                        A comprehensive overview of neural network architectures, training methods, and applications in modern AI.
                         Exploring the fundamentals of deep learning and how neural networks have revolutionized machine learning.
                       </p>
-                      <span 
+                      <span
                         className="inline-block px-3 py-1 text-xs font-medium rounded-full"
                         style={{
                           backgroundColor: isDarkMode ? '#111827' : '#f9fafb',
@@ -220,7 +223,7 @@ const Blogs = () => {
 
           {/* Footer Note */}
           <footer className="mt-12 text-center">
-            <p 
+            <p
               className="text-sm"
               style={{
                 color: isDarkMode ? '#6b7280' : '#9ca3af',

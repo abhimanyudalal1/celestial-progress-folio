@@ -212,7 +212,7 @@ All colors MUST be HSL.
     --gradient-sun: linear-gradient(135deg, hsl(var(--sun-core)), hsl(var(--sun-glow)));
     --gradient-space: radial-gradient(ellipse at top, hsl(230 30% 12%), hsl(230 35% 8%));
 
-    --glow-sun: 0 0 80px hsl(var(--sun-glow) / 0.5), 0 0 120px hsl(var(--sun-core) / 0.3);
+    --glow-sun: 0 0 80px hsl(0 0% 0% / 0.8), 0 0 120px hsl(0 0% 5% / 0.5);
     --glow-planet: 0 0 25px hsl(var(--planet-1) / 0.4);
   }
 }

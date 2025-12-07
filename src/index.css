@@ -229,6 +229,7 @@ All colors MUST be HSL.
     overflow-x: hidden;
     position: relative;
     cursor: url('/spaceship-cursor.svg') 12 12, auto;
+    transition: background-color 2s ease-in-out, color 2s ease-in-out;
   }
 
   /* Starfield background - CSS only, very lightweight */
@@ -580,49 +581,5 @@ All colors MUST be HSL.
     50% {
       transform: translateY(-10px);
     }
-  }
-}
-
-/* Solar Wind Theme Transition */
-
-/* Light -> Dark: Old view shrinks into Sun (Left) */
-html[data-transition-direction="to-dark"]::view-transition-old(root) {
-  z-index: 1;
-  animation: solar-wind-suck 3s ease-in-out;
-}
-
-html[data-transition-direction="to-dark"]::view-transition-new(root) {
-  z-index: -1;
-  animation: none;
-}
-
-/* Dark -> Light: New view expands from Sun (Left) */
-html[data-transition-direction="to-light"]::view-transition-new(root) {
-  z-index: 1;
-  animation: solar-wind-expand 3s ease-in-out;
-}
-
-html[data-transition-direction="to-light"]::view-transition-old(root) {
-  z-index: -1;
-  animation: none;
-}
-
-@keyframes solar-wind-suck {
-  from {
-    clip-path: circle(150% at 0% 50%);
-  }
-
-  to {
-    clip-path: circle(0% at 0% 50%);
-  }
-}
-
-@keyframes solar-wind-expand {
-  from {
-    clip-path: circle(0% at 0% 50%);
-  }
-
-  to {
-    clip-path: circle(150% at 0% 50%);
   }
 }

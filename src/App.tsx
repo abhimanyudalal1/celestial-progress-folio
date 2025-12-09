@@ -9,6 +9,7 @@ import GridView from "./pages/GridView";
 import About from "./pages/About";
 import Blogs from "./pages/Blogs";
 import NotFound from "./pages/NotFound";
+import BlogPostView from "./pages/BlogPostView";
 
 const queryClient = new QueryClient();
 
@@ -22,6 +23,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/blogs" element={<Blogs />} />
+            <Route path="/blog/:slug" element={<BlogPostView />} />
             <Route path="/grid-view" element={<GridView />} />
             <Route path="/about" element={<About />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

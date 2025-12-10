@@ -73,3 +73,8 @@ Related: ✨ How I solved X (formal blog)
 At the bottom of each Formal Blog:
 Source Notes: Daily logs from Jan 10–13
 This gives your blog depth and credibility.
+
+
+
+
+in the timeline view we can use part of a planet forming log by log in front of the dates

@@ -5,6 +5,7 @@ import domedark from "../../domedark.png";
 import domelight from "../../domelight.png";
 import { BlogCard } from "@/components/blog/BlogCard";
 import { getBlogPosts, BlogPost } from "@/lib/blog";
+import { cn } from "@/lib/utils";
 
 const Blogs = () => {
   const { isDarkMode } = useTheme();
@@ -39,31 +40,37 @@ const Blogs = () => {
       {/* Main Content */}
       <div className="relative z-10 pt-24 pb-16 px-4 min-h-screen flex flex-col items-center">
 
-        {/* Header Section */}
-        <div className="text-center mb-10 w-full max-w-4xl mx-auto backdrop-blur-md rounded-2xl p-8 border border-white/10 shadow-2xl relative"
-          style={{ backgroundColor: isDarkMode ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.6)' }}>
+        {/* Paper Container */}
+        <div className={cn(
+          "w-full max-w-5xl mx-auto rounded-none md:rounded-lg shadow-2xl overflow-hidden min-h-[80vh]",
+          isDarkMode ? "bg-[#1a1a1a] text-gray-100" : "bg-[#fdfdfd] text-gray-900"
+        )}>
+          {/* Header Section */}
+          <div className="text-center pt-16 pb-12 px-8 border-b border-gray-200 dark:border-gray-800">
+            <h1 className="text-4xl md:text-5xl font-bold mb-4 tracking-tight font-serif"
+              style={{ fontFamily: "'Crimson Pro', serif" }}>
+              Engineering & Research
+            </h1>
+            <p className={cn(
+              "text-xl italic font-serif opacity-80 max-w-2xl mx-auto",
+              isDarkMode ? "text-gray-400" : "text-gray-600"
+            )} style={{ fontFamily: "'Crimson Pro', serif" }}>
+              Explorations in AI, Systems, and Design.
+            </p>
+          </div>
 
-          <h1 className="text-4xl md:text-5xl font-bold mb-3 tracking-tight"
-            style={{ color: isDarkMode ? '#fff' : '#000' }}>
-            Engineering Blog
-          </h1>
-          <p className="text-lg opacity-80"
-            style={{ color: isDarkMode ? '#ccc' : '#444' }}>
-            Polished thoughts, architecture deep-dives, and tutorials.
-          </p>
-        </div>
-
-        {/* Blog Post Grid */}
-        <div className="w-full max-w-6xl">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {blogPosts.map((post) => (
-              <BlogCard key={post.slug} post={post} />
-            ))}
-            {blogPosts.length === 0 && (
-              <div className="col-span-full text-center py-20 bg-white/80 dark:bg-black/60 backdrop-blur-xl rounded-2xl border border-white/10">
-                <p className="opacity-60">No formal articles yet. Check back soon!</p>
-              </div>
-            )}
+          {/* Blog Post Grid */}
+          <div className="p-8 md:p-12 bg-opacity-50">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {blogPosts.map((post) => (
+                <BlogCard key={post.slug} post={post} />
+              ))}
+              {blogPosts.length === 0 && (
+                <div className="col-span-full text-center py-20 opacity-60 italic font-serif">
+                  No formal articles yet. Check back soon!
+                </div>
+              )}
+            </div>
           </div>
         </div>
 

@@ -15,6 +15,7 @@ export interface BlogPost {
 export interface DailyLog {
     date: string; // YYYY-MM-DD
     slug: string;
+    title: string;
     content: string;
     year: string;
     month: string;
@@ -31,37 +32,63 @@ function calculateReadingTime(content: string): string {
 
 // Fetch all formal blog posts
 export const getBlogPosts = async (): Promise<BlogPost[]> => {
-    const modules = import.meta.glob('/src/content/posts/*.md', { query: '?raw', import: 'default', eager: true });
+    try {
+        // Debug: Check if glob is finding files
+        const modules = import.meta.glob('../content/posts/*.md', { query: '?raw', import: 'default', eager: true });
+        console.log('Blog Modules Keys:', Object.keys(modules));
 
-    const posts = Object.entries(modules).map(([path, content]) => {
-        const { data, content: markdownContent } = matter(content as string);
-        const slug = path.split('/').pop()?.replace('.md', '') || '';
+        const posts = Object.entries(modules).map(([path, content]) => {
+            try {
+                console.log(`Parsing ${path}`, { contentType: typeof content, contentPreview: String(content).slice(0, 50) });
+                const { data, content: markdownContent } = matter(content as string);
+                console.log(`Parsed ${path}:`, data);
 
-        return {
-            slug,
-            title: data.title || 'Untitled',
-            subtitle: data.subtitle,
-            date: data.date || new Date().toISOString(),
-            description: data.description || '',
-            tags: data.tags || [],
-            content: markdownContent,
-            readingTime: calculateReadingTime(markdownContent),
-            image: data.image,
-        } as BlogPost;
-    });
+                const slug = path.split('/').pop()?.replace('.md', '') || '';
 
-    return posts.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+                return {
+                    slug,
+                    title: data.title || 'Untitled',
+                    subtitle: data.subtitle,
+                    date: data.date || new Date().toISOString(),
+                    description: data.description || '',
+                    tags: data.tags || [],
+                    content: markdownContent,
+                    readingTime: calculateReadingTime(markdownContent),
+                    image: data.image,
+                } as BlogPost;
+            } catch (e) {
+                console.error(`Error parsing markdown for ${path}:`, e);
+                return null;
+            }
+        }).filter(Boolean) as BlogPost[]; // Filter out nulls
+
+        console.log('Final Posts Array:', posts);
+        return posts.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    } catch (err) {
+        console.error("Fatal error in getBlogPosts:", err);
+        return [];
+    }
 };
 
 // Fetch all daily logs
 export const getDailyLogs = async (): Promise<DailyLog[]> => {
-    const modules = import.meta.glob('/src/content/daily/*.md', { query: '?raw', import: 'default', eager: true });
+    const modules = import.meta.glob('../content/daily/*.md', { query: '?raw', import: 'default', eager: true });
+    // console.log('Daily Log Modules Found:', Object.keys(modules));
 
     const logs = Object.entries(modules).map(([path, content]) => {
-        // For daily logs, the filename IS the date (YYYY-MM-DD.md)
         const filename = path.split('/').pop()?.replace('.md', '') || '';
-        // We can also parse frontmatter if specific overrides are needed, but default to filename date
-        const { content: markdownContent } = matter(content as string);
+        const { data, content: markdownContent } = matter(content as string);
+
+        // Extract title: Frontmatter -> First Heading -> Fallback
+        let title = data.title;
+        if (!title) {
+            const headingMatch = markdownContent.match(/^#+\s+(.*)$/m);
+            if (headingMatch) {
+                title = headingMatch[1];
+            } else {
+                title = `Log ${filename}`;
+            }
+        }
 
         const dateObj = new Date(filename);
         const year = dateObj.getFullYear().toString();
@@ -71,6 +98,7 @@ export const getDailyLogs = async (): Promise<DailyLog[]> => {
         return {
             date: filename,
             slug: filename,
+            title,
             content: markdownContent,
             year,
             month,

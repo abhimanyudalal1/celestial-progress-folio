@@ -4,6 +4,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { getPostBySlug, getDailyLogs, BlogPost, DailyLog } from "@/lib/blog";
 import { DailyLogFeed } from "@/components/blog/DailyLogFeed";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { ScrollProgress } from "@/components/ui/scroll-progress";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
@@ -52,6 +53,9 @@ const BlogPostView = () => {
             "min-h-screen w-full transition-colors duration-300",
             isDarkMode ? "bg-[#121212] text-white" : "bg-white text-gray-900"
         )}>
+            {/* Scroll Progress Indicator */}
+            <ScrollProgress />
+            
             {/* Top Navigation Bar */}
             <div className={cn(
                 "sticky top-0 z-50 w-full px-6 py-4 flex justify-between items-center backdrop-blur-md border-b transition-colors",

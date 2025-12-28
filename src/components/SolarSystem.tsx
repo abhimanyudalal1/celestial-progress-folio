@@ -4,88 +4,15 @@ import { useState, useEffect } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
 import MeteorCursor from "./MeteorCursor";
 import { Github, Linkedin, Mail } from "lucide-react";
+import { toLegacyProjects } from "@/data/projects";
 
 interface SolarSystemProps {
   selectedProject: PlanetProject | null;
   setSelectedProject: (project: PlanetProject | null) => void;
 }
-{/* <iframe data-testid="embed-iframe" style="border-radius:12px" src="https://open.spotify.com/embed/track/6pWgRkpqVfxnj3WuIcJ7WP?utm_source=generator&theme=0" width="100%" height="152" frameBorder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe> */ }
-// Sample projects data
-const projects: PlanetProject[] = [
-  {
-    id: "1",
-    title: "Human-AI interaction",
-    description: "A full-stack e-commerce solution with React, Node.js, and Stripe integration. Features include real-time inventory management, user authentication, and a responsive checkout flow.",
-    stack: ["React", "Node.js", "PostgreSQL", "Stripe", "Tailwind CSS"],
-    completionPercent: 75,
-    links: {
-      github: "https://github.com",
-      live: "https://example.com",
-    },
-    accentColor: "200 65% 55%",
-    orbitIndex: 1,
-    planetSize: 0.08, // Small planet (Mercury-like)
-    planetImage: 1, // Using planet1.svg
-  },
-  {
-    id: "2",
-    title: "Task Management App",
-    description: "A collaborative project management tool with drag-and-drop functionality, real-time updates via WebSockets, and team collaboration features.",
-    stack: ["TypeScript", "Next.js", "Prisma", "Socket.io", "shadcn/ui"],
-    completionPercent: 32,
-    links: {
-      github: "https://github.com",
-      live: "https://example.com",
-    },
-    accentColor: "280 70% 60%",
-    orbitIndex: 2,
-    planetSize: 0.09, // Small-medium planet (Venus-like)
-    planetImage: 2, // Using planet2.svg
-  },
-  {
-    id: "3",
-    title: "AI Content Generator",
-    description: "An AI-powered content creation tool leveraging GPT-4 for blog posts, social media, and marketing copy. Includes templates and tone customization.",
-    stack: ["React", "OpenAI API", "Firebase", "Framer Motion"],
-    completionPercent: 68,
-    links: {
-      github: "https://github.com",
-    },
-    accentColor: "140 70% 50%",
-    orbitIndex: 3,
-    planetSize: 0.105, // Medium planet (Earth-like)
-    planetImage: 3, // Using planet3.svg
-  },
-  {
-    id: "4",
-    title: "Weather Dashboard",
-    description: "A beautiful weather forecasting dashboard with interactive maps, hourly predictions, and location-based alerts. Built with modern design patterns.",
-    stack: ["Vue.js", "D3.js", "OpenWeather API", "CSS Grid"],
-    completionPercent: 50,
-    links: {
-      github: "https://github.com",
-      live: "https://example.com",
-    },
-    accentColor: "15 65% 55%",
-    orbitIndex: 4,
-    planetSize: 0.215, // Small-medium planet (Mars-like)
-    planetImage: 1, // Using planet1.svg (reusing)
-  },
-  {
-    id: "5",
-    title: "Portfolio Analytics",
-    description: "Real-time analytics dashboard for tracking portfolio performance, visitor insights, and engagement metrics with beautiful data visualizations.",
-    stack: ["React", "Chart.js", "Express", "MongoDB", "AWS"],
-    completionPercent: 75,
-    links: {
-      github: "https://github.com",
-    },
-    accentColor: "260 75% 65%",
-    orbitIndex: 5,
-    planetSize: 0.11, // Large planet (Jupiter-like)
-    planetImage: 2, // Using planet2.svg (reusing)
-  },
-];
+
+// Get projects from centralized data
+const projects: PlanetProject[] = toLegacyProjects();
 
 /**
  * Calculate planet position on an elliptical orbit

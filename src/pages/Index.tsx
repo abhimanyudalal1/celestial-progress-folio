@@ -88,12 +88,12 @@ const Index = () => {
       )}
 
       {/* Spotify Mini Player - Bottom Left Corner */}
-      <div className="fixed bottom-4 left-4 z-30 opacity-15 hover:opacity-80 transition-opacity ">
+      <div className="fixed bottom-4 left-4 z-30 opacity-15 hover:opacity-80 transition-opacity duration-300">
         <iframe 
           data-testid="embed-iframe" 
-          style={{ borderRadius: '1px' }} 
+          style={{ borderRadius: '12px' }} 
           src="https://open.spotify.com/embed/track/6pWgRkpqVfxnj3WuIcJ7WP?utm_source=generator&theme=0" 
-          width="-200" 
+          width="300" 
           height="80" 
           frameBorder="0" 
           allowFullScreen={false}

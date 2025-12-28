@@ -86,7 +86,7 @@ export const TransitionController = () => {
                 y: 0,
                 // Using spread radius (4th value) to increase excessive size without just blurring it out
                 boxShadow: "0 0 450px 75px rgba(255, 100, 0, 0.6)",
-                duration: 1.0,
+                duration: 0.5,
                 ease: "power2.inOut"
             });
 

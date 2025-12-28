@@ -1,15 +1,19 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useTheme } from '@/contexts/ThemeContext';
 import SkyToggle from './sky-toggle';
+import { useTransition } from '@/contexts/TransitionContext';
 
 export function MiniNavbar() {
   const { isDarkMode } = useTheme();
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [isNavHovered, setIsNavHovered] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { startTransition } = useTransition();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const navLinksData = [
     { label: 'Home', to: '/' },
@@ -21,7 +25,7 @@ export function MiniNavbar() {
   return (
     <>
       {/* Desktop Navigation */}
-      <nav 
+      <nav
         className="hidden md:fixed md:top-2 md:left-1/2 md:transform md:-translate-x-1/2 md:flex md:items-center md:gap-16 md:z-50 md:px-10 md:py-1.5 relative"
         onMouseEnter={() => setIsNavHovered(true)}
         onMouseLeave={() => {
@@ -30,20 +34,18 @@ export function MiniNavbar() {
         }}
       >
         {/* Subtle glassy blur background */}
-        <div 
-          className={`absolute inset-0 backdrop-blur-sm pointer-events-none ${
-            isDarkMode ? 'bg-white/5' : 'bg-black/5'
-          }`}
+        <div
+          className={`absolute inset-0 backdrop-blur-sm pointer-events-none ${isDarkMode ? 'bg-white/5' : 'bg-black/5'
+            }`}
           style={{
             borderRadius: '9999px',
           }}
         />
 
         {/* Navbar Container Outline - appears on hover */}
-        <div 
-          className={`absolute inset-0 border transition-opacity duration-500 pointer-events-none ${
-            isNavHovered ? 'opacity-100' : 'opacity-0'
-          } ${isDarkMode ? 'border-gray-800/40' : 'border-white/30'}`}
+        <div
+          className={`absolute inset-0 border transition-opacity duration-500 pointer-events-none ${isNavHovered ? 'opacity-100' : 'opacity-0'
+            } ${isDarkMode ? 'border-gray-800/40' : 'border-white/30'}`}
           style={{
             borderStyle: 'dashed',
             borderWidth: '1.5px',
@@ -52,31 +54,83 @@ export function MiniNavbar() {
         />
 
         {/* Navigation Links */}
-        {navLinksData.map((link, index) => (
-          <Link
-            key={link.to}
-            to={link.to}
-            className={`relative font-bold text-lg tracking-wide transition-all duration-300 z-10 px-6 py-3 ${
-              isDarkMode ? 'text-gray-700' : 'text-gray-300'
-            }`}
-            onMouseEnter={() => setHoveredIndex(index)}
-            onMouseLeave={() => setHoveredIndex(null)}
-          >
-            {/* Orbital outline on individual button hover */}
-            {hoveredIndex === index && (
-              <div 
-                className={`absolute inset-0 border rounded-full transition-opacity duration-300 pointer-events-none ${
-                  isDarkMode ? 'border-gray-800/50' : 'border-white/40'
-                }`}
-                style={{
-                  borderStyle: 'dashed',
-                  borderWidth: '1px',
-                  transform: 'scale(1.1)',
+        {navLinksData.map((link, index) => {
+          // Special handling for Projects link to trigger transition
+          if (link.label === 'Projects') {
+            return (
+              <button
+                key={link.to}
+                onClick={() => {
+                  // Trigger transition from ANY page, unless we're already on Projects
+                  if (location.pathname === link.to) {
+                    return;
+                  }
+                  startTransition();
                 }}
-              />
-            )}
+                className={`relative font-bold text-lg tracking-wide transition-all duration-300 z-10 px-6 py-3 ${isDarkMode ? 'text-gray-700' : 'text-gray-300'
+                  }`}
+                onMouseEnter={() => setHoveredIndex(index)}
+                onMouseLeave={() => setHoveredIndex(null)}
+              >
+                {/* Orbital outline on individual button hover */}
+                {hoveredIndex === index && (
+                  <div
+                    className={`absolute inset-0 border rounded-full transition-opacity duration-300 pointer-events-none ${isDarkMode ? 'border-gray-800/50' : 'border-white/40'
+                      }`}
+                    style={{
+                      borderStyle: 'dashed',
+                      borderWidth: '1px',
+                      transform: 'scale(1.1)',
+                    }}
+                  />
+                )}
 
-            {/* Glow effect on hover
+                {/* Text */}
+                <span
+                  className={`relative transition-all duration-300 ${hoveredIndex === index
+                    ? isDarkMode
+                      ? 'text-gray-900 drop-shadow-[0_0_8px_rgba(0,0,0,0.3)]'
+                      : 'text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]'
+                    : isDarkMode ? 'text-gray-700' : 'text-gray-300'
+                    }`}
+                >
+                  {link.label}
+                </span>
+
+                {/* Star dot on hover */}
+                {hoveredIndex === index && (
+                  <span className={`absolute -top-2 left-1/2 transform -translate-x-1/2 w-1 h-1 rounded-full animate-pulse ${isDarkMode
+                    ? 'bg-gray-900 shadow-[0_0_6px_rgba(0,0,0,0.5)]'
+                    : 'bg-white shadow-[0_0_8px_rgba(255,255,255,0.9)]'
+                    }`}></span>
+                )}
+              </button>
+            )
+          }
+
+          return (
+            <Link
+              key={link.to}
+              to={link.to}
+              className={`relative font-bold text-lg tracking-wide transition-all duration-300 z-10 px-6 py-3 ${isDarkMode ? 'text-gray-700' : 'text-gray-300'
+                }`}
+              onMouseEnter={() => setHoveredIndex(index)}
+              onMouseLeave={() => setHoveredIndex(null)}
+            >
+              {/* Orbital outline on individual button hover */}
+              {hoveredIndex === index && (
+                <div
+                  className={`absolute inset-0 border rounded-full transition-opacity duration-300 pointer-events-none ${isDarkMode ? 'border-gray-800/50' : 'border-white/40'
+                    }`}
+                  style={{
+                    borderStyle: 'dashed',
+                    borderWidth: '1px',
+                    transform: 'scale(1.1)',
+                  }}
+                />
+              )}
+
+              {/* Glow effect on hover
             {hoveredIndex === index && (
               <>
                 <span className={`absolute inset-0 blur-sm animate-pulse ${
@@ -87,30 +141,29 @@ export function MiniNavbar() {
                 }`}></span>
               </>
             )} */}
-            
-            {/* Text */}
-            <span 
-              className={`relative transition-all duration-300 ${
-                hoveredIndex === index 
-                  ? isDarkMode 
-                    ? 'text-gray-900 drop-shadow-[0_0_8px_rgba(0,0,0,0.3)]'
-                    : 'text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]' 
-                  : isDarkMode ? 'text-gray-700' : 'text-gray-300'
-              }`}
-            >
-              {link.label}
-            </span>
 
-            {/* Star dot on hover */}
-            {hoveredIndex === index && (
-              <span className={`absolute -top-2 left-1/2 transform -translate-x-1/2 w-1 h-1 rounded-full animate-pulse ${
-                isDarkMode 
+              {/* Text */}
+              <span
+                className={`relative transition-all duration-300 ${hoveredIndex === index
+                  ? isDarkMode
+                    ? 'text-gray-900 drop-shadow-[0_0_8px_rgba(0,0,0,0.3)]'
+                    : 'text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]'
+                  : isDarkMode ? 'text-gray-700' : 'text-gray-300'
+                  }`}
+              >
+                {link.label}
+              </span>
+
+              {/* Star dot on hover */}
+              {hoveredIndex === index && (
+                <span className={`absolute -top-2 left-1/2 transform -translate-x-1/2 w-1 h-1 rounded-full animate-pulse ${isDarkMode
                   ? 'bg-gray-900 shadow-[0_0_6px_rgba(0,0,0,0.5)]'
-                  : 'bg-white shadow-[0_0_8px_rgba(255,255,255,0.9)]' 
-              }`}></span>
-            )}
-          </Link>
-        ))}
+                  : 'bg-white shadow-[0_0_8px_rgba(255,255,255,0.9)]'
+                  }`}></span>
+              )}
+            </Link>
+          )
+        })}
 
         {/* Theme Toggle */}
         <div className="ml-4">
@@ -122,9 +175,8 @@ export function MiniNavbar() {
       <div className="md:hidden fixed top-6 right-6 z-50">
         <button
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          className={`p-2 transition-colors ${
-            isDarkMode ? 'text-gray-700 hover:text-gray-900' : 'text-gray-300 hover:text-white'
-          }`}
+          className={`p-2 transition-colors ${isDarkMode ? 'text-gray-700 hover:text-gray-900' : 'text-gray-300 hover:text-white'
+            }`}
           aria-label="Toggle menu"
         >
           {isMobileMenuOpen ? (
@@ -141,17 +193,15 @@ export function MiniNavbar() {
 
       {/* Mobile Menu */}
       {isMobileMenuOpen && (
-        <div className={`md:hidden fixed inset-0 z-40 flex flex-col items-center justify-center ${
-          isDarkMode ? 'bg-white/95' : 'bg-black/95'
-        }`}>
+        <div className={`md:hidden fixed inset-0 z-40 flex flex-col items-center justify-center ${isDarkMode ? 'bg-white/95' : 'bg-black/95'
+          }`}>
           <nav className="flex flex-col items-center gap-8">
             {navLinksData.map((link) => (
               <Link
                 key={link.to}
                 to={link.to}
-                className={`font-bold text-xl transition-colors ${
-                  isDarkMode ? 'text-gray-700 hover:text-gray-900' : 'text-gray-300 hover:text-white'
-                }`}
+                className={`font-bold text-xl transition-colors ${isDarkMode ? 'text-gray-700 hover:text-gray-900' : 'text-gray-300 hover:text-white'
+                  }`}
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 {link.label}

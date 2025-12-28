@@ -1,5 +1,4 @@
 import { PlanetProject } from "./Planet";
-import Planet from "./Planet";
 import { useState, useEffect } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
 import MeteorCursor from "./MeteorCursor";
@@ -11,29 +10,10 @@ interface SolarSystemProps {
   setSelectedProject: (project: PlanetProject | null) => void;
 }
 
+import { SOLAR_CONFIG, getPlanetPosition, getOrbitRadii, getPlanetAngle } from "@/lib/solar-system-config";
+
 // Get projects from centralized data
 const projects: PlanetProject[] = toLegacyProjects();
-
-/**
- * Calculate planet position on an elliptical orbit
- * @param radiusX - Horizontal radius of the ellipse
- * @param radiusY - Vertical radius of the ellipse (compressed for 3D effect)
- * @param sunCenterX - X coordinate of sun center
- * @param sunCenterY - Y coordinate of sun center
- * @param angleDeg - Angle in degrees for position on ellipse
- */
-const getPlanetPosition = (
-  radiusX: number,
-  radiusY: number,
-  sunCenterX: number,
-  sunCenterY: number,
-  angleDeg: number
-): { x: number; y: number } => {
-  const angleRad = (angleDeg * Math.PI) / 180;
-  const x = sunCenterX + radiusX * Math.cos(angleRad);
-  const y = sunCenterY + radiusY * Math.sin(angleRad);
-  return { x, y };
-};
 
 const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) => {
   const [dimensions, setDimensions] = useState({ width: 1920, height: 1080 });
@@ -55,24 +35,11 @@ const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) 
   // Base dimension for responsive scaling
   const baseDimension = Math.min(dimensions.width, dimensions.height);
 
-  // SVG viewBox dimensions - expanded to show large orbits
-  const viewBoxWidth = 3000; // Much wider to accommodate large orbits
-  const viewBoxHeight = 1000; // Fixed height that works  
-  const viewBoxLeft = -800; // Further left to show full orbits
+  // SVG viewBox dimensions
+  const { viewBoxWidth, viewBoxHeight, viewBoxLeft, sunCenterX, sunCenterY } = SOLAR_CONFIG;
 
-  // Sun center position - positioned on the left side like the reference image
-  const sunCenterX = -700; // Move sun much further to the left
-  const sunCenterY = 500; // Center vertically
-
-  // Orbit radii - make them smaller to bring planets closer to the sun
-  const baseRadius = baseDimension * 0.4; // Reduced from 1.2 to 0.4 (much smaller orbits)
-  const orbitRadii = {
-    r1: baseRadius * 2.0, // Smaller, tighter orbits
-    r2: baseRadius * 3.0,
-    r3: baseRadius * 4.0,
-    r4: baseRadius * 5.0,
-    r5: baseRadius * 6.0,
-  };
+  // Orbit radii
+  const orbitRadii = getOrbitRadii(baseDimension);
 
   return (
     <section className="absolute inset-0 flex items-center justify-start pointer-events-none z-10" aria-label="Projects Solar System">
@@ -332,16 +299,7 @@ const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) 
                 const radius = orbitRadii[`r${project.orbitIndex}` as keyof typeof orbitRadii] || 200;
                 // Distribute planets more evenly around the orbits
                 // Spread them out more to match the reference image
-                const baseAngle = 300; // Start from upper area
-                const angleStep = 21; // More degrees between each planet for better spacing
-                // Special positioning for the first planet (blue)
-                let angle;
-                if (project.orbitIndex === 1) {
-                  angle = 298; // Move the first planet to a different position
-
-                } else {
-                  angle = (baseAngle + (project.orbitIndex - 1) * angleStep) % 360;
-                }
+                const angle = getPlanetAngle(project.orbitIndex);
 
                 // Create full elliptical orbit that goes around the back of the sun
                 // Use ellipse instead of arc for full 3D effect

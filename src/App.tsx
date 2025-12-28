@@ -10,6 +10,8 @@ import About from "./pages/About";
 import Blogs from "./pages/Blogs";
 import NotFound from "./pages/NotFound";
 import BlogPostView from "./pages/BlogPostView";
+import { TransitionProvider } from "@/contexts/TransitionContext";
+import { TransitionController } from "@/components/TransitionController";
 
 const queryClient = new QueryClient();
 
@@ -20,15 +22,18 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/blogs" element={<Blogs />} />
-            <Route path="/blog/:slug" element={<BlogPostView />} />
-            <Route path="/grid-view" element={<GridView />} />
-            <Route path="/about" element={<About />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <TransitionProvider>
+            <TransitionController />
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/blogs" element={<Blogs />} />
+              <Route path="/blog/:slug" element={<BlogPostView />} />
+              <Route path="/grid-view" element={<GridView />} />
+              <Route path="/about" element={<About />} />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </TransitionProvider>
         </BrowserRouter>
       </TooltipProvider>
     </ThemeProvider>

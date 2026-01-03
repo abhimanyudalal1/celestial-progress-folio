@@ -99,10 +99,13 @@ export const TransitionController = () => {
                 left: targetLeft,
                 width: targetWidth,
                 height: targetHeight,
-                xPercent: 0, // Clear previous centering transform since we are using exact left rect
+                xPercent: 0, // Clear previous centering transform
+                yPercent: 0,
                 x: 0,
-                borderRadius: "9999px", // Pill shape
                 y: 0,
+                transform: 'none', // Nuke any other transforms
+                borderRadius: "9999px", // Pill shape
+                boxSizing: 'border-box',
                 // Using spread radius (4th value) to increase excessive size without just blurring it out
                 boxShadow: "0 0 450px 75px rgba(255, 100, 0, 0.6)",
                 duration: 0.5,

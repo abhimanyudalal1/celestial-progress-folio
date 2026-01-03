@@ -26,6 +26,8 @@ export const TransitionController = () => {
 
     // Reset transition state if we are back at root
 
+    const timelineRef = useRef<gsap.core.Timeline | null>(null);
+
     // Reset transition state if we are back at root
     useEffect(() => {
         if (location.pathname === '/' && transitionState === 'projects') {
@@ -33,13 +35,22 @@ export const TransitionController = () => {
         }
     }, [location.pathname]);
 
+    // Use a separate effect to trigger the animation ONCE when state changes to 'transitioning'
     useEffect(() => {
         if (transitionState === 'transitioning') {
+            // If already animating, do nothing (prevent restart on resize/theme change)
+            if (timelineRef.current && timelineRef.current.isActive()) return;
+
+            // Kill any existing timeline just in case
+            if (timelineRef.current) timelineRef.current.kill();
+
             const timeline = gsap.timeline({
                 onComplete: () => {
                     completeTransition();
+                    timelineRef.current = null;
                 }
             });
+            timelineRef.current = timeline;
 
             // 1. Initial Setup
             // Deployment Fix: Reset Scroll to ensure coordinate system is clean
@@ -225,8 +236,14 @@ export const TransitionController = () => {
                     ease: "power2.inOut"
                 }, "<"); // Sync with planets fade out
             }
+        } else {
+            // If state changes away from 'transitioning', kill timeline
+            if (timelineRef.current) {
+                timelineRef.current.kill();
+                timelineRef.current = null;
+            }
         }
-    }, [transitionState, dimensions, navigate, completeTransition, isDarkMode]);
+    }, [transitionState]); // Only re-run when transition state changes, ignoring component updates during animation!
 
     if (transitionState === 'hero') return null;
 

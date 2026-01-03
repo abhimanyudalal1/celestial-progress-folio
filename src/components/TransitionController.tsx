@@ -283,7 +283,7 @@ export const TransitionController = () => {
             {/* Curtain for reveal effect */}
             <div
                 ref={curtainRef}
-                className="absolute inset-0 bg-background" // Use theme background
+                className={`absolute inset-0 ${isDarkMode ? 'bg-white' : 'bg-background'}`} // White in Dark Mode
                 style={{
                     zIndex: -1
                 }}
@@ -348,7 +348,7 @@ export const TransitionController = () => {
                                 key={project.id}
                                 ref={el => planetsRef.current[i] = el}
                             >
-                                <circle r={baseDimension * 0.04} fill={isDarkMode ? '#e2e8f0' : `hsl(${project.accentColor})`} />
+                                <circle r={baseDimension * 0.04} fill={isDarkMode ? '#000000' : `hsl(${project.accentColor})`} />
                             </g>
                         );
                     })}
@@ -359,7 +359,7 @@ export const TransitionController = () => {
                     ref={textRef}
                     className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-0 z-[100] pointer-events-none"
                 >
-                    <h1 className="text-6xl md:text-8xl font-black text-white tracking-tighter">
+                    <h1 className={`text-6xl md:text-8xl font-black tracking-tighter ${isDarkMode ? 'text-black' : 'text-white'}`}>
                         PROJECTS
                     </h1>
                 </div>

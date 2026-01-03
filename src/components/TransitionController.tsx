@@ -5,6 +5,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { SOLAR_CONFIG, getPlanetPosition, getOrbitRadii, getPlanetAngle } from '@/lib/solar-system-config';
 import gsap from 'gsap';
 import { toLegacyProjects } from "@/data/projects";
+import { useWindowSize } from '@/hooks/use-window-size';
 
 const projects = toLegacyProjects();
 
@@ -21,16 +22,9 @@ export const TransitionController = () => {
     const curtainRef = useRef<HTMLDivElement>(null);
     const ghostNavbarRef = useRef<HTMLDivElement>(null);
 
-    const [dimensions, setDimensions] = useState({ width: window.innerWidth, height: window.innerHeight });
+    const dimensions = useWindowSize(); // Debounced resize hook
 
-    // Update dimensions on resize match SolarSystem
-    useEffect(() => {
-        const handleResize = () => {
-            setDimensions({ width: window.innerWidth, height: window.innerHeight });
-        };
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
-    }, []);
+    // Reset transition state if we are back at root
 
     // Reset transition state if we are back at root
     useEffect(() => {

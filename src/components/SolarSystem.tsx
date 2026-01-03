@@ -15,22 +15,15 @@ import { SOLAR_CONFIG, getPlanetPosition, getOrbitRadii, getPlanetAngle } from "
 // Get projects from centralized data
 const projects: PlanetProject[] = toLegacyProjects();
 
+import { useWindowSize } from '@/hooks/use-window-size';
+
+// ... (other imports)
+
 const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) => {
-  const [dimensions, setDimensions] = useState({ width: 1920, height: 1080 });
+  const dimensions = useWindowSize(); // Debounced resize hook
   const { isDarkMode } = useTheme();
 
-  useEffect(() => {
-    const updateDimensions = () => {
-      setDimensions({
-        width: window.innerWidth,
-        height: window.innerHeight
-      });
-    };
-
-    updateDimensions(); // Initial call
-    window.addEventListener('resize', updateDimensions);
-    return () => window.removeEventListener('resize', updateDimensions);
-  }, []);
+  // Removed manual resize useEffect as useWindowSize handles it
 
   // Base dimension for responsive scaling
   const baseDimension = Math.min(dimensions.width, dimensions.height);

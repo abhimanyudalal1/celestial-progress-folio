@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useWindowSize } from '@/hooks/use-window-size';
 
 interface Star {
   x: number;
@@ -19,6 +20,7 @@ const Stars = () => {
   const starsRef = useRef<Star[]>([]);
   const mouseRef = useRef({ x: 0, y: 0 });
   const { isDarkMode } = useTheme();
+  const dimensions = useWindowSize(); // Debounced resize hook
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -29,8 +31,8 @@ const Stars = () => {
 
     // Set canvas size
     const resizeCanvas = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
+      canvas.width = dimensions.width;
+      canvas.height = dimensions.height;
     };
 
     // Generate stars with different layers for parallax effect
@@ -181,16 +183,11 @@ const Stars = () => {
       animationRef.current = requestAnimationFrame(animate);
     };
 
-    // Initialize
+    // Initialize/Update on resize (debounced)
     resizeCanvas();
     generateStars();
     animate();
 
-    // Event listeners
-    window.addEventListener('resize', () => {
-      resizeCanvas();
-      generateStars();
-    });
     window.addEventListener('mousemove', handleMouseMove);
 
     // Cleanup
@@ -198,10 +195,9 @@ const Stars = () => {
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
       }
-      window.removeEventListener('resize', resizeCanvas);
       window.removeEventListener('mousemove', handleMouseMove);
     };
-  }, [isDarkMode]);
+  }, [isDarkMode, dimensions]);
 
   return (
     <canvas

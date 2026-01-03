@@ -19,6 +19,7 @@ export const TransitionController = () => {
     const planetsRef = useRef<(SVGGElement | null)[]>([]);
     const textRef = useRef<HTMLDivElement>(null);
     const curtainRef = useRef<HTMLDivElement>(null);
+    const ghostNavbarRef = useRef<HTMLDivElement>(null);
 
     const [dimensions, setDimensions] = useState({ width: window.innerWidth, height: window.innerHeight });
 
@@ -47,6 +48,9 @@ export const TransitionController = () => {
             });
 
             // 1. Initial Setup
+            // Deployment Fix: Reset Scroll to ensure coordinate system is clean
+            window.scrollTo(0, 0);
+
             if (sunRef.current) gsap.set(sunRef.current, { zIndex: 50 });
 
             // Initialize Planet Positions via GSAP to prevent React re-render reset
@@ -75,13 +79,28 @@ export const TransitionController = () => {
             }
 
             // 2. Sun Morph -> Navbar Background (Top)
+            // Deployment Fix: Dynamic Coordinate Fetching
+            // We use a "Ghost Navbar" to measure the exact target position
+            let targetTop = 8; // fallback
+            let targetLeft = window.innerWidth / 2; // fallback
+            let targetWidth = 950; // fallback
+            let targetHeight = 60; // fallback
+
+            if (ghostNavbarRef.current) {
+                const navBounds = ghostNavbarRef.current.getBoundingClientRect();
+                targetTop = navBounds.top;
+                targetLeft = navBounds.left;
+                targetWidth = navBounds.width;
+                targetHeight = navBounds.height;
+            }
+
             const sunTween = gsap.to(sunRef.current, {
-                top: "8px", // Match md:top-2
-                left: "50%",
-                xPercent: -50, // Center horizontally
-                x: 0, // Clear pixel transform
-                width: "950px", // Approximate navbar width
-                height: "60px", // Approximate navbar height
+                top: targetTop,
+                left: targetLeft,
+                width: targetWidth,
+                height: targetHeight,
+                xPercent: 0, // Clear previous centering transform since we are using exact left rect
+                x: 0,
                 borderRadius: "9999px", // Pill shape
                 y: 0,
                 // Using spread radius (4th value) to increase excessive size without just blurring it out
@@ -217,19 +236,32 @@ export const TransitionController = () => {
                 visibility: transitionState === 'transitioning' ? 'visible' : 'hidden'
             }}
         >
+            {/* Ghost Navbar for Measurement - Matches DynamicNavbar Desktop Styles */}
+            <div
+                ref={ghostNavbarRef}
+                className="hidden md:fixed md:top-2 md:left-1/2 md:transform md:-translate-x-1/2 md:flex md:items-center md:gap-16 md:z-50 md:px-10 md:py-1.5 opacity-0 pointer-events-none"
+                style={{
+                    borderRadius: '9999px',
+                    width: 'max-content', // Allow it to expand naturally based on content
+                    minWidth: '950px', // Enforce minimum width to match the real navbar's substantial size
+                }}
+            >
+                {/* Replicating DynamicNavbar Content Exactly for Width Calculation */}
+                <div className="px-6 py-3 font-bold text-lg tracking-wide">Abhimanyu</div>
+                <div className="px-6 py-3 font-bold text-lg tracking-wide">Blogs</div>
+                <div className="px-6 py-3 font-bold text-lg tracking-wide">Projects</div>
+                <div className="px-6 py-3 font-bold text-lg tracking-wide">About</div>
+
+                {/* Theme Toggle Placeholder (ml-4) */}
+                <div className="ml-4 w-12 h-8"></div>
+            </div>
+
             {/* Curtain for reveal effect - Initially covers everything with a small circle or invisible? 
             Wait, the requirement says: "animate the clip-path of the actual Projects Page"
             OR we can use this overlay to mask the reveal.
             Let's assume this overlay COVERS the screen, and we "cut a hole" or fade it out?
             "The screen 'splits' or 'spreads' out from that center point"
-            
-            Strategy:
-            The Overlay contains the Sun and Planets.
-            Underneath is the NEW Page (Projects).
-            We want to reveal the new page FROM the center.
-            So we can have a black/background curtain on top of the Routes, 
-            and we animate its clip-path to Open.
-         */}
+          */}
             <div
                 ref={curtainRef}
                 className="absolute inset-0 bg-background" // Use theme background (white/black) to cover old page

@@ -24,6 +24,14 @@ export const DailyLogFeed: React.FC<DailyLogFeedProps> = ({ logs }) => {
 
     return (
         <div className="w-full max-w-3xl mx-auto py-8">
+            {/* Main Heading */}
+            <h2 className={cn(
+                "text-3xl font-black mb-8 pb-4 border-b-2",
+                isDarkMode ? "text-gray-100 border-gray-700" : "text-gray-900 border-gray-300"
+            )}>
+                Project Timeline:
+            </h2>
+
             {Object.entries(groupedLogs).map(([monthYear, monthLogs]) => (
                 <div key={monthYear} className="mb-12">
                     {/* Month Header */}
@@ -48,7 +56,7 @@ export const DailyLogFeed: React.FC<DailyLogFeedProps> = ({ logs }) => {
 
             {logs.length === 0 && (
                 <div className="text-center py-12 text-gray-500">
-                    No daily logs found. Start writing in src/content/daily!
+                    No daily logs found for this project. Start writing in src/content/daily/[blog-slug]/!
                 </div>
             )}
         </div>

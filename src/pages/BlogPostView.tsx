@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTheme } from "@/contexts/ThemeContext";
-import { getPostBySlug, getDailyLogs, BlogPost, DailyLog } from "@/lib/blog";
+import { getPostBySlug, getDailyLogsForBlog, BlogPost, DailyLog } from "@/lib/blog";
 import { DailyLogFeed } from "@/components/blog/DailyLogFeed";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { ScrollProgress } from "@/components/ui/scroll-progress";
@@ -24,7 +24,8 @@ const BlogPostView = () => {
             if (!slug) return;
 
             const foundPost = await getPostBySlug(slug);
-            const logs = await getDailyLogs();
+            // Fetch logs specific to this blog post
+            const logs = await getDailyLogsForBlog(slug);
 
             if (foundPost) {
                 setPost(foundPost);
@@ -79,7 +80,7 @@ const BlogPostView = () => {
                                 <BookOpen size={14} /> Timeline
                             </button>
                         </SheetTrigger>
-                        <SheetContent side="left" className={cn("w-[85vw]", isDarkMode ? "bg-black text-white" : "bg-white")}>
+                        <SheetContent side="left" className={cn("w-[85vw]", isDarkMode ? "bg-black text-white" : "bg-white text-gray-900")}>
                             <DailyLogFeed logs={dailyLogs} />
                         </SheetContent>
                     </Sheet>
@@ -93,6 +94,14 @@ const BlogPostView = () => {
                 <aside className="hidden lg:block relative">
                     <div className="sticky top-32">
                         <Sheet>
+                            {/* Timeline Heading */}
+                            <h3 className={cn(
+                                "text-sm font-black uppercase tracking-wider mb-4",
+                                isDarkMode ? "text-gray-300" : "text-gray-700"
+                            )}>
+                                Project Timeline:
+                            </h3>
+                            
                             <div className="relative pl-4 border-l-2 border-gray-200 dark:border-gray-800 space-y-8 py-2">
                                 <div className="absolute top-0 left-[-2px] w-full h-full pointer-events-none">
                                     {/* Line is effectively the border-l on the parent */}
@@ -146,7 +155,7 @@ const BlogPostView = () => {
                                 side="left"
                                 className={cn(
                                     "w-[540px] overflow-y-auto border-r",
-                                    isDarkMode ? "bg-black/95 border-gray-800" : "bg-white/95 border-gray-200"
+                                    isDarkMode ? "bg-black/95 border-gray-800 text-white" : "bg-white/95 border-gray-200 text-gray-900"
                                 )}
                             >
                                 <SheetHeader className="mb-8 mt-4">

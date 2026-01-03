@@ -28,20 +28,34 @@ export const TimelineEntry: React.FC<TimelineEntryProps> = ({ log, isExpanded = 
                 )}
             />
 
-            {/* Date Header / Clickable Area */}
+            {/* Date and Title Header / Clickable Area */}
             <div
-                className="group cursor-pointer flex items-center gap-3 mb-2"
+                className="group cursor-pointer mb-2"
                 onClick={() => setIsOpen(!isOpen)}
             >
-                <span className={cn(
-                    "text-xs font-mono font-bold uppercase tracking-wider opacity-60 group-hover:opacity-100 transition-opacity",
-                    isDarkMode ? "text-blue-300" : "text-blue-600"
-                )}>
-                    {log.date}
-                </span>
-                <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                    {isOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                {/* Date */}
+                <div className="flex items-center gap-3 mb-1">
+                    <span className={cn(
+                        "text-xs font-mono font-bold uppercase tracking-wider opacity-60 group-hover:opacity-100 transition-opacity",
+                        isDarkMode ? "text-blue-300" : "text-blue-600"
+                    )}>
+                        {log.date}
+                    </span>
+                    <div className={cn(
+                        "opacity-0 group-hover:opacity-100 transition-opacity",
+                        isDarkMode ? "text-gray-300" : "text-gray-600"
+                    )}>
+                        {isOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                    </div>
                 </div>
+                
+                {/* Title */}
+                <h4 className={cn(
+                    "text-base font-bold group-hover:text-blue-500 transition-colors",
+                    isDarkMode ? "text-gray-200" : "text-gray-800"
+                )}>
+                    {log.title}
+                </h4>
             </div>
 
             {/* Content Card */}

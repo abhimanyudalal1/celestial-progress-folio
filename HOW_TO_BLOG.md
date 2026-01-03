@@ -3,30 +3,50 @@
 Your blog system is split into two layers. Here is how to add content to each.
 
 ## 1. Adding a Daily Log (Research Stream)
-These are your raw notes, accessible via the "Research Stream" drawer on any blog post page.
+Daily logs are **specific to each blog post**. They track your progress on that particular project/topic and are accessible via the "Research Stream" drawer on that blog post's page.
 
-1.  Navigate to `src/content/daily`.
-2.  Create a new file named with the current date: `YYYY-MM-DD.md`.
-    *   Example: `2025-12-10.md`
-3.  Add your content in Markdown.
+### Steps:
+1.  Navigate to `src/content/daily/`.
+2.  Create a folder with the **same name as your blog post slug** (the filename without `.md`).
+    *   Example: If your blog is `mate.md`, create folder `daily/mate/`
+3.  Inside that folder, create files named with dates: `YYYY-MM-DD.md`.
+    *   Example: `src/content/daily/mate/2025-12-28.md`
+4.  Add your content in Markdown.
 
-**Example File (`src/content/daily/2025-12-10.md`):**
+### Folder Structure Example:
+```
+src/content/
+├── posts/
+│   ├── mate.md                    # Blog post
+│   └── react-server-components.md # Another blog post
+└── daily/
+    ├── mate/                      # Daily logs for "mate" blog
+    │   ├── 2025-12-28.md
+    │   └── 2025-12-29.md
+    └── react-server-components/   # Daily logs for RSC blog
+        └── 2025-12-08.md
+```
+
+### Example Daily Log (`src/content/daily/mate/2025-12-28.md`):
 ```markdown
 ---
-tags: ["Debug", "CSS"]
+tags: ["Debug", "Architecture"]
 ---
 
-### Fixed the Z-Index Issue
+### Set up the audio pipeline
 
-Today I spent 2 hours fighting with `z-index`. Turns out the starfield overlay needs `pointer-events: none` to let clicks pass through to the planets.
+Today I worked on getting Whisper running locally. Turns out the `tiny` model is fast but not accurate enough for my needs.
 
-Snippet:
-\`\`\`css
-.stars {
-  pointer-events: none;
-  z-index: 0;
-}
+#### Code snippet:
+\`\`\`python
+import whisper
+model = whisper.load_model("base")
+result = model.transcribe("audio.mp3")
 \`\`\`
+
+#### Next steps:
+- Test the `small` model for better accuracy
+- Look into wake word detection
 ```
 
 ---

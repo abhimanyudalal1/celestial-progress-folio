@@ -16,6 +16,10 @@ const ProjectOverlay = ({ project, initialRect, onClose }: ProjectOverlayProps) 
     const { isDarkMode } = useTheme();
     const [isAnimating, setIsAnimating] = useState(true);
 
+    // Parse color for usage in different opacities
+    const themeColor = `hsl(${project.accentColor})`;
+    const themeColorAlpha = (alpha: number) => `hsl(${project.accentColor} / ${alpha})`;
+
     useEffect(() => {
         const ctx = gsap.context(() => {
             // Initial state - match the planet's position and size
@@ -30,8 +34,8 @@ const ProjectOverlay = ({ project, initialRect, onClose }: ProjectOverlayProps) 
                 zIndex: 100,
                 backgroundColor: isDarkMode ? "rgba(10, 10, 20, 0.95)" : "rgba(255, 255, 255, 0.95)",
                 backdropFilter: "blur(10px)",
-                border: "1px solid rgba(100, 200, 255, 0.3)",
-                boxShadow: "0 0 20px rgba(100, 200, 255, 0.2)",
+                border: `1px solid ${themeColorAlpha(0.3)}`,
+                boxShadow: `0 0 20px ${themeColorAlpha(0.2)}`,
             });
 
             gsap.set(contentRef.current, {
@@ -64,7 +68,7 @@ const ProjectOverlay = ({ project, initialRect, onClose }: ProjectOverlayProps) 
         }, overlayRef);
 
         return () => ctx.revert();
-    }, [initialRect, isDarkMode]);
+    }, [initialRect, isDarkMode, project.accentColor]);
 
     const handleClose = () => {
         if (isAnimating) return;
@@ -123,9 +127,13 @@ const ProjectOverlay = ({ project, initialRect, onClose }: ProjectOverlayProps) 
                                 <span
                                     key={tech}
                                     className={`px-3 py-1 rounded-full text-sm font-medium border ${isDarkMode
-                                            ? "bg-white/5 border-white/10 text-cyan-300"
-                                            : "bg-black/5 border-black/10 text-cyan-700"
+                                        ? "bg-white/5"
+                                        : "bg-black/5"
                                         }`}
+                                    style={{
+                                        borderColor: isDarkMode ? themeColorAlpha(0.3) : themeColorAlpha(0.2),
+                                        color: themeColor
+                                    }}
                                 >
                                     {tech}
                                 </span>
@@ -153,8 +161,8 @@ const ProjectOverlay = ({ project, initialRect, onClose }: ProjectOverlayProps) 
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all ${isDarkMode
-                                                ? "bg-white/10 hover:bg-white/20 text-white"
-                                                : "bg-black/5 hover:bg-black/10 text-gray-900"
+                                            ? "bg-white/10 hover:bg-white/20 text-white"
+                                            : "bg-black/5 hover:bg-black/10 text-gray-900"
                                             }`}
                                     >
                                         <Github size={20} />
@@ -166,7 +174,11 @@ const ProjectOverlay = ({ project, initialRect, onClose }: ProjectOverlayProps) 
                                         href={project.links.live}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="flex items-center gap-2 px-6 py-3 rounded-lg font-medium bg-cyan-500 hover:bg-cyan-600 text-white transition-all shadow-lg shadow-cyan-500/20"
+                                        className="flex items-center gap-2 px-6 py-3 rounded-lg font-medium text-white transition-all shadow-lg hover:brightness-110"
+                                        style={{
+                                            backgroundColor: themeColor,
+                                            boxShadow: `0 10px 15px -3px ${themeColorAlpha(0.2)}`
+                                        }}
                                     >
                                         <ExternalLink size={20} />
                                         Live Demo
@@ -184,11 +196,11 @@ const ProjectOverlay = ({ project, initialRect, onClose }: ProjectOverlayProps) 
                             <div className="grid grid-cols-2 gap-4">
                                 <div className={`p-4 rounded-lg ${isDarkMode ? "bg-white/5" : "bg-white shadow-sm"}`}>
                                     <div className="text-sm text-gray-500 mb-1">Completion</div>
-                                    <div className="text-2xl font-bold text-cyan-400">{project.completionPercent}%</div>
+                                    <div className="text-2xl font-bold" style={{ color: themeColor }}>{project.completionPercent}%</div>
                                 </div>
                                 <div className={`p-4 rounded-lg ${isDarkMode ? "bg-white/5" : "bg-white shadow-sm"}`}>
                                     <div className="text-sm text-gray-500 mb-1">Orbit</div>
-                                    <div className="text-2xl font-bold text-purple-400">Layer {project.orbitIndex}</div>
+                                    <div className="text-2xl font-bold" style={{ color: themeColor }}>Layer {project.orbitIndex}</div>
                                 </div>
                             </div>
                         </div>

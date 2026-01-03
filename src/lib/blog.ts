@@ -20,6 +20,8 @@ export interface DailyLog {
     year: string;
     month: string;
     day: string;
+    blogSlug?: string; // The blog post this log belongs to
+    tags?: string[];
 }
 
 // Helper to calculate reading time
@@ -70,7 +72,7 @@ export const getBlogPosts = async (): Promise<BlogPost[]> => {
     }
 };
 
-// Fetch all daily logs
+// Fetch all daily logs (general - for backward compatibility)
 export const getDailyLogs = async (): Promise<DailyLog[]> => {
     const modules = import.meta.glob('../content/daily/*.md', { query: '?raw', import: 'default', eager: true });
     // console.log('Daily Log Modules Found:', Object.keys(modules));
@@ -103,8 +105,57 @@ export const getDailyLogs = async (): Promise<DailyLog[]> => {
             year,
             month,
             day,
+            tags: data.tags || [],
         } as DailyLog;
     });
+
+    return logs.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+};
+
+// Fetch daily logs for a specific blog post
+export const getDailyLogsForBlog = async (blogSlug: string): Promise<DailyLog[]> => {
+    // Try to import logs from the blog-specific folder
+    const modules = import.meta.glob('../content/daily/**/*.md', { query: '?raw', import: 'default', eager: true });
+    
+    const logs = Object.entries(modules)
+        .filter(([path]) => {
+            // Match paths like ../content/daily/mate/2025-12-28.md
+            const pathParts = path.split('/');
+            const folderName = pathParts[pathParts.length - 2];
+            return folderName === blogSlug;
+        })
+        .map(([path, content]) => {
+            const filename = path.split('/').pop()?.replace('.md', '') || '';
+            const { data, content: markdownContent } = matter(content as string);
+
+            // Extract title: Frontmatter -> First Heading -> Fallback
+            let title = data.title;
+            if (!title) {
+                const headingMatch = markdownContent.match(/^#+\s+(.*)$/m);
+                if (headingMatch) {
+                    title = headingMatch[1];
+                } else {
+                    title = `Log ${filename}`;
+                }
+            }
+
+            const dateObj = new Date(filename);
+            const year = dateObj.getFullYear().toString();
+            const month = dateObj.toLocaleString('default', { month: 'long' });
+            const day = dateObj.getDate().toString();
+
+            return {
+                date: filename,
+                slug: filename,
+                title,
+                content: markdownContent,
+                year,
+                month,
+                day,
+                blogSlug,
+                tags: data.tags || [],
+            } as DailyLog;
+        });
 
     return logs.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 };

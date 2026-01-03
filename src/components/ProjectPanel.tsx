@@ -1,8 +1,6 @@
 import { useEffect, useRef } from "react";
 import { X, Github, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { GradientButton } from "@/components/ui/gradient-button";
-import { Badge } from "@/components/ui/badge";
 import { PlanetProject } from "./Planet";
 import { useTheme } from "@/contexts/ThemeContext";
 
@@ -15,6 +13,10 @@ const ProjectPanel = ({ project, onClose }: ProjectPanelProps) => {
   const panelRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const { isDarkMode } = useTheme();
+
+  // Helper for theme colors
+  const themeColor = `hsl(${project.accentColor})`;
+  const themeColorAlpha = (alpha: number) => `hsl(${project.accentColor} / ${alpha})`;
 
   useEffect(() => {
     // Focus close button when panel opens
@@ -53,13 +55,13 @@ const ProjectPanel = ({ project, onClose }: ProjectPanelProps) => {
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 backdrop-blur-sm z-[100] animate-in fade-in cursor-pointer"
+        className="fixed inset-0 z-[100] animate-in fade-in cursor-pointer"
         style={{
-          backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.5)' : 'rgba(0, 0, 0, 0.5)',
+          backgroundColor: 'rgba(0, 0, 0, 0.6)',
+          backdropFilter: 'blur(4px)',
           transition: 'background-color 0.5s ease'
         }}
         onClick={(e) => {
-          console.log('Backdrop clicked'); // Debug log
           e.preventDefault();
           e.stopPropagation();
           onClose();
@@ -75,64 +77,39 @@ const ProjectPanel = ({ project, onClose }: ProjectPanelProps) => {
         aria-modal="true"
         aria-labelledby="panel-title"
         onClick={(e) => e.stopPropagation()}
-        style={{ 
-          backgroundColor: isDarkMode ? '#1a1a1a' : 'white',
-          borderLeftColor: isDarkMode ? '#333333' : '#e5e7eb',
-          transition: 'background-color 0.5s ease, border-color 0.5s ease'
+        style={{
+          // Glassmorphism background using the planet's accent color
+          backgroundColor: isDarkMode ? '#1a1a1a' : `rgba(15, 15, 20, 0.95)`,
+          // Use dark background even in "light" (colorful) mode to make the colors pop, or maybe adjust opacity
+          backgroundImage: `linear-gradient(to bottom right, ${themeColorAlpha(0.1)}, rgba(0,0,0,0.8))`,
+          borderLeft: `1px solid ${themeColorAlpha(0.3)}`,
+          boxShadow: `-10px 0 30px ${themeColorAlpha(0.1)}`,
         }}
       >
-        <div className="p-6 space-y-6">
+        <div className="p-6 space-y-8">
           {/* Header */}
           <div className="flex items-start justify-between">
-            <div className="space-y-1 flex-1">
-              <h2 
-                id="panel-title" 
-                className="text-2xl font-bold" 
-                style={{ 
-                  color: isDarkMode ? '#e5e5e5' : '#1f2937',
-                  transition: 'color 0.5s ease'
+            <div className="space-y-2 flex-1">
+              <div
+                className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider mb-2"
+                style={{
+                  backgroundColor: themeColorAlpha(0.1),
+                  color: themeColor,
+                  border: `1px solid ${themeColorAlpha(0.2)}`
+                }}
+              >
+                Project Details
+              </div>
+              <h2
+                id="panel-title"
+                className="text-3xl font-bold leading-tight"
+                style={{
+                  color: 'white',
+                  textShadow: `0 0 20px ${themeColorAlpha(0.3)}`
                 }}
               >
                 {project.title}
               </h2>
-              <div className="flex items-center gap-3">
-                <div
-                  className="w-12 h-12 rounded-full flex items-center justify-center text-sm font-semibold"
-                  style={{
-                    background: isDarkMode 
-                      ? `radial-gradient(circle at 30% 30%, hsl(0 0% 30% / 0.8), hsl(0 0% 20%))`
-                      : `radial-gradient(circle at 30% 30%, hsl(${project.accentColor} / 0.8), hsl(${project.accentColor}))`,
-                    boxShadow: isDarkMode 
-                      ? '0 0 20px rgba(0, 0, 0, 0.4)'
-                      : `0 0 20px hsl(${project.accentColor} / 0.4)`,
-                    transition: 'background 0.5s ease, box-shadow 0.5s ease'
-                  }}
-                >
-                  <span className="text-white drop-shadow-md">
-                    {project.completionPercent}%
-                  </span>
-                </div>
-                <div>
-                  <p 
-                    className="text-sm font-semibold" 
-                    style={{ 
-                      color: isDarkMode ? '#e5e5e5' : '#1f2937',
-                      transition: 'color 0.5s ease'
-                    }}
-                  >
-                    Project Progress
-                  </p>
-                  <p 
-                    className="text-xs font-medium" 
-                    style={{ 
-                      color: isDarkMode ? '#a3a3a3' : '#4b5563',
-                      transition: 'color 0.5s ease'
-                    }}
-                  >
-                    {project.completionPercent}% Complete
-                  </p>
-                </div>
-              </div>
             </div>
             <Button
               ref={closeButtonRef}
@@ -142,34 +119,62 @@ const ProjectPanel = ({ project, onClose }: ProjectPanelProps) => {
                 e.stopPropagation();
                 onClose();
               }}
-              className="pointer-events-auto z-50"
-              style={{ 
-                color: isDarkMode ? '#e5e5e5' : '#1f2937',
-                transition: 'color 0.5s ease'
-              }}
+              className="pointer-events-auto z-50 hover:bg-white/10 text-white/70 hover:text-white"
               aria-label="Close project details"
             >
-              <X className="w-5 h-5" />
+              <X className="w-6 h-6" />
             </Button>
           </div>
 
-          {/* Description */}
-          <div className="space-y-2">
-            <h3 
-              className="text-sm font-semibold uppercase tracking-wide" 
-              style={{ 
-                color: isDarkMode ? '#a3a3a3' : '#6b7280',
-                transition: 'color 0.5s ease'
+          {/* Progress Section */}
+          <div className="flex items-center gap-6 p-4 rounded-2xl bg-white/5 border border-white/10">
+            <div
+              className="relative w-16 h-16 rounded-full flex items-center justify-center text-lg font-bold"
+              style={{
+                boxShadow: `0 0 25px ${themeColorAlpha(0.2)}`
               }}
             >
-              Description
+              {/* Ring SVGs */}
+              <svg className="absolute inset-0 w-full h-full -rotate-90">
+                <circle
+                  cx="32" cy="32" r="28"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                  fill="none"
+                  className="text-white/10"
+                />
+                <circle
+                  cx="32" cy="32" r="28"
+                  stroke={themeColor}
+                  strokeWidth="4"
+                  fill="none"
+                  strokeDasharray={175} // 2 * pi * 28 ≈ 175.9
+                  strokeDashoffset={175 - (175 * project.completionPercent) / 100}
+                  strokeLinecap="round"
+                  className="transition-all duration-1000 ease-out"
+                />
+              </svg>
+              <span className="text-white">{project.completionPercent}%</span>
+            </div>
+            <div>
+              <p className="text-white font-medium text-lg">Development Status</p>
+              <p className="text-gray-400 text-sm">
+                {project.completionPercent === 100
+                  ? "Completed & Deployed"
+                  : "Work in Progress"}
+              </p>
+            </div>
+          </div>
+
+          {/* Description */}
+          <div className="space-y-3">
+            <h3
+              className="text-sm font-bold uppercase tracking-widest text-gray-500"
+            >
+              About
             </h3>
-            <p 
-              className="font-medium leading-relaxed" 
-              style={{ 
-                color: isDarkMode ? '#d4d4d4' : '#1f2937',
-                transition: 'color 0.5s ease'
-              }}
+            <p
+              className="text-gray-300 text-lg leading-relaxed font-light"
             >
               {project.description}
             </p>
@@ -177,119 +182,71 @@ const ProjectPanel = ({ project, onClose }: ProjectPanelProps) => {
 
           {/* Tech Stack */}
           <div className="space-y-3">
-            <h3 
-              className="text-sm font-semibold uppercase tracking-wide" 
-              style={{ 
-                color: isDarkMode ? '#a3a3a3' : '#6b7280',
-                transition: 'color 0.5s ease'
-              }}
+            <h3
+              className="text-sm font-bold uppercase tracking-widest text-gray-500"
             >
               Tech Stack
             </h3>
             <div className="flex flex-wrap gap-2">
               {project.stack.map((tech) => (
-                <Badge key={tech} variant="secondary">
+                <span
+                  key={tech}
+                  className="px-3 py-1.5 rounded-md text-sm font-medium transition-colors"
+                  style={{
+                    backgroundColor: themeColorAlpha(0.1),
+                    color: themeColor,
+                    border: `1px solid ${themeColorAlpha(0.2)}`
+                  }}
+                >
                   {tech}
-                </Badge>
+                </span>
               ))}
             </div>
           </div>
 
           {/* Links */}
-          <div className="space-y-3">
-            <h3 
-              className="text-sm font-semibold uppercase tracking-wide" 
-              style={{ 
-                color: isDarkMode ? '#a3a3a3' : '#6b7280',
-                transition: 'color 0.5s ease'
-              }}
-            >
-              Links
-            </h3>
+          <div className="space-y-3 pt-4">
             <div className="flex flex-col gap-3">
               {project.links.github && (
-                <GradientButton
-                  className="w-full justify-start gap-2"
-                  asChild
+                <a
+                  href={project.links.github}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 w-full py-4 rounded-xl font-bold text-white transition-all hover:scale-[1.02] active:scale-[0.98]"
+                  style={{
+                    backgroundColor: 'rgba(255,255,255,0.05)',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                  }}
                 >
-                  <a
-                    href={project.links.github}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <Github className="w-4 h-4" />
-                    View on GitHub
-                  </a>
-                </GradientButton>
+                  <Github className="w-5 h-5" />
+                  View Source Code
+                </a>
               )}
               {project.links.live && (
-                <GradientButton
-                  variant="variant"
-                  className="w-full justify-start gap-2"
-                  asChild
+                <a
+                  href={project.links.live}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 w-full py-4 rounded-xl font-bold text-white shadow-lg transition-all hover:scale-[1.02] active:scale-[0.98] hover:shadow-xl"
+                  style={{
+                    backgroundColor: themeColor,
+                    boxShadow: `0 8px 20px -5px ${themeColorAlpha(0.4)}`
+                  }}
                 >
-                  <a
-                    href={project.links.live}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <ExternalLink className="w-4 h-4" />
-                    View Live Demo
-                  </a>
-                </GradientButton>
+                  <ExternalLink className="w-5 h-5" />
+                  Launch Live Demo
+                </a>
               )}
             </div>
           </div>
 
-          {/* Progress Details */}
-          <div 
-            className="p-4 rounded-lg space-y-2" 
-            style={{ 
-              backgroundColor: isDarkMode ? '#262626' : '#f3f4f6',
-              transition: 'background-color 0.5s ease'
+          {/* Decorative Bottom Gradient */}
+          <div
+            className="absolute bottom-0 left-0 right-0 h-32 pointer-events-none"
+            style={{
+              background: `linear-gradient(to top, ${themeColorAlpha(0.15)}, transparent)`
             }}
-          >
-            <h3 
-              className="text-sm font-semibold" 
-              style={{ 
-                color: isDarkMode ? '#e5e5e5' : '#1f2937',
-                transition: 'color 0.5s ease'
-              }}
-            >
-              Development Status
-            </h3>
-            <div 
-              className="w-full rounded-full h-2 overflow-hidden" 
-              style={{ 
-                backgroundColor: isDarkMode ? '#404040' : '#e5e7eb',
-                transition: 'background-color 0.5s ease'
-              }}
-            >
-              <div
-                className="h-full transition-all duration-500 rounded-full"
-                style={{
-                  width: `${project.completionPercent}%`,
-                  background: isDarkMode 
-                    ? 'linear-gradient(90deg, hsl(0 0% 30%), hsl(0 0% 20%))'
-                    : `hsl(${project.accentColor})`,
-                  boxShadow: isDarkMode 
-                    ? '0 0 10px rgba(0, 0, 0, 0.5)'
-                    : `0 0 10px hsl(${project.accentColor} / 0.5)`,
-                }}
-              />
-            </div>
-            <p 
-              className="text-xs font-medium" 
-              style={{ 
-                color: isDarkMode ? '#a3a3a3' : '#4b5563',
-                transition: 'color 0.5s ease'
-              }}
-            >
-              {project.completionPercent === 100
-                ? "Project completed and deployed!"
-                : `${100 - project.completionPercent}% remaining to completion`}
-            </p>
-          </div>
+          />
         </div>
       </aside>
     </>

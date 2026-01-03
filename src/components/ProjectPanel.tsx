@@ -15,8 +15,38 @@ const ProjectPanel = ({ project, onClose }: ProjectPanelProps) => {
   const { isDarkMode } = useTheme();
 
   // Helper for theme colors
-  const themeColor = `hsl(${project.accentColor})`;
-  const themeColorAlpha = (alpha: number) => `hsl(${project.accentColor} / ${alpha})`;
+  const { accentColor, orbitIndex } = project;
+
+  // Distinct Grey/Black Shades for Dark Mode (Matching DiagonalProjectCard)
+  const GREY_SHADES = [
+    '#1c1917', // Stone-900
+    '#111827', // Gray-900
+    '#27272a', // Zinc-900
+    '#323232', // Neutral Dark Grey
+    '#262626', // Neutral-800
+  ];
+
+  // In Night Mode, override to specific grey shade
+  // orbitIndex is 1-based usually, so we subtract 1 for array index
+  const themeColor = isDarkMode
+    ? GREY_SHADES[(orbitIndex - 1) % GREY_SHADES.length] || '#cfd8dc'
+    : `hsl(${accentColor})`;
+
+  const themeColorAlpha = (alpha: number) => {
+    if (isDarkMode) {
+      // Need to convert hex to rgba for alpha support or just use opacity if possible?
+      // Since we want alpha on these hexes, let's just use the themeColor hex 
+      // providing it's a valid hex, but `rgba` needs r,g,b.
+
+      // Simple Hex to RGB conversion for the alpha helper
+      const hex = themeColor.replace('#', '');
+      const r = parseInt(hex.substring(0, 2), 16);
+      const g = parseInt(hex.substring(2, 4), 16);
+      const b = parseInt(hex.substring(4, 6), 16);
+      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    }
+    return `hsl(${accentColor} / ${alpha})`;
+  };
 
   useEffect(() => {
     // Focus close button when panel opens

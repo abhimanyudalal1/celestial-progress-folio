@@ -106,18 +106,20 @@ export const TransitionController = () => {
                 transform: 'none', // Nuke any other transforms
                 borderRadius: "9999px", // Pill shape
                 boxSizing: 'border-box',
-                // Using spread radius (4th value) to increase excessive size without just blurring it out
-                boxShadow: "0 0 450px 75px rgba(255, 100, 0, 0.6)",
+                // Night/Grey Mode: Deep Charcoal BG
+                background: isDarkMode ? '#121212' : 'linear-gradient(135deg, #fbbf24, #ef4444)',
+                // Border: Moon Glow (Slate 200/400 gradient approximation via solid border for GSAP or just white)
+                // Since actual navbar has complex gradient border, we approximate here or remove it if it clashes?
+                // Real navbar has a padding based gradient border. 
+                // Let's use a subtle white border.
+                border: isDarkMode ? '1px solid rgba(226, 232, 240, 0.5)' : 'none',
+                // Box Shadow: Moon Glow
+                boxShadow: isDarkMode
+                    ? "0 0 20px rgba(226, 232, 240, 0.4)"
+                    : "0 0 450px 75px rgba(255, 100, 0, 0.6)",
                 duration: 0.5,
                 ease: "power2.inOut"
             });
-
-            // 3. Planets: Converge to Top Center
-            // Target: Center X, Top Y (e.g. inside the new navbar area)
-            // Use SVG coordinates? No, if we want them to align with screen columns, 
-            // we should probably start using screen pixels or percentage for the split.
-            // But they start in SVG space.
-            // Let's move them to SVG Center X, and SVG Top Y.
 
             // 3. Planets: Converge to Top Center
             const svgCenterX = viewBoxLeft + viewBoxWidth / 2;
@@ -128,6 +130,8 @@ export const TransitionController = () => {
                 y: svgTopY, // Top Center
                 scale: 0.4,
                 opacity: 1,
+                // Planet Desaturation: Grayscale and reduced brightness
+                filter: isDarkMode ? "grayscale(80%) brightness(0.7)" : "none",
                 stagger: 0.05,
                 duration: 0.8,
                 ease: "power2.inOut"
@@ -135,6 +139,33 @@ export const TransitionController = () => {
 
             timeline.add(sunTween, 0);
             timeline.add(convergenceTween, "<0.2");
+
+            // 3.5 Text Reveal with Mist/Smoke Effect
+            if (textRef.current) {
+                // Ensure text is visible initially (but blurred/transparent)
+                gsap.set(textRef.current, {
+                    opacity: 0,
+                    filter: "blur(10px)",
+                    scale: 0.9
+                });
+
+                timeline.to(textRef.current, {
+                    opacity: 1,
+                    filter: "blur(0px)",
+                    scale: 1,
+                    duration: 0.8,
+                    ease: "power2.out"
+                }, "<0.1"); // Start shortly after convergence starts, while curtain is still there
+
+                // Mist slide out
+                timeline.to(textRef.current, {
+                    opacity: 0,
+                    filter: "blur(5px)",
+                    scale: 1.1,
+                    duration: 0.5,
+                    ease: "power2.in"
+                }, ">0.5"); // Stay visible for 0.5s then fade out
+            }
 
             // 4. Planets: Split to 5 equal distances
             // Screen width consists of 5 columns.
@@ -171,22 +202,11 @@ export const TransitionController = () => {
                 navigate('/grid-view');
             }, undefined, "<0.4"); // Call halfway through split
 
-            // 6. Text Reveal (Optional? Maybe "PROJECTS" appears in center before split?)
-            // User didn't mention text this time, but "final transition over".
-            // Let's keep a quick text flash or remove it if it clashes.
-            // Let's fade out the text if it was there.
-            if (textRef.current) gsap.set(textRef.current, { opacity: 0 });
+            // 6. Text Reveal (Handled above in 3.5)
+            // We removed the set opacity 0 call from here.
 
             // 7. Curtain Reveal
-            // "Final transition over"
-            // We reveal the columns underneath.
-            // Since planets are now at column headers, we can have the curtain 
-            // wipe down or fade out?
-            // "The screen 'splits' or 'spreads' out from that center point" was previous request.
-            // Now: "Final transition over".
-            // Let's assume we fade out the black curtain to reveal the colored columns 
-            // (which likely match the planet colors/positions).
-
+            // ... (rest of the code)
             if (curtainRef.current) {
                 timeline.to(curtainRef.current, {
                     opacity: 0, // Reveal underlying page
@@ -196,12 +216,7 @@ export const TransitionController = () => {
             }
 
             // 8. Planets Fade out/Merge?
-            // Usually they should merge into the page headers.
-            // Assuming the new page has these headers.
-            // Let's fade them out as the curtain reveals (or stay if they match).
-            // Safe bet: Fade them out with the curtain?
-            // Actually if they are "colored columns", maybe the planets ARE the source?
-            // Let's keep them visible for now, or fade out at end.
+            // ...
             timeline.to(planetsRef.current, {
                 opacity: 0,
                 duration: 0.5
@@ -217,7 +232,7 @@ export const TransitionController = () => {
                 }, "<"); // Sync with planets fade out
             }
         }
-    }, [transitionState, dimensions, navigate, completeTransition]);
+    }, [transitionState, dimensions, navigate, completeTransition, isDarkMode]);
 
     if (transitionState === 'hero') return null;
 
@@ -231,11 +246,6 @@ export const TransitionController = () => {
             ref={containerRef}
             className="fixed inset-0 z-[9999] pointer-events-none overflow-hidden"
             style={{
-                // If we are 'projects', we might want to hide this controller or keep it for the fade out?
-                // Actually for now let's keep it visible during 'transitioning'.
-                // Once 'projects' state is reached, the real page is there.
-                // We might need to fade this out or keep the sun bar?
-                // Requirement says: Start transition -> Hide real Hero -> Show Overlay -> Animate.
                 visibility: transitionState === 'transitioning' ? 'visible' : 'hidden'
             }}
         >
@@ -259,135 +269,31 @@ export const TransitionController = () => {
                 <div className="ml-4 w-12 h-8"></div>
             </div>
 
-            {/* Curtain for reveal effect - Initially covers everything with a small circle or invisible? 
-            Wait, the requirement says: "animate the clip-path of the actual Projects Page"
-            OR we can use this overlay to mask the reveal.
-            Let's assume this overlay COVERS the screen, and we "cut a hole" or fade it out?
-            "The screen 'splits' or 'spreads' out from that center point"
-          */}
+            {/* Curtain for reveal effect */}
             <div
                 ref={curtainRef}
-                className="absolute inset-0 bg-background" // Use theme background (white/black) to cover old page
-                // This ensures that when the planets unite, the background is solid behind them,
-                // hiding the "Old Hero" mess, and then we "un-clip" or fade this out to show the new page?
-                // Actually, if we animate clipPath -> 0, this layer shrinks away.
-                // So we want it opaque.
+                className="absolute inset-0 bg-background" // Use theme background
                 style={{
-                    zIndex: -1 // Behind the planets/sun but covering the page?
-                    // No, this whole component is z-9999.
-                    // The curtain is the background of this overlay.
+                    zIndex: -1
                 }}
             />
 
             <div className="relative w-full h-full">
-                {/* Fake Sun */}
-                {/* We need to position it exactly where the SVG sun is. 
-             The SVG sun is at sunCenterX, sunCenterY in the viewBox. 
-             We need to map SVG coordinates to Screen coordinates?
-             No, SolarSystem uses a full-screen SVG. We can replicate that.
-         */}
-
-                {/* However, animating an SVG element `transform` is harder to morph into a HTML navbar div.
-             Requirements say: "The Sun (yellow circle) must animate... to become the background of the Navbar"
-             HTML div is easier to morph than SVG circle.
-             
-             Let's use an HTML div for the Fake Sun, positioned absolutely.
-             We need to calculate its pixel position corresponding to the SVG position.
-             
-             SolarSystem SVG: viewBoxLeft (-800) to (-800 + 3000)
-             Screen width: dimensions.width
-             
-             Scale = dimensions.width / 3000 ? No, preserveAspectRatio="xMinYMid meet".
-             "meet" means it scales to fit the smaller dimension (usually width in landscape?)
-             
-             Actually `preserveAspectRatio="xMinYMid meet"` matches:
-             Min-X aligns with left.
-             Mid-Y aligns with center.
-             
-             If screen ratio > viewBox ratio (ultra wide): Height limits.
-             If screen ratio < viewBox ratio (tall): Width limits.
-             
-             ViewBox: 3000 x 1000 => Ratio 3:1.
-             Screen: 1920 x 1080 => Ratio 1.77.
-             So Width is the limiting factor? No, 3000 is very wide.
-             Wait, 3000 / 1000 = 3.
-             1920 / 1080 = 1.77.
-             So to fit 3000 width into 1920, we scale down largely.
-             Height would be 1000 * scale. 
-             If scale = 1920/3000 = 0.64. Height = 640.
-             But screen height is 1080. 640 < 1080.
-             "meet" ensures ENTIRE viewBox is visible.
-             So yes, Width limits it. 
-             
-             Actually SolarSystem uses `preserveAspectRatio="xMinYMid meet"`.
-             And `viewBoxLeft = -800`.
-             
-             Let's replicate the SVG structure exactly for the Planets (easier for them to fly to center).
-             But for the Sun, we might want an HTML element on top?
-             The SVG Sun is complex (Gradients, Images).
-             
-             Let's try to animate the SVG Circle itself?
-             Or just a "Mask" div that matches the position.
-             
-             Let's place the sun using the SAME shared config values inside an SVG first, 
-             then try to tween it... 
-             Actually, `gsap` can tween SVG attributes.
-             But morphing an SVG circle to a full-width HTML Navbar background is tricky.
-             
-             Alternative: Use an HTML div that is positioned using `left: X%`, `top: Y%` that approximates the sun position.
-             Sun Center: (-700, 500) in (3000 x 1000) space.
-             Relative to ViewBox:
-             X = (-700 - (-800)) / 3000 = 100 / 3000 = 3.33% from left.
-             Y = 500 / 1000 = 50% from top.
-             
-             So the Sun is at 3.33% Left, 50% Top.
-             With `xMin` alignment, 0% viewBox X = 0% Screen X.
-             So Sun Center X is 3.33% of Screen Width (if Width limits).
-             
-             Wait, if Height limits (e.g. super wide screen), then scaling is different.
-             But assuming standard 16:9, Width likely limits if ViewBox is 3:1.
-             
-             Let's use a "Fake Sun" div at `left: 3.33%`, `top: 50%`.
-             Width/Height: `baseDimension * 1.8`? No, SVG units.
-             `baseDimension` in SolarSystem is `Math.min(w, h)`.
-             
-             Let's render the EXACT SAME SVG structure for the planets.
-             For the Sun, we render a `motion.div` or just `div` inside the container, 
-             and we set its initial styles to match the sun.
-          */}
-
                 {/* Fake Sun DIV */}
                 <div
                     ref={sunRef}
                     className="absolute rounded-full z-50 flex items-center justify-center overflow-hidden"
                     style={{
-                        // Approximate position calculation used in SolarSystem logic
-                        // calculated purely for visual match
-                        // Logic: 
-                        // SVG X: -700. ViewBox Left: -800. Width: 3000.
-                        // Screen X% = (-700 - (-800)) / 3000 = 100 / 3000 = 3.333%
-                        // BUT this assumes the ViewBox fills the width exactly.
-                        // If screen is 1920, WB is 3000 scaled to 1920.
-                        // So yes, 3.33% of 1920.
-
                         left: '3.333%',
                         top: '50%',
-                        transform: 'translate(-50%, -50%)', // Center the div on that point
+                        transform: 'translate(-50%, -50%)',
 
-                        // Size: baseDimension * 1.8 (image size).
-                        // But wait, the image is huge.
-                        // ClipPath radius: baseDimension * 0.9.
-                        // Diameter = 1.8 * baseDimension.
-                        // Again, BaseDimension is usually Height (1080).
-                        // So Diameter approx 1900px? That seems HUGE.
-                        // Ah, the Sun in Hero is huge, occupying most of the left side.
-
-                        // Let's start with a smaller size that "looks" like the visible core?
-                        // Or just the full size.
                         height: `${baseDimension * 0.9}px`,
                         width: `${baseDimension * 0.9}px`,
 
-                        background: 'linear-gradient(135deg, #fbbf24, #ef4444)', // Yellow/Orange
+                        background: isDarkMode
+                            ? 'linear-gradient(135deg, #f8fafc, #94a3b8)' // White/Slate gradient (Moon-like)
+                            : 'linear-gradient(135deg, #fbbf24, #ef4444)', // Yellow/Orange
                     }}
                 >
                     {/* We can put the image inside if we want perfect match, 
@@ -431,7 +337,7 @@ export const TransitionController = () => {
                                 key={project.id}
                                 ref={el => planetsRef.current[i] = el}
                             >
-                                <circle r={baseDimension * 0.04} fill={`hsl(${project.accentColor})`} />
+                                <circle r={baseDimension * 0.04} fill={isDarkMode ? '#e2e8f0' : `hsl(${project.accentColor})`} />
                             </g>
                         );
                     })}

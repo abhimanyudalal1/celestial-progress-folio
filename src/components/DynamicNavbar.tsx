@@ -41,7 +41,10 @@ export function DynamicNavbar({ viewMode = 'default' }: DynamicNavbarProps) {
   const navLinks = isProjectsMode ? projectsLinks : defaultLinks;
 
   // Sun gradient colors for projects mode
-  const sunGradient = 'linear-gradient(90deg, #F59E0B, #EF4444)';
+  const sunGradient = 'linear-gradient(90deg, #F59E0B, #EF4444, #F59E0B)';
+  // Moon gradient for dark mode
+  const moonGradient = 'linear-gradient(90deg, #E2E8F0, #94A3B8, #E2E8F0)';
+  const moonTextClass = 'bg-gradient-to-r from-slate-200 to-slate-400 bg-clip-text text-transparent font-black text-lg drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]';
 
   return (
     <>
@@ -75,7 +78,7 @@ export function DynamicNavbar({ viewMode = 'default' }: DynamicNavbarProps) {
 
 
 
-        {/* Sun-themed gradient border for projects mode */}
+        {/* Sun/Moon-themed gradient border for projects mode */}
         <AnimatePresence>
           {isProjectsMode && (
             <motion.div
@@ -85,7 +88,7 @@ export function DynamicNavbar({ viewMode = 'default' }: DynamicNavbarProps) {
               className="absolute pointer-events-none inset-0 rounded-full"
               style={{
                 padding: '1.5px',
-                background: 'linear-gradient(90deg, #F59E0B, #EF4444, #F59E0B)',
+                background: isDarkMode ? moonGradient : sunGradient,
                 backgroundSize: '200% 100%',
                 mask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
                 maskComposite: 'exclude',
@@ -93,6 +96,7 @@ export function DynamicNavbar({ viewMode = 'default' }: DynamicNavbarProps) {
                 WebkitMaskComposite: 'xor',
                 animation: 'shimmer 3s linear infinite',
                 borderRadius: '9999px',
+                filter: isDarkMode ? 'drop-shadow(0 0 4px rgba(255, 255, 255, 0.3))' : 'none'
               }}
             >
               <style>{`
@@ -153,11 +157,13 @@ export function DynamicNavbar({ viewMode = 'default' }: DynamicNavbarProps) {
                 <span
                   className={`relative transition-all duration-300 ${hoveredIndex === index
                     ? isDarkMode
-                      ? 'text-gray-900'
+                      ? 'text-white' // Fixed: Was text-gray-900 which is invisible on dark bg
                       : 'text-white'
                     : isDarkMode ? 'text-gray-700' : 'text-gray-300'
                     } ${(link as any).isName
-                      ? 'bg-gradient-to-r from-amber-400 to-red-500 bg-clip-text text-transparent font-black text-lg'
+                      ? isDarkMode
+                        ? moonTextClass
+                        : 'bg-gradient-to-r from-amber-400 to-red-500 bg-clip-text text-transparent font-black text-lg'
                       : ''
                     } ${(link as any).isActive
                       ? 'text-white'
@@ -172,7 +178,7 @@ export function DynamicNavbar({ viewMode = 'default' }: DynamicNavbarProps) {
                   <motion.span
                     layoutId="activeIndicator"
                     className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-1.5 h-1.5 rounded-full"
-                    style={{ background: sunGradient }}
+                    style={{ background: isDarkMode ? moonGradient : sunGradient }}
                   />
                 )}
 
@@ -241,7 +247,9 @@ export function DynamicNavbar({ viewMode = 'default' }: DynamicNavbarProps) {
                       to={link.to}
                       onClick={() => setIsMobileMenuOpen(false)}
                       className={`text-3xl font-bold transition-colors ${(link as any).isName
-                        ? 'bg-gradient-to-r from-amber-400 to-red-500 bg-clip-text text-transparent'
+                        ? isDarkMode
+                          ? moonTextClass
+                          : 'bg-gradient-to-r from-amber-400 to-red-500 bg-clip-text text-transparent'
                         : isDarkMode ? 'text-gray-900 hover:text-gray-700' : 'text-white hover:text-gray-300'
                         }`}
                     >

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { ExternalLink, Github, ChevronRight } from 'lucide-react';
 import { Project } from '@/data/projects';
+import { useTheme } from '@/contexts/ThemeContext';
 
 interface DiagonalProjectCardProps {
   project: Project;
@@ -27,8 +28,24 @@ export const DiagonalProjectCard = ({
   expandedIndex,
   onExpand,
 }: DiagonalProjectCardProps) => {
-  const { themeColor } = project;
+  const { themeColor: originalThemeColor } = project;
+  const { isDarkMode } = useTheme();
   const [isHovered, setIsHovered] = useState(false);
+
+  // Distinct Grey/Black Shades for Dark Mode Project Backgrounds
+  const GREY_SHADES = [
+    '#1c1917', // Warm Black (Stone-900)
+    '#111827', // Cool Black (Gray-900)
+    '#27272a', // Zinc-900
+    '#323232', // Neutral Dark Grey
+    '#262626', // Neutral-800
+  ];
+
+  // In Night Mode, override the colorful theme with a specific grey shade based on index
+  // Use modulo to cycle through shades if more projects than shades
+  const themeColor = isDarkMode
+    ? GREY_SHADES[index % GREY_SHADES.length]
+    : originalThemeColor;
 
   const isExpanded = expandedIndex === index;
   const hasExpanded = expandedIndex !== null;
@@ -94,6 +111,10 @@ export const DiagonalProjectCard = ({
     }
   };
 
+  // Grey Mode Colors
+  const greyBase = '#1E1E1E';
+  const greyHover = '#2A2A2A';
+
   return (
     <motion.div
       className="fixed top-0 bottom-0 cursor-pointer overflow-hidden"
@@ -134,13 +155,15 @@ export const DiagonalProjectCard = ({
         }}
         transition={{ duration: 0.3 }}
       >
-        {/* Background gradient */}
+        {/* Background gradient - GREY MODE LOGIC */}
         <div
           className="absolute inset-0"
           style={{
-            background: isExpanded
-              ? `linear-gradient(135deg, ${hexToRgba(themeColor, 0.95)} 0%, ${hexToRgba(themeColor, 0.6)} 30%, rgba(10,10,10,0.98) 70%)`
-              : `linear-gradient(135deg, ${hexToRgba(themeColor, 0.85)} 0%, ${hexToRgba(themeColor, 0.4)} 50%, ${hexToRgba(themeColor, 0.15)} 100%)`,
+            background: isDarkMode
+              ? (isHovered || isExpanded ? '#404040' : themeColor) // Use the distinct shade as base, lighter on hover
+              : (isExpanded
+                ? `linear-gradient(135deg, ${hexToRgba(themeColor, 0.95)} 0%, ${hexToRgba(themeColor, 0.6)} 30%, rgba(10,10,10,0.98) 70%)`
+                : `linear-gradient(135deg, ${hexToRgba(themeColor, 0.85)} 0%, ${hexToRgba(themeColor, 0.4)} 50%, ${hexToRgba(themeColor, 0.15)} 100%)`)
           }}
         />
 

@@ -1,5 +1,9 @@
 import { PlanetProject } from "./Planet";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+
+gsap.registerPlugin(ScrollTrigger);
 import { useTheme } from "@/contexts/ThemeContext";
 import MeteorCursor from "./MeteorCursor";
 import { Github, Linkedin, Mail } from "lucide-react";
@@ -22,11 +26,50 @@ import { useWindowSize } from '@/hooks/use-window-size';
 const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) => {
   const dimensions = useWindowSize(); // Debounced resize hook
   const { isDarkMode } = useTheme();
-
-  // Removed manual resize useEffect as useWindowSize handles it
+  
+  // Refs for all planet sprites to update them efficiently via GSAP
+  const planetRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   // Base dimension for responsive scaling
   const baseDimension = Math.min(dimensions.width, dimensions.height);
+
+  // Setup GSAP ScrollTrigger
+  useEffect(() => {
+    // Only set up if we have elements
+    if (!planetRefs.current.length) return;
+
+    const trigger = ScrollTrigger.create({
+      trigger: document.body, // Use document body to track full page scroll
+      start: "top top",
+      end: "bottom bottom",
+      scrub: 0.1, // Slight smoothing for the scroll value itself
+      onUpdate: (self) => {
+        const progress = self.progress;
+        // The spritesheet is 50 columns x 3 rows = 150 frames. Max index is 149.
+        const frame = Math.floor(progress * 149);
+        
+        planetRefs.current.forEach((planetDiv, index) => {
+          if (planetDiv) {
+            // Recalculate dimensions in case window resized
+            const project = projects[index];
+            if (!project) return;
+            const planetRadius = baseDimension * (project.planetSize || 0.07);
+            const W = planetRadius * 2;
+            
+            // Math provided by user for 50x3 grid
+            const xPos = -(frame % 50) * W;
+            const yPos = -Math.floor(frame / 50) * W;
+            
+            planetDiv.style.backgroundPosition = `${xPos}px ${yPos}px`;
+          }
+        });
+      }
+    });
+
+    return () => {
+      trigger.kill();
+    };
+  }, [baseDimension, projects]);
 
   // SVG viewBox dimensions
   const { viewBoxWidth, viewBoxHeight, viewBoxLeft, sunCenterX, sunCenterY } = SOLAR_CONFIG;
@@ -343,82 +386,23 @@ const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) 
                       >
                         {/* Planet rendering - Images for all planets */}
                         {(() => {
+                          let spriteUrl = "";
                           switch (project.id) {
                             case "1":
-                              return (
-                                <image
-                                  href={isDarkMode ? "/lavaworlddark.gif" : "/Terran%20Dry%20-%202161106751.gif"}
-                                  x={-planetRadius}
-                                  y={-planetRadius}
-                                  width={planetRadius * 2}
-                                  height={planetRadius * 2}
-                                  preserveAspectRatio="xMidYMid slice"
-                                  style={{
-                                    filter: isDarkMode ? 'brightness(0.9) contrast(1.2)' : 'brightness(1.1) contrast(1.1)',
-                                    transition: 'filter 0.5s ease'
-                                  }}
-                                />
-                              );
+                              spriteUrl = isDarkMode ? "/Lava%20World%20-%201909546053%20-%20spritesheet.png" : "/Terran%20Dry%20-%203542928846%20-%20spritesheet.png";
+                              break;
                             case "2":
-                              return (
-                                <image
-                                  href={isDarkMode ? "/gasgiant1dark.gif" : "/Gas%20giant%201%20-%202161106751.gif"}
-                                  x={-planetRadius}
-                                  y={-planetRadius}
-                                  width={planetRadius * 2}
-                                  height={planetRadius * 2}
-                                  preserveAspectRatio="xMidYMid slice"
-                                  style={{
-                                    filter: isDarkMode ? 'brightness(0.9) contrast(1.2)' : 'brightness(1.1) contrast(1.1)',
-                                    transition: 'filter 0.5s ease'
-                                  }}
-                                />
-                              );
+                              spriteUrl = "/Gas%20giant%201%20-%203542928846%20-%20spritesheet.png";
+                              break;
                             case "3":
-                              return (
-                                <image
-                                  href={isDarkMode ? "/terrenwetdark.gif" : "/Terran%20Wet%20-%203370142330.gif"}
-                                  x={-planetRadius}
-                                  y={-planetRadius}
-                                  width={planetRadius * 2}
-                                  height={planetRadius * 2}
-                                  preserveAspectRatio="xMidYMid slice"
-                                  style={{
-                                    filter: isDarkMode ? 'brightness(0.9) contrast(1.2)' : 'brightness(1.1) contrast(1.1)',
-                                    transition: 'filter 0.5s ease'
-                                  }}
-                                />
-                              );
+                              spriteUrl = "/Terran%20Wet%20-%203542928846%20-%20spritesheet.png";
+                              break;
                             case "4":
-                              return (
-                                <image
-                                  href={isDarkMode ? "/gasgiantdark.gif" : "/Gas%20giant%202%20-%202161106751.gif"}
-                                  x={-planetRadius}
-                                  y={-planetRadius}
-                                  width={planetRadius * 2}
-                                  height={planetRadius * 2}
-                                  preserveAspectRatio="xMidYMid slice"
-                                  style={{
-                                    filter: isDarkMode ? 'brightness(0.9) contrast(1.2)' : 'brightness(1.1) contrast(1.1)',
-                                    transition: 'filter 0.5s ease'
-                                  }}
-                                />
-                              );
+                              spriteUrl = "/Gas%20giant%202%20-%203417044678%20-%20spritesheet.png";
+                              break;
                             case "5":
-                              return (
-                                <image
-                                  href={isDarkMode ? "/iceworlddark.gif" : "/Ice%20World%20-%2073626106.gif"}
-                                  x={-planetRadius}
-                                  y={-planetRadius}
-                                  width={planetRadius * 2}
-                                  height={planetRadius * 2}
-                                  preserveAspectRatio="xMidYMid slice"
-                                  style={{
-                                    filter: isDarkMode ? 'brightness(0.9) contrast(1.2)' : 'brightness(1.1) contrast(1.1)',
-                                    transition: 'filter 0.5s ease'
-                                  }}
-                                />
-                              );
+                              spriteUrl = "/Ice%20World%20-%201909546053%20-%20spritesheet.png";
+                              break;
                             default:
                               return (
                                 <circle
@@ -428,6 +412,36 @@ const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) 
                                 />
                               );
                           }
+
+                          // Wait until refs are assigned before the style is applied via GSAP, 
+                          // but give it an initial state
+                          return (
+                            <foreignObject
+                              x={-planetRadius}
+                              y={-planetRadius}
+                              width={planetRadius * 2}
+                              height={planetRadius * 2}
+                              style={{
+                                filter: isDarkMode ? 'brightness(0.9) contrast(1.2)' : 'brightness(1.1) contrast(1.1)',
+                                transition: 'filter 0.5s ease',
+                                borderRadius: '50%',
+                                overflow: 'hidden'
+                              }}
+                            >
+                              <div
+                                ref={(el) => planetRefs.current[index] = el}
+                                style={{
+                                  width: '100%',
+                                  height: '100%',
+                                  backgroundImage: `url('${spriteUrl}')`,
+                                  // Grid is 50 columns by 3 rows
+                                  backgroundSize: `${planetRadius * 2 * 50}px ${planetRadius * 2 * 3}px`,
+                                  backgroundRepeat: 'no-repeat',
+                                  backgroundPosition: '0px 0px'
+                                }}
+                              />
+                            </foreignObject>
+                          );
                         })()}
                       </g>
                       {/* Project title text - responsive font size and positioning */}

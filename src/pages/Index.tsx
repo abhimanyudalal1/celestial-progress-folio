@@ -41,6 +41,11 @@ const Index = () => {
   const flybyRefs = useRef<(HTMLDivElement | null)[]>([]);
   const massivePlanetRefs = useRef<(HTMLDivElement | null)[]>([]);
   const textRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const sidebarNodeRefs = useRef<(HTMLButtonElement | null)[]>([]);
+
+  // Navigation State storage for GSAP progress
+  const timelineRef = useRef<gsap.core.Timeline | null>(null);
+  const totalScrollRef = useRef<number>(0);
 
   // Mathematical generation of the single seamless tracking flight path
   const masterFlightPathD = useMemo(() => {
@@ -78,6 +83,7 @@ const Index = () => {
       // Calculate total scroll depth flexibly based on number of projects
       // 2000 for phase 1 & 2. 1500 for each project. 1500 for outro.
       const totalScroll = 2000 + (projectsData.length * 1500) + 1500;
+      totalScrollRef.current = totalScroll;
 
       const tl = gsap.timeline({
         scrollTrigger: {
@@ -89,13 +95,69 @@ const Index = () => {
           onUpdate: (self) => {
             const progress = self.progress;
 
-            // Dynamic Navbar Switch
-            // Phase 2 zoom finishes around progress 0.15 depending on project count
-            // Let's switch when we hit 12% scroll depth
-            if (progress > 0.12) {
-              setNavMode(prev => prev !== 'projects' ? 'projects' : prev);
-            } else {
-              setNavMode(prev => prev !== 'default' ? 'default' : prev);
+            // --- Animation Time-Based Logic ---
+            if (timelineRef.current) {
+              const t = timelineRef.current.time();
+              
+              // Dynamic Navbar Switch
+              // The Event Horizon flash begins at 3.9 and scales up massively.
+              // It physically engulfs the top navbar precisely around t = 4.4.
+              if (t > 4.4) {
+                setNavMode(prev => prev !== 'projects' ? 'projects' : prev);
+              } else {
+                setNavMode(prev => prev !== 'default' ? 'default' : prev);
+              }
+
+              // Project Sidebar Tracking
+              let currentIdx = -1;
+              projectsData.forEach((_, i) => {
+                const center = 7.0 + (i * 4.0); // Exact visual center of the project phase
+                if (t >= center - 2.0 && t <= center + 2.0) {
+                  currentIdx = i;
+                }
+              });
+
+              // Update Sidebar DOM nodes directly for maximum performance
+              sidebarNodeRefs.current.forEach((btn, i) => {
+                if (!btn) return;
+                const ring = btn.querySelector('.active-ring');
+                if (i === currentIdx) {
+                  btn.classList.add('scale-110');
+                  btn.classList.remove('scale-100', 'opacity-50');
+                  if (ring) {
+                    ring.classList.remove('opacity-0', 'scale-50');
+                    ring.classList.add('opacity-100', 'scale-100');
+                  }
+                } else {
+                  btn.classList.add('scale-100', 'opacity-50');
+                  btn.classList.remove('scale-110');
+                  if (ring) {
+                    ring.classList.add('opacity-0', 'scale-50');
+                    ring.classList.remove('opacity-100', 'scale-100');
+                  }
+                }
+              });
+
+              // Fade in/out the entire sidebar explicitly during Phase 3
+              const sidebarParent = document.getElementById('project-sidebar');
+              if (sidebarParent) {
+                const isPhase3 = t >= 4.5 && t <= (25.0); // Between Event Horizon and Outro
+                sidebarParent.style.opacity = isPhase3 ? '1' : '0';
+                sidebarParent.style.pointerEvents = isPhase3 ? 'auto' : 'none';
+              }
+
+              // Update the vertical track "progress filler" line
+              const fillLine = document.getElementById('project-sidebar-fill');
+              if (fillLine) {
+                const startT = 5.0; // Start of Phase 3
+                const endT = 7.0 + ((projectsData.length - 1) * 4.0) + 2.0; // End of final node interaction
+                let fillPercent = 0;
+                if (t <= startT) fillPercent = 0;
+                else if (t >= endT) fillPercent = 100;
+                else fillPercent = ((t - startT) / (endT - startT)) * 100;
+                
+                fillLine.style.height = `${fillPercent}%`;
+              }
             }
 
             // Animate Massive Planets (if they exist in the DOM)
@@ -232,11 +294,30 @@ const Index = () => {
         { opacity: 1, scale: 1, y: 0, duration: 1.5, ease: "power3.out", pointerEvents: "auto" },
         time + 1.2
       );
+      
+      timelineRef.current = tl;
 
     }, containerRef);
 
     return () => ctx.revert();
-  }, [projectsData.length]);
+  }, [projectsData.length, dimensions]); // Rebuild when dimensions change strictly for responsive heights
+
+  // Click handler for Sidebar navigation
+  const handleSidebarClick = (index: number) => {
+    if (!timelineRef.current) return;
+    
+    const tl = timelineRef.current;
+    
+    // The exact visual center of project `index` is 7.0 + i*4.0 in GSAP time units
+    const targetTime = 7.0 + (index * 4.0);
+    const progressPercentage = targetTime / tl.duration();
+    const targetScroll = progressPercentage * totalScrollRef.current;
+    
+    window.scrollTo({
+      top: targetScroll,
+      behavior: 'smooth'
+    });
+  };
 
   return (
     <div className="min-h-screen font-sans" style={{
@@ -252,6 +333,43 @@ const Index = () => {
 
       <div ref={containerRef} className="relative h-screen w-full overflow-hidden bg-transparent">
         <div ref={shakeRef} className="absolute inset-0 w-full h-full">
+
+          {/* Project Progress Sidebar (Vertical Tracking) */}
+          <div 
+            id="project-sidebar" 
+            className="fixed right-6 md:right-12 top-1/2 -translate-y-1/2 z-[100] flex flex-col items-center opacity-0 transition-opacity duration-500 pointer-events-none"
+            style={{ height: `${projectsData.length * 110}px` }}
+          >
+            {/* Background Thin Line running vertically (Behind Nodes) */}
+            <div className="absolute top-0 bottom-0 w-[2px] transition-colors duration-700 left-1/2 -translate-x-1/2 z-0" 
+                 style={{ backgroundColor: isDarkMode ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.15)' }} />
+
+            {/* Active Progress Thicker Fill Line */}
+            <div id="project-sidebar-fill" 
+                 className="absolute top-0 w-[3px] transition-colors duration-700 left-1/2 -translate-x-1/2 z-[5] ease-linear shadow-[0_0_8px_rgba(255,255,255,0.8)]" 
+                 style={{ 
+                   height: '0%', 
+                   backgroundColor: isDarkMode ? '#000' : '#fff' 
+                 }} />
+            
+            {/* Clickable Nodes Wrapper */}
+            <div className="relative w-full h-full flex flex-col justify-between items-center py-10 z-10">
+               {projectsData.map((project, i) => (
+                 <button
+                   key={`sidebar-node-${project.id}`}
+                   ref={el => { if (sidebarNodeRefs.current) sidebarNodeRefs.current[i] = el; }}
+                   onClick={() => handleSidebarClick(i)}
+                   className="relative w-7 h-7 rounded-full border-0 outline-none transition-all duration-500 ease-out flex items-center justify-center opacity-50 shadow-lg"
+                   style={{ backgroundColor: `hsl(${project.accentColor})` }}
+                   aria-label={`Scroll to ${project.title}`}
+                 >
+                    {/* The Active Circular Outline Marker */}
+                    <div className="active-ring absolute -inset-2 rounded-full border-[2.5px] opacity-0 scale-50 transition-all duration-500 shadow-md" 
+                         style={{ borderColor: isDarkMode ? '#000' : '#fff' }} />
+                 </button>
+               ))}
+            </div>
+          </div>
 
           {/* Cinematic Vignette */}
           <div
@@ -275,7 +393,9 @@ const Index = () => {
               style={{
                 width: '150px',
                 height: '150px',
-                background: 'radial-gradient(circle, transparent 35%, rgba(0, 150, 255, 0.5) 43%, rgba(255, 255, 255, 1) 48%, rgba(255, 255, 255, 1) 52%, rgba(0, 200, 255, 0.8) 60%, rgba(0, 50, 200, 0.2) 75%, transparent 100%)',
+                background: isDarkMode 
+                  ? 'radial-gradient(circle, transparent 35%, rgba(0, 150, 255, 0.5) 43%, rgba(255, 255, 255, 1) 48%, rgba(255, 255, 255, 1) 52%, rgba(0, 200, 255, 0.8) 60%, rgba(0, 50, 200, 0.2) 75%, transparent 100%)'
+                  : 'radial-gradient(circle, transparent 35%, rgba(255, 220, 0, 0.5) 43%, rgba(255, 255, 255, 1) 48%, rgba(255, 255, 255, 1) 52%, rgba(255, 120, 0, 0.8) 60%, rgba(255, 0, 0, 0.3) 75%, transparent 100%)',
                 filter: 'blur(6px)',
                 opacity: 0,
                 transform: 'scale(0)',

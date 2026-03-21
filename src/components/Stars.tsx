@@ -90,9 +90,8 @@ const Stars = () => {
         const parallaxX = mouseRef.current.x * star.layer * 2;
         const parallaxY = mouseRef.current.y * star.layer * 2;
 
-        // Slow drift animation
-        star.x -= star.speed * 0.5;
-        star.y += Math.sin(Date.now() * 0.001 + star.x * 0.01) * 0.05;
+        // Wrap around screen handling is no longer strictly necessary since they don't drift linearly,
+        // but kept just in case parallax pushes them off extensively.
 
         // Wrap around screen
         if (star.x < -10) star.x = canvas.width + 10;

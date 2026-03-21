@@ -1,6 +1,14 @@
 import { useEffect, useRef } from "react";
 
-export const WarpTunnel = () => {
+export interface WarpParams {
+  chromatic: number;
+}
+
+interface WarpTunnelProps {
+  params?: React.MutableRefObject<WarpParams>;
+}
+
+export const WarpTunnel: React.FC<WarpTunnelProps> = ({ params }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -57,12 +65,34 @@ export const WarpTunnel = () => {
         const prevPy = star.y * prevK + centerY;
 
         const size = (1 - star.z / 2000) * 3;
+        const alpha = Math.max(0, 1 - star.z / 2000);
         
+        // Dynamic Chromatic Multiplier from GSAP
+        const chromaticIntensity = params?.current ? params.current.chromatic : 1;
+        
+        ctx.lineWidth = size;
+        
+        if (chromaticIntensity > 0) {
+          // Chromatic Aberration - Cyan
+          ctx.beginPath();
+          ctx.moveTo(prevPx - (4 * chromaticIntensity), prevPy);
+          ctx.lineTo(px - (4 * chromaticIntensity), py);
+          ctx.strokeStyle = `rgba(0, 255, 255, ${alpha * 0.8 * chromaticIntensity})`;
+          ctx.stroke();
+
+          // Chromatic Aberration - Magenta
+          ctx.beginPath();
+          ctx.moveTo(prevPx + (4 * chromaticIntensity), prevPy);
+          ctx.lineTo(px + (4 * chromaticIntensity), py);
+          ctx.strokeStyle = `rgba(255, 0, 255, ${alpha * 0.8 * chromaticIntensity})`;
+          ctx.stroke();
+        }
+
+        // Core White Streak
         ctx.beginPath();
         ctx.moveTo(prevPx, prevPy);
         ctx.lineTo(px, py);
-        ctx.lineWidth = size;
-        ctx.strokeStyle = `rgba(255, 255, 255, ${1 - star.z / 2000})`;
+        ctx.strokeStyle = `rgba(255, 255, 255, ${alpha})`;
         ctx.stroke();
       });
 

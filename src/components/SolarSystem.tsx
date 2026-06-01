@@ -157,8 +157,8 @@ const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) 
                     <image
                       ref={sunRef}
                       href="/Star%20-%20188959248%20-%20spritesheet.png"
-                      width="5000%"
-                      height="300%"
+                      width={baseDimension * SUN_SCALE * 50}
+                      height={baseDimension * SUN_SCALE * 3}
                       preserveAspectRatio="none"
                       style={{
                         filter: 'contrast(1.1) brightness(1.2)'

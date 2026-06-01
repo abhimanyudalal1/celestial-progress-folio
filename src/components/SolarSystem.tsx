@@ -30,7 +30,7 @@ const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) 
   // Refs for all planet sprites to update them efficiently via GSAP
   const planetRefs = useRef<(HTMLDivElement | null)[]>([]);
   // Ref for the continuously burning sun sprite
-  const sunRef = useRef<SVGImageElement>(null);
+  const sunRef = useRef<HTMLDivElement>(null);
 
   // Base dimension for responsive scaling
   const baseDimension = Math.min(dimensions.width, dimensions.height);
@@ -53,8 +53,7 @@ const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) 
         if (sunW > 0) {
           const xPos = -(frame % 50) * sunW;
           const yPos = -Math.floor(frame / 50) * sunW;
-          sunRef.current.setAttribute('x', `${xPos}`);
-          sunRef.current.setAttribute('y', `${yPos}`);
+          sunRef.current.style.backgroundPosition = `${xPos}px ${yPos}px`;
         }
       }
 
@@ -154,16 +153,23 @@ const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) 
                   viewBox={`0 0 ${baseDimension * SUN_SCALE} ${baseDimension * SUN_SCALE}`}
                 >
                   {isDarkMode ? (
-                    <image
-                      ref={sunRef}
-                      href="/Star%20-%20188959248%20-%20spritesheet.png"
-                      width={baseDimension * SUN_SCALE * 50}
-                      height={baseDimension * SUN_SCALE * 3}
-                      preserveAspectRatio="none"
-                      style={{
-                        filter: 'contrast(1.1) brightness(1.2)'
-                      }}
-                    />
+                    <foreignObject
+                      x={0}
+                      y={0}
+                      width={baseDimension * SUN_SCALE}
+                      height={baseDimension * SUN_SCALE}
+                    >
+                      <div
+                        ref={sunRef}
+                        className="w-full h-full"
+                        style={{
+                          backgroundImage: `url('/Star%20-%20188959248%20-%20spritesheet.png')`,
+                          backgroundSize: `${baseDimension * SUN_SCALE * 50}px ${baseDimension * SUN_SCALE * 3}px`,
+                          backgroundRepeat: 'no-repeat',
+                          filter: 'contrast(1.1) brightness(1.2)'
+                        }}
+                      />
+                    </foreignObject>
                   ) : (
                     <>
                       <image
@@ -402,7 +408,7 @@ const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) 
 
                     {/* Planet positioned on this orbit */}
                     <g
-                      className="pointer-events-auto planet-group"
+                      className="pointer-events-auto planet-group gravity-source"
                       style={{ cursor: 'pointer', pointerEvents: 'auto' }}
                       onClick={() => setSelectedProject(project)}
                       transform={`translate(${position.x}, ${position.y})`}

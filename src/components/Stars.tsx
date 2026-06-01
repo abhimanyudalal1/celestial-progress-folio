@@ -31,6 +31,7 @@ const Stars = ({ isAppLoaded = true, onSettled, isInitialLoad = false }: StarsPr
   const animationRef = useRef<number>();
   const starsRef = useRef<Star[]>([]);
   const mouseRef = useRef({ x: 0, y: 0 });
+  const gravityCenterRef = useRef<{ x: number, y: number } | null>(null);
   const { isDarkMode } = useTheme();
   const dimensions = useWindowSize(); // Debounced resize hook
 
@@ -125,10 +126,18 @@ const Stars = ({ isAppLoaded = true, onSettled, isInitialLoad = false }: StarsPr
       starsRef.current = stars;
     };
 
-    // Mouse move handler for parallax effect
+    // Mouse move handler for parallax effect and gravity detection
     const handleMouseMove = (e: MouseEvent) => {
       mouseRef.current.x = (e.clientX / window.innerWidth) * 2 - 1;
       mouseRef.current.y = (e.clientY / window.innerHeight) * 2 - 1;
+
+      // Check if hovering a planet (or anything with gravity-source)
+      const target = e.target as HTMLElement | SVGElement;
+      if (target && typeof target.closest === 'function' && target.closest('.gravity-source')) {
+        gravityCenterRef.current = { x: e.clientX, y: e.clientY };
+      } else {
+        gravityCenterRef.current = null;
+      }
     };
 
     // Animation loop
@@ -197,6 +206,29 @@ const Stars = ({ isAppLoaded = true, onSettled, isInitialLoad = false }: StarsPr
           if (star.targetY > canvas.height + 10) star.targetY = -10;
           star.x = star.targetX;
           star.y = star.targetY;
+        }
+
+        // Apply gravitational pull if a planet is hovered
+        if (gravityCenterRef.current && (!isInitialLoad || settleStartTime.current !== null)) {
+          const dx = gravityCenterRef.current.x - star.x;
+          const dy = gravityCenterRef.current.y - star.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          
+          // Influence radius of 150px around the planet
+          if (dist > 1 && dist < 150) {
+            // Force is stronger closer to the planet (0 to 1)
+            const force = Math.pow((150 - dist) / 150, 2); 
+            // Max pull of 0.8px per frame for a subtle but noticeable drift
+            const pullAmount = force * 0.8;
+            
+            // Only pull, don't overshoot
+            star.targetX += (dx / dist) * pullAmount;
+            star.targetY += (dy / dist) * pullAmount;
+            
+            // Update immediate position too to avoid parallax lag fighting it
+            star.x = star.targetX;
+            star.y = star.targetY;
+          }
         }
 
         // Parallax offset based on mouse position and star layer

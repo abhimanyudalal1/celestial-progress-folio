@@ -40,7 +40,13 @@ const Index = () => {
       '/Terran%20Dry%20-%20330873532%20-%20spritesheetdark.png',
       '/Terran%20Dry%20-%203542928846%20-%20spritesheet.png',
       '/Ice%20World%20-%20330873532%20-%20spritesheetdark.png',
-      '/Ice%20World%20-%201909546053%20-%20spritesheet.png'
+      '/Ice%20World%20-%201909546053%20-%20spritesheet.png',
+      // About page images
+      '/me.webp',
+      '/me_dark.webp',
+      // Blogs page images
+      domedark,
+      domelight
     ];
 
     let loadedCount = 0;

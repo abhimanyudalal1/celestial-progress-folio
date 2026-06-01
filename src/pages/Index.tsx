@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
 import Hero from "@/components/Hero";
+import ProjectPanel from "@/components/ProjectPanel";
 import SolarSystem from "@/components/SolarSystem";
 import Stars from "@/components/Stars";
-import ProjectPanel from "@/components/ProjectPanel";
 import { DynamicNavbar, NavbarViewMode } from "@/components/DynamicNavbar";
 import { PlanetProject } from "@/components/Planet";
 import WarpTunnel, { WarpParams } from "@/components/WarpTunnel";
@@ -44,16 +44,18 @@ const Index = () => {
       // About page images
       '/me.webp',
       '/me_dark.webp',
-      // Blogs page images
-      domedark,
-      domelight
+      // Blogs page images (webp versions are much smaller)
+      '/domedark.webp',
+      '/domelight.webp'
     ];
 
     let loadedCount = 0;
     let hasFailed = false;
 
     const checkDone = () => {
+      console.log(`[Preload] ${loadedCount}/${imagesToLoad.length} loaded`);
       if (loadedCount >= imagesToLoad.length && !hasFailed) {
+        console.log('[Preload] All images loaded, setting isAppLoaded=true');
         setIsAppLoaded(true);
       }
     };
@@ -73,6 +75,7 @@ const Index = () => {
 
     // Fallback timeout just in case it takes too long or errors silently
     const timeout = setTimeout(() => {
+      console.log('[Preload] Fallback timeout fired, forcing isAppLoaded=true');
       setIsAppLoaded(true);
     }, 8000);
 
@@ -385,11 +388,18 @@ const Index = () => {
       <Stars 
         isInitialLoad={true} 
         isAppLoaded={isAppLoaded} 
-        onSettled={() => setIsStarsSettled(true)} 
+        onSettled={() => {
+          console.log('[Index] Stars settled, revealing UI');
+          setIsStarsSettled(true);
+        }} 
       />
 
       <div 
-        className={`transition-opacity duration-[2000ms] ease-in-out ${isStarsSettled ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+        style={{
+          opacity: isStarsSettled ? 1 : 0,
+          pointerEvents: isStarsSettled ? 'auto' : 'none',
+          transition: 'opacity 2s ease-in-out',
+        }}
       >
         {/* Navigation Bar - Stays on top */}
         <div className="relative z-[100]">

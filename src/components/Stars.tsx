@@ -45,6 +45,7 @@ const Stars = ({ isAppLoaded = true, onSettled, isInitialLoad = false }: StarsPr
   useEffect(() => {
     if (isInitialLoad && !explosionStarted) {
       const timer = setTimeout(() => {
+        console.log('[Stars] Explosion started');
         setExplosionStarted(true);
         explosionStartedRef.current = true;
       }, 1000);
@@ -55,6 +56,7 @@ const Stars = ({ isAppLoaded = true, onSettled, isInitialLoad = false }: StarsPr
   // Start settling when app loads
   useEffect(() => {
     if (isInitialLoad && isAppLoaded && explosionStarted && settleStartTime.current === null) {
+      console.log('[Stars] Starting settle phase');
       settleStartTime.current = Date.now();
     }
   }, [isAppLoaded, explosionStarted, isInitialLoad]);
@@ -317,6 +319,7 @@ const Stars = ({ isAppLoaded = true, onSettled, isInitialLoad = false }: StarsPr
       });
 
       if (isInitialLoad && allSettled && !settledCalled.current && settleStartTime.current !== null) {
+        console.log('[Stars] All stars settled, calling onSettled');
         settledCalled.current = true;
         if (onSettled) onSettled();
       }

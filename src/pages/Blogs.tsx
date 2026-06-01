@@ -1,8 +1,6 @@
 import { useState, useEffect } from "react";
 import { MiniNavbar } from "@/components/ui/mini-navbar";
 import { useTheme } from "@/contexts/ThemeContext";
-import domedark from "../../domedark.png";
-import domelight from "../../domelight.png";
 import { BlogCard } from "@/components/blog/BlogCard";
 import { getBlogPosts, BlogPost } from "@/lib/blog";
 import { cn } from "@/lib/utils";
@@ -26,7 +24,7 @@ const Blogs = () => {
       <div
         className="fixed inset-0 z-0 transition-opacity duration-500 ease-in-out"
         style={{
-          backgroundImage: `url(${isDarkMode ? domedark : domelight})`,
+          backgroundImage: `url(${isDarkMode ? '/domedark.webp' : '/domelight.webp'})`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat',

@@ -35,7 +35,7 @@ const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) 
   // Base dimension for responsive scaling
   const baseDimension = Math.min(dimensions.width, dimensions.height);
 
-  const SUN_SCALE = isDarkMode ? 1.6 : 2.35; // Smaller in dark mode, normal in light mode
+  const SUN_SCALE = isDarkMode ? 0.95 : 2.35; // Smaller in dark mode, normal in light mode
 
   // Unified Continuous Sprite Animation Loop for Sun and Planets (slow rotation)
   useEffect(() => {
@@ -96,7 +96,42 @@ const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) 
   return (
     <section className="absolute inset-0 flex items-center justify-start pointer-events-none z-10" aria-label="Projects Solar System">
       <div className="relative w-full h-full">
-        {/* Clean Sun Element - NO 3D transformations */}
+        {/* Dark mode sun - rendered as plain HTML div outside SVG to avoid Safari foreignObject bugs */}
+        {isDarkMode && (
+          <div
+            className="absolute pointer-events-none"
+            style={{
+              /* The SVG viewBox is (-800, 0, 3000, 1000) with preserveAspectRatio="xMinYMid meet".
+                 Sun center is at (-700, 500) in SVG coords. We need to convert to screen coords.
+                 The SVG maps viewBoxLeft=-800 to x=0, and the visible width is 3000 SVG units.
+                 With xMinYMid meet, the SVG scales uniformly to fit. */
+              left: 0,
+              top: 0,
+              width: '100%',
+              height: '100%',
+            }}
+          >
+            <div
+              ref={sunRef}
+              style={{
+                position: 'absolute',
+                width: `${baseDimension * SUN_SCALE}px`,
+                height: `${baseDimension * SUN_SCALE}px`,
+                /* Position: The SVG viewBox maps sunCenterX=-700 relative to viewBoxLeft=-800, 
+                   so the sun center is at SVG offset 100 out of 3000 total width.
+                   For Y: sunCenterY=500 out of viewBoxHeight=1000 = 50% */
+                left: `calc(${((sunCenterX - viewBoxLeft) / viewBoxWidth) * 100}% - ${baseDimension * SUN_SCALE / 2}px)`,
+                top: `calc(50% - ${baseDimension * SUN_SCALE / 2}px)`,
+                backgroundImage: `url('/Star%20-%20188959248%20-%20spritesheet.png')`,
+                backgroundSize: `${baseDimension * SUN_SCALE * 50}px ${baseDimension * SUN_SCALE * 3}px`,
+                backgroundRepeat: 'no-repeat',
+                filter: 'contrast(1.1) brightness(1.2)',
+                borderRadius: '50%',
+                overflow: 'hidden',
+              }}
+            />
+          </div>
+        )}
         <div className="absolute inset-0 pointer-events-none">
           <svg
             className="w-full h-full"
@@ -136,7 +171,7 @@ const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) 
                 <circle
                   cx={sunCenterX + baseDimension * 0.16}
                   cy={sunCenterY}
-                  r={baseDimension * 0.9} // Adjust radius as needed to cover the sun images
+                  r={baseDimension * 0.9}
                 />
               </clipPath>
             </defs>
@@ -152,25 +187,7 @@ const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) 
                   overflow="hidden"
                   viewBox={`0 0 ${baseDimension * SUN_SCALE} ${baseDimension * SUN_SCALE}`}
                 >
-                  {isDarkMode ? (
-                    <foreignObject
-                      x={0}
-                      y={0}
-                      width={baseDimension * SUN_SCALE}
-                      height={baseDimension * SUN_SCALE}
-                    >
-                      <div
-                        ref={sunRef}
-                        className="w-full h-full"
-                        style={{
-                          backgroundImage: `url('/Star%20-%20188959248%20-%20spritesheet.png')`,
-                          backgroundSize: `${baseDimension * SUN_SCALE * 50}px ${baseDimension * SUN_SCALE * 3}px`,
-                          backgroundRepeat: 'no-repeat',
-                          filter: 'contrast(1.1) brightness(1.2)'
-                        }}
-                      />
-                    </foreignObject>
-                  ) : (
+                  {!isDarkMode && (
                     <>
                       <image
                         href="/stargif.gif"

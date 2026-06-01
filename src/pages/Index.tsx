@@ -422,7 +422,7 @@ const Index = () => {
           </div>
 
           {/* Phase 3 Overlays (Full Screen Ship Spotlights) */}
-          <div className="absolute inset-0 z-40">
+          <div className="absolute inset-0 z-40 pointer-events-none">
             
             {/* The Unified Seamless Track */}
             <div 

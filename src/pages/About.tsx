@@ -1,10 +1,7 @@
 import Stars from "@/components/Stars";
 import { MiniNavbar } from "@/components/ui/mini-navbar";
 import { useTheme } from "@/contexts/ThemeContext";
-import notapainting from "../../notapainting.jpeg"
-import headshotc from "../../headshotc.jpeg"
-import headshotb from "../../headshotb.jpeg"
-import bandwportrait from "../../bandwportrait.jpeg"
+// Removed old photo imports
 
 const About = () => {
   const { isDarkMode } = useTheme();
@@ -120,7 +117,7 @@ const About = () => {
             className="w-full h-full rounded-full overflow-hidden shadow-2xl"
           >
             <img
-              src={isDarkMode ? bandwportrait : notapainting}
+              src={!isDarkMode ? "/me_dark.webp" : "/me.webp"}
               alt="Profile"
               className="w-full h-full object-cover"
             />

@@ -376,13 +376,15 @@ const Index = () => {
             ref={vignetteRef}
             className="absolute inset-0 z-[15] pointer-events-none opacity-0"
             style={{
-              background: 'radial-gradient(circle, transparent 30%, rgba(0,0,0,0.95) 100%)',
+              background: isDarkMode 
+                ? 'radial-gradient(circle, transparent 30%, rgba(255,255,255,0.95) 100%)' 
+                : 'radial-gradient(circle, transparent 30%, rgba(0,0,0,0.95) 100%)',
             }}
           />
 
           {/* Phase 1 Overlay (Warp Streaks) */}
-          <div ref={warpRef} className="absolute inset-0 z-10 pointer-events-none mix-blend-screen opacity-0">
-            <WarpTunnel params={warpParamsRef} />
+          <div ref={warpRef} className="absolute inset-0 z-10 pointer-events-none mix-blend-screen opacity-0" style={{ mixBlendMode: isDarkMode ? 'multiply' : 'screen' }}>
+            <WarpTunnel params={warpParamsRef} isDarkMode={isDarkMode} />
           </div>
 
           {/* Event Horizon Portal Transition */}
@@ -432,13 +434,13 @@ const Index = () => {
                   <path 
                     ref={masterPathRef}
                     d={masterFlightPathD}
-                    stroke="white"
+                    stroke={isDarkMode ? "black" : "white"}
                     strokeWidth="5"
                     fill="none"
                     strokeLinecap="round"
                     strokeDasharray="12000"
                     strokeDashoffset="12000"
-                    className="drop-shadow-[0_0_15px_rgba(255,255,255,0.8)]"
+                    className={isDarkMode ? "drop-shadow-[0_0_15px_rgba(0,0,0,0.4)]" : "drop-shadow-[0_0_15px_rgba(255,255,255,0.8)]"}
                   />
                </svg>
             </div>
@@ -446,11 +448,11 @@ const Index = () => {
             {projectsData.map((project, index) => {
               let spriteUrl = "";
               switch (project.id) {
-                case "1": spriteUrl = isDarkMode ? "/Lava%20World%20-%201909546053%20-%20spritesheet.png" : "/Terran%20Dry%20-%203542928846%20-%20spritesheet.png"; break;
-                case "2": spriteUrl = "/Gas%20giant%201%20-%203542928846%20-%20spritesheet.png"; break;
-                case "3": spriteUrl = "/Terran%20Wet%20-%203542928846%20-%20spritesheet.png"; break;
-                case "4": spriteUrl = "/Gas%20giant%202%20-%203417044678%20-%20spritesheet.png"; break;
-                case "5": spriteUrl = "/Ice%20World%20-%201909546053%20-%20spritesheet.png"; break;
+                case "1": spriteUrl = isDarkMode ? "/Islands%20-%20330873532%20-%20spritesheetdark.png" : "/Lava%20World%20-%201909546053%20-%20spritesheet.png"; break;
+                case "2": spriteUrl = isDarkMode ? "/Gas%20giant%202%20-%20330873532%20-%20spritesheetdark.png" : "/Gas%20giant%201%20-%203542928846%20-%20spritesheet.png"; break;
+                case "3": spriteUrl = isDarkMode ? "/Terran%20Wet%20-%20330873532%20-%20spritesheetdark.png" : "/Terran%20Wet%20-%203542928846%20-%20spritesheet.png"; break;
+                case "4": spriteUrl = isDarkMode ? "/Terran%20Dry%20-%20330873532%20-%20spritesheetdark.png" : "/Terran%20Dry%20-%203542928846%20-%20spritesheet.png"; break;
+                case "5": spriteUrl = isDarkMode ? "/Ice%20World%20-%20330873532%20-%20spritesheetdark.png" : "/Ice%20World%20-%201909546053%20-%20spritesheet.png"; break;
               }
 
               // We alternate planet side to justify the S-curve weave

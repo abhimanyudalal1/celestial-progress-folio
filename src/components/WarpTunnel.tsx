@@ -6,9 +6,10 @@ export interface WarpParams {
 
 interface WarpTunnelProps {
   params?: React.MutableRefObject<WarpParams>;
+  isDarkMode?: boolean;
 }
 
-export const WarpTunnel: React.FC<WarpTunnelProps> = ({ params }) => {
+export const WarpTunnel: React.FC<WarpTunnelProps> = ({ params, isDarkMode = false }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -43,7 +44,7 @@ export const WarpTunnel: React.FC<WarpTunnelProps> = ({ params }) => {
     const speed = 15; // Fast forward movement
 
     const draw = () => {
-      ctx.fillStyle = "rgba(0, 0, 0, 0.2)"; // Trail effect
+      ctx.fillStyle = isDarkMode ? "rgba(255, 255, 255, 0.2)" : "rgba(0, 0, 0, 0.2)"; // Trail effect matches background
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       stars.forEach(star => {
@@ -88,11 +89,11 @@ export const WarpTunnel: React.FC<WarpTunnelProps> = ({ params }) => {
           ctx.stroke();
         }
 
-        // Core White Streak
+        // Core Streak
         ctx.beginPath();
         ctx.moveTo(prevPx, prevPy);
         ctx.lineTo(px, py);
-        ctx.strokeStyle = `rgba(255, 255, 255, ${alpha})`;
+        ctx.strokeStyle = isDarkMode ? `rgba(0, 0, 0, ${alpha})` : `rgba(255, 255, 255, ${alpha})`; // Black streaks in dark mode
         ctx.stroke();
       });
 

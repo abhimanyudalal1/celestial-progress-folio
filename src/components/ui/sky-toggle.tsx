@@ -82,6 +82,10 @@ const StyledWrapper = styled.div`
     -o-transition: var(--transition);
     transition: var(--transition);
     position: relative;
+    /* Force child clipping in webkit */
+    -webkit-mask-image: -webkit-radial-gradient(white, black);
+    mask-image: radial-gradient(white, black);
+    transform: translateZ(0);
   }
 
   .theme-switch__container::before {

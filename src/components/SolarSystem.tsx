@@ -26,48 +26,65 @@ import { useWindowSize } from '@/hooks/use-window-size';
 const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) => {
   const dimensions = useWindowSize(); // Debounced resize hook
   const { isDarkMode } = useTheme();
-  
+
   // Refs for all planet sprites to update them efficiently via GSAP
   const planetRefs = useRef<(HTMLDivElement | null)[]>([]);
+  // Ref for the continuously burning sun sprite
+  const sunRef = useRef<SVGImageElement>(null);
 
   // Base dimension for responsive scaling
   const baseDimension = Math.min(dimensions.width, dimensions.height);
 
-  // Setup GSAP ScrollTrigger
-  useEffect(() => {
-    // Only set up if we have elements
-    if (!planetRefs.current.length) return;
+  const SUN_SCALE = isDarkMode ? 1.6 : 2.35; // Smaller in dark mode, normal in light mode
 
-    const trigger = ScrollTrigger.create({
-      trigger: document.body, // Use document body to track full page scroll
-      start: "top top",
-      end: "bottom bottom",
-      scrub: 0.1, // Slight smoothing for the scroll value itself
-      onUpdate: (self) => {
-        const progress = self.progress;
-        // The spritesheet is 50 columns x 3 rows = 150 frames. Max index is 149.
-        const frame = Math.floor(progress * 149);
-        
-        planetRefs.current.forEach((planetDiv, index) => {
-          if (planetDiv) {
-            // Recalculate dimensions in case window resized
-            const project = projects[index];
-            if (!project) return;
-            const planetRadius = baseDimension * (project.planetSize || 0.07);
-            const W = planetRadius * 2;
-            
-            // Math provided by user for 50x3 grid
-            const xPos = -(frame % 50) * W;
-            const yPos = -Math.floor(frame / 50) * W;
-            
-            planetDiv.style.backgroundPosition = `${xPos}px ${yPos}px`;
-          }
-        });
+  // Unified Continuous Sprite Animation Loop for Sun and Planets (slow rotation)
+  useEffect(() => {
+    let animationFrameId: number;
+    let startTime = Date.now();
+
+    const tick = () => {
+      const elapsed = (Date.now() - startTime) / 1000;
+
+      // 1. Animate Sun (very slow)
+      if (sunRef.current) {
+        const sunFps = 5; // Extremely slow
+        const frame = Math.floor(elapsed * sunFps) % 150; // 150 frames total
+        const sunW = baseDimension * SUN_SCALE;
+        if (sunW > 0) {
+          const xPos = -(frame % 50) * sunW;
+          const yPos = -Math.floor(frame / 50) * sunW;
+          sunRef.current.setAttribute('x', `${xPos}`);
+          sunRef.current.setAttribute('y', `${yPos}`);
+        }
       }
-    });
+
+      // 2. Animate Planets (slightly varying slow speeds)
+      planetRefs.current.forEach((planetDiv, index) => {
+        if (planetDiv) {
+          const project = projects[index];
+          if (!project) return;
+
+          // Speeds vary slightly per planet e.g., 3.0, 2.7, 2.4, 2.1...
+          const planetFps = 3.0 - (index * 0.3);
+          const frame = Math.floor(elapsed * planetFps) % 150;
+
+          const planetRadius = baseDimension * (project.planetSize || 0.07);
+          const planetW = planetRadius * 2;
+
+          const xPos = -(frame % 50) * planetW;
+          const yPos = -Math.floor(frame / 50) * planetW;
+
+          planetDiv.style.backgroundPosition = `${xPos}px ${yPos}px`;
+        }
+      });
+
+      animationFrameId = requestAnimationFrame(tick);
+    };
+
+    tick();
 
     return () => {
-      trigger.kill();
+      cancelAnimationFrame(animationFrameId);
     };
   }, [baseDimension, projects]);
 
@@ -81,7 +98,7 @@ const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) 
     <section className="absolute inset-0 flex items-center justify-start pointer-events-none z-10" aria-label="Projects Solar System">
       <div className="relative w-full h-full">
         {/* Clean Sun Element - NO 3D transformations */}
-        <div className="absolute inset-0">
+        <div className="absolute inset-0 pointer-events-none">
           <svg
             className="w-full h-full"
             viewBox={`${viewBoxLeft} 0 ${viewBoxWidth} ${viewBoxHeight}`}
@@ -90,8 +107,7 @@ const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) 
             style={{
               position: 'absolute',
               left: 0,
-              top: 0,
-              pointerEvents: 'none',
+              top: 0
             }}
           >
             <defs>
@@ -128,40 +144,54 @@ const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) 
 
             {/* Clean, bright sun */}
             <g>
-              {/* Main sun composition - Layered PNG and GIF */}
-              <g clipPath="url(#sunClip)">
-                {/* Base Texture - Swaps between Star HD and Black Hole GIF */}
-                <image
-                  href={isDarkMode ? "/stardark.gif" : "/starhd.png"}
-                  x={sunCenterX - baseDimension * 0.9}
-                  y={sunCenterY - baseDimension * 0.9}
-                  width={baseDimension * 1.8}
-                  height={baseDimension * 1.8}
-                  preserveAspectRatio="xMidYMid slice"
-                  style={{
-                    filter: isDarkMode
-                      ? 'scale(1.2) brightness(1.1) contrast(1.2)' // Slight scale up for black hole
-                      : 'drop-shadow(0 0 50px rgba(255, 200, 50, 0.6))',
-                    transition: 'filter 0.5s ease'
-                  }}
-                />
-
-                {/* Animated Overlay - Only for Light Mode (Star) */}
-                {!isDarkMode && (
-                  <image
-                    href="/stargif.gif"
-                    x={sunCenterX - baseDimension * 0.9}
-                    y={sunCenterY - baseDimension * 0.9}
-                    width={baseDimension * 1.8}
-                    height={baseDimension * 1.8}
-                    preserveAspectRatio="xMidYMid slice"
-                    style={{
-                      opacity: 0.99, // Blend with the HD texture
-                      mixBlendMode: 'screen', // Additive blending for glow effect
-                      pointerEvents: 'none'
-                    }}
-                  />
-                )}
+              <g style={{ pointerEvents: 'auto' }}>
+                <svg
+                  x={sunCenterX - baseDimension * (SUN_SCALE / 2)}
+                  y={sunCenterY - baseDimension * (SUN_SCALE / 2)}
+                  width={baseDimension * SUN_SCALE}
+                  height={baseDimension * SUN_SCALE}
+                  overflow="hidden"
+                  viewBox={`0 0 ${baseDimension * SUN_SCALE} ${baseDimension * SUN_SCALE}`}
+                >
+                  {isDarkMode ? (
+                    <image
+                      ref={sunRef}
+                      href="/Star%20-%20188959248%20-%20spritesheet.png"
+                      width="5000%"
+                      height="300%"
+                      preserveAspectRatio="none"
+                      style={{
+                        filter: 'contrast(1.1) brightness(1.2)'
+                      }}
+                    />
+                  ) : (
+                    <>
+                      <image
+                        href="/stargif.gif"
+                        x="0"
+                        y="0"
+                        width="100%"
+                        height="100%"
+                        preserveAspectRatio="xMidYMid slice"
+                        style={{
+                          mixBlendMode: 'screen',
+                          filter: 'brightness(1.5)'
+                        }}
+                      />
+                      <image
+                        href="/starhd.png"
+                        x="10%"
+                        y="10%"
+                        width="80%"
+                        height="80%"
+                        preserveAspectRatio="xMidYMid meet"
+                        style={{
+                          filter: 'brightness(1.2) drop-shadow(0 0 30px rgba(255,200,50,0.6))'
+                        }}
+                      />
+                    </>
+                  )}
+                </svg>
               </g>
 
               {/* Hero text content - NO transformations */}
@@ -171,7 +201,7 @@ const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) 
                   x={sunCenterX + baseDimension * 0.16}
                   y={sunCenterY - baseDimension * 0.03}
                   textAnchor="middle"
-                  fill={isDarkMode ? "#ffffff" : "#080102ff"}
+                  fill={isDarkMode ? "#000000" : "#ffffff"}
                   fontSize={baseDimension * 0.099} // DOUBLED from 0.025 to 0.05
                   fontWeight="bold"
                   className="drop-shadow-lg"
@@ -187,7 +217,7 @@ const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) 
                   x={sunCenterX + baseDimension * 0.16}
                   y={sunCenterY + baseDimension * 0.02}
                   textAnchor="middle"
-                  fill={isDarkMode ? "rgba(255, 255, 255, 0.95)" : "rgba(0, 0, 0, 0.95)"}
+                  fill={isDarkMode ? "rgba(0, 0, 0, 0.95)" : "rgba(255, 255, 255, 0.95)"}
                   fontSize={baseDimension * 0.038} // DOUBLED from 0.012 to 0.024
                   className="drop-shadow-md"
                   style={{
@@ -204,8 +234,8 @@ const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) 
                     cx={sunCenterX + baseDimension * 0.06}
                     cy={sunCenterY + baseDimension * 0.08}
                     r={baseDimension * 0.044} // DOUBLED from 0.012 to 0.024
-                    fill={isDarkMode ? "rgba(255, 255, 255, 0.15)" : "rgba(9, 7, 7, 0.15)"}
-                    stroke={isDarkMode ? "rgba(255, 255, 255, 0.4)" : "rgba(10, 6, 6, 0.4)"}
+                    fill={isDarkMode ? "rgba(0, 0, 0, 0.15)" : "rgba(255, 255, 255, 0.15)"}
+                    stroke={isDarkMode ? "rgba(0, 0, 0, 0.4)" : "rgba(255, 255, 255, 0.4)"}
                     strokeWidth="1"
                     style={{ cursor: 'pointer', transition: 'fill 0.5s ease, stroke 0.5s ease' }}
                     className="pointer-events-auto"
@@ -220,7 +250,7 @@ const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) 
                   >
                     <div className="w-full h-full flex items-center justify-center">
                       <Github
-                        color={isDarkMode ? "white" : "black"}
+                        color={isDarkMode ? "black" : "white"}
                         size="100%"
                         strokeWidth={1.5}
                       />
@@ -232,8 +262,8 @@ const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) 
                     cx={sunCenterX + baseDimension * 0.16}
                     cy={sunCenterY + baseDimension * 0.08}
                     r={baseDimension * 0.044}
-                    fill={isDarkMode ? "rgba(255, 255, 255, 0.15)" : "rgba(5, 4, 4, 0.15)"}
-                    stroke={isDarkMode ? "rgba(255, 255, 255, 0.4)" : "rgba(0, 0, 0, 0.4)"}
+                    fill={isDarkMode ? "rgba(0, 0, 0, 0.15)" : "rgba(255, 255, 255, 0.15)"}
+                    stroke={isDarkMode ? "rgba(0, 0, 0, 0.4)" : "rgba(255, 255, 255, 0.4)"}
                     strokeWidth="1"
                     style={{ cursor: 'pointer', transition: 'fill 0.5s ease, stroke 0.5s ease' }}
                     className="pointer-events-auto"
@@ -248,7 +278,7 @@ const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) 
                   >
                     <div className="w-full h-full flex items-center justify-center">
                       <Linkedin
-                        color={isDarkMode ? "white" : "black"}
+                        color={isDarkMode ? "black" : "white"}
                         size="100%"
                         strokeWidth={1.5}
                       />
@@ -260,8 +290,8 @@ const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) 
                     cx={sunCenterX + baseDimension * 0.26}
                     cy={sunCenterY + baseDimension * 0.08}
                     r={baseDimension * 0.044}
-                    fill={isDarkMode ? "rgba(255, 255, 255, 0.15)" : "rgba(0, 0, 0, 0.15)"}
-                    stroke={isDarkMode ? "rgba(255, 255, 255, 0.4)" : "rgba(2, 1, 1, 0.4)"}
+                    fill={isDarkMode ? "rgba(0, 0, 0, 0.15)" : "rgba(255, 255, 255, 0.15)"}
+                    stroke={isDarkMode ? "rgba(0, 0, 0, 0.4)" : "rgba(255, 255, 255, 0.4)"}
                     strokeWidth="1"
                     style={{ cursor: 'pointer', transition: 'fill 0.5s ease, stroke 0.5s ease' }}
                     className="pointer-events-auto"
@@ -276,7 +306,7 @@ const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) 
                   >
                     <div className="w-full h-full flex items-center justify-center">
                       <Mail
-                        color={isDarkMode ? "white" : "black"}
+                        color={isDarkMode ? "black" : "white"}
                         size="100%"
                         strokeWidth={1.5}
                       />
@@ -373,7 +403,7 @@ const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) 
                     {/* Planet positioned on this orbit */}
                     <g
                       className="pointer-events-auto planet-group"
-                      style={{ cursor: 'pointer' }}
+                      style={{ cursor: 'pointer', pointerEvents: 'auto' }}
                       onClick={() => setSelectedProject(project)}
                       transform={`translate(${position.x}, ${position.y})`}
                     >
@@ -389,19 +419,19 @@ const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) 
                           let spriteUrl = "";
                           switch (project.id) {
                             case "1":
-                              spriteUrl = isDarkMode ? "/Lava%20World%20-%201909546053%20-%20spritesheet.png" : "/Terran%20Dry%20-%203542928846%20-%20spritesheet.png";
+                              spriteUrl = isDarkMode ? "/Islands%20-%20330873532%20-%20spritesheetdark.png" : "/Lava%20World%20-%201909546053%20-%20spritesheet.png";
                               break;
                             case "2":
-                              spriteUrl = "/Gas%20giant%201%20-%203542928846%20-%20spritesheet.png";
+                              spriteUrl = isDarkMode ? "/Gas%20giant%202%20-%20330873532%20-%20spritesheetdark.png" : "/Gas%20giant%201%20-%203542928846%20-%20spritesheet.png";
                               break;
                             case "3":
-                              spriteUrl = "/Terran%20Wet%20-%203542928846%20-%20spritesheet.png";
+                              spriteUrl = isDarkMode ? "/Terran%20Wet%20-%20330873532%20-%20spritesheetdark.png" : "/Terran%20Wet%20-%203542928846%20-%20spritesheet.png";
                               break;
                             case "4":
-                              spriteUrl = "/Gas%20giant%202%20-%203417044678%20-%20spritesheet.png";
+                              spriteUrl = isDarkMode ? "/Terran%20Dry%20-%20330873532%20-%20spritesheetdark.png" : "/Terran%20Dry%20-%203542928846%20-%20spritesheet.png";
                               break;
                             case "5":
-                              spriteUrl = "/Ice%20World%20-%201909546053%20-%20spritesheet.png";
+                              spriteUrl = isDarkMode ? "/Ice%20World%20-%20330873532%20-%20spritesheetdark.png" : "/Ice%20World%20-%201909546053%20-%20spritesheet.png";
                               break;
                             default:
                               return (
@@ -425,8 +455,11 @@ const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) 
                                 filter: isDarkMode ? 'brightness(0.9) contrast(1.2)' : 'brightness(1.1) contrast(1.1)',
                                 transition: 'filter 0.5s ease',
                                 borderRadius: '50%',
-                                overflow: 'hidden'
+                                overflow: 'hidden',
+                                cursor: 'pointer'
                               }}
+                              className="pointer-events-auto"
+                              onClick={() => setSelectedProject(project)}
                             >
                               <div
                                 ref={(el) => planetRefs.current[index] = el}

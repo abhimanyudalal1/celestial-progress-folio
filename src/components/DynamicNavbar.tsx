@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useTransition } from '@/contexts/TransitionContext';
 import SkyToggle from './ui/sky-toggle';
 
 export type NavbarViewMode = 'default' | 'projects';
@@ -14,6 +15,7 @@ interface DynamicNavbarProps {
 
 export function DynamicNavbar({ viewMode = 'default' }: DynamicNavbarProps) {
   const { isDarkMode } = useTheme();
+  const { startTransition } = useTransition();
   const location = useLocation();
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [isNavHovered, setIsNavHovered] = useState(false);
@@ -53,7 +55,7 @@ export function DynamicNavbar({ viewMode = 'default' }: DynamicNavbarProps) {
         className="hidden md:fixed md:top-2 md:left-1/2 md:transform md:-translate-x-1/2 md:flex md:items-center md:gap-16 md:z-50 md:px-10 md:py-1.5 relative"
         initial={false}
         animate={{
-          backgroundColor: isProjectsMode ? 'rgba(0, 0, 0, 0.6)' : 'transparent',
+          backgroundColor: isProjectsMode ? (isDarkMode ? 'rgba(0, 0, 0, 0.6)' : 'rgba(255, 255, 255, 0.6)') : 'transparent',
         }}
         transition={{ duration: 0.3 }}
         onMouseEnter={() => setIsNavHovered(true)}
@@ -132,6 +134,12 @@ export function DynamicNavbar({ viewMode = 'default' }: DynamicNavbarProps) {
             >
               <Link
                 to={link.to}
+                onClick={(e) => {
+                  if (link.to === '/grid-view' && location.pathname === '/') {
+                    e.preventDefault();
+                    startTransition();
+                  }
+                }}
                 className={`relative font-bold text-lg tracking-wide transition-all duration-300 z-10 px-6 py-3 block ${isDarkMode ? 'text-gray-700' : 'text-gray-300'
                   }`}
                 onMouseEnter={() => setHoveredIndex(index)}
@@ -141,7 +149,9 @@ export function DynamicNavbar({ viewMode = 'default' }: DynamicNavbarProps) {
                 {hoveredIndex === index && (
                   <motion.div
                     layoutId="navHover"
-                    className={`absolute inset-0 border rounded-full pointer-events-none ${isDarkMode ? 'border-gray-800/50' : 'border-white/40'
+                    className={`absolute inset-0 border rounded-full pointer-events-none ${isProjectsMode
+                        ? (isDarkMode ? 'border-white/40' : 'border-gray-800/50')
+                        : (isDarkMode ? 'border-gray-800/50' : 'border-white/40')
                       }`}
                     style={{
                       borderStyle: 'dashed',
@@ -156,9 +166,9 @@ export function DynamicNavbar({ viewMode = 'default' }: DynamicNavbarProps) {
                 {/* Text with special styling for name */}
                 <span
                   className={`relative transition-all duration-300 ${hoveredIndex === index
-                    ? isDarkMode
-                      ? 'text-white' // Fixed: Was text-gray-900 which is invisible on dark bg
-                      : 'text-white'
+                    ? isProjectsMode
+                      ? (isDarkMode ? 'text-white' : 'text-gray-900')
+                      : (isDarkMode ? 'text-gray-900' : 'text-white')
                     : isDarkMode ? 'text-gray-700' : 'text-gray-300'
                     } ${(link as any).isName
                       ? isDarkMode
@@ -184,9 +194,9 @@ export function DynamicNavbar({ viewMode = 'default' }: DynamicNavbarProps) {
 
                 {/* Hover star dot */}
                 {hoveredIndex === index && !(link as any).isActive && (
-                  <span className={`absolute -top-1 left-1/2 transform -translate-x-1/2 w-1 h-1 rounded-full animate-pulse ${isDarkMode
-                    ? 'bg-gray-900'
-                    : 'bg-white'
+                  <span className={`absolute -top-1 left-1/2 transform -translate-x-1/2 w-1 h-1 rounded-full animate-pulse ${isProjectsMode
+                      ? (isDarkMode ? 'bg-white' : 'bg-gray-900')
+                      : (isDarkMode ? 'bg-gray-900' : 'bg-white')
                     }`} />
                 )}
               </Link>
@@ -245,12 +255,20 @@ export function DynamicNavbar({ viewMode = 'default' }: DynamicNavbarProps) {
                   >
                     <Link
                       to={link.to}
-                      onClick={() => setIsMobileMenuOpen(false)}
+                      onClick={(e) => {
+                        setIsMobileMenuOpen(false);
+                        if (link.to === '/grid-view' && location.pathname === '/') {
+                          e.preventDefault();
+                          startTransition();
+                        }
+                      }}
                       className={`text-3xl font-bold transition-colors ${(link as any).isName
                         ? isDarkMode
                           ? moonTextClass
-                          : 'bg-gradient-to-r from-amber-400 to-red-500 bg-clip-text text-transparent'
-                        : isDarkMode ? 'text-gray-900 hover:text-gray-700' : 'text-white hover:text-gray-300'
+                          : 'bg-gradient-to-r from-amber-400 to-red-500 bg-clip-text text-transparent font-black text-lg'
+                        : isProjectsMode
+                          ? (isDarkMode ? 'text-gray-800 hover:text-white' : 'text-gray-200 hover:text-black')
+                          : (isDarkMode ? 'text-gray-800 hover:text-black' : 'text-gray-200 hover:text-white')
                         }`}
                     >
                       {link.label}

@@ -1,8 +1,10 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useWindowSize } from '@/hooks/use-window-size';
 
 interface Star {
+  targetX: number;
+  targetY: number;
   x: number;
   y: number;
   size: number;
@@ -12,15 +14,49 @@ interface Star {
   hue?: number;
   saturation?: number;
   lightness?: number;
+  chaosX: number;
+  chaosY: number;
+  chaosVX: number;
+  chaosVY: number;
 }
 
-const Stars = () => {
+interface StarsProps {
+  isAppLoaded?: boolean;
+  onSettled?: () => void;
+  isInitialLoad?: boolean;
+}
+
+const Stars = ({ isAppLoaded = true, onSettled, isInitialLoad = false }: StarsProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number>();
   const starsRef = useRef<Star[]>([]);
   const mouseRef = useRef({ x: 0, y: 0 });
   const { isDarkMode } = useTheme();
   const dimensions = useWindowSize(); // Debounced resize hook
+
+  const [explosionStarted, setExplosionStarted] = useState(!isInitialLoad);
+  const explosionStartedRef = useRef(!isInitialLoad);
+  const settleStartTime = useRef<number | null>(null);
+  const initialTime = useRef(Date.now());
+  const settledCalled = useRef(false);
+
+  // Big Bang delay
+  useEffect(() => {
+    if (isInitialLoad && !explosionStarted) {
+      const timer = setTimeout(() => {
+        setExplosionStarted(true);
+        explosionStartedRef.current = true;
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [isInitialLoad, explosionStarted]);
+
+  // Start settling when app loads
+  useEffect(() => {
+    if (isInitialLoad && isAppLoaded && explosionStarted && settleStartTime.current === null) {
+      settleStartTime.current = Date.now();
+    }
+  }, [isAppLoaded, explosionStarted, isInitialLoad]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -58,16 +94,30 @@ const Stars = () => {
             lightness = Math.random() * 15 + 80; // 80-95% lightness (lighter/whiter)
           }
 
+          // Initial random target positions (where they normally drift)
+          const targetX = Math.random() * canvas.width;
+          const targetY = Math.random() * canvas.height;
+
+          // Initial chaos vectors (outward explosion)
+          const angle = Math.random() * Math.PI * 2;
+          const speed = Math.random() * 8 + 2; // Explosive speed
+
           stars.push({
-            x: Math.random() * canvas.width,
-            y: Math.random() * canvas.height,
+            targetX,
+            targetY,
+            x: targetX, // Set dynamically later
+            y: targetY, // Set dynamically later
             size: Math.random() * (layerConfig.sizeRange[1] - layerConfig.sizeRange[0]) + layerConfig.sizeRange[0],
             opacity: Math.random() * 0.8 + 0.2,
             speed: Math.random() * (layerConfig.speedRange[1] - layerConfig.speedRange[0]) + layerConfig.speedRange[0],
             layer: layerConfig.layer,
             hue,
             saturation,
-            lightness
+            lightness,
+            chaosX: canvas.width / 2, // Start at center
+            chaosY: canvas.height / 2, // Start at center
+            chaosVX: Math.cos(angle) * speed,
+            chaosVY: Math.sin(angle) * speed,
           });
         }
       });
@@ -85,18 +135,73 @@ const Stars = () => {
     const animate = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+      let allSettled = true;
+
       starsRef.current.forEach(star => {
+        const isSettlingPhase = settleStartTime.current !== null;
+        const settleProgress = isSettlingPhase ? Math.min(1, (Date.now() - settleStartTime.current!) / 2500) : 0;
+
+        // Easing function (easeOutCubic)
+        const easeOut = 1 - Math.pow(1 - settleProgress, 3);
+
+        if (isInitialLoad) {
+          if (!explosionStartedRef.current) {
+            // Before explosion, hold at center tightly packed, increasing in size and shaking
+            const elapsed = Date.now() - initialTime.current;
+            const progress = Math.min(1, elapsed / 1000); // 0 to 1 over 1000ms
+
+            // The cluster slowly expands
+            const clusterSpread = 2 + (Math.pow(progress, 2) * 30); // starts small, grows quadratically
+
+            // The shaking becomes increasingly violent
+            const shakeAmt = Math.pow(progress, 3) * 15;
+            const shakeX = (Math.random() - 0.5) * shakeAmt;
+            const shakeY = (Math.random() - 0.5) * shakeAmt;
+
+            star.x = canvas.width / 2 + (Math.random() - 0.5) * clusterSpread + shakeX;
+            star.y = canvas.height / 2 + (Math.random() - 0.5) * clusterSpread + shakeY;
+            allSettled = false;
+          } else if (settleProgress < 1) {
+            // Exploding / Chaotic phase + Settling phase
+            // Apply friction and noise to chaos velocity
+            star.chaosVX *= 0.98; // Friction
+            star.chaosVY *= 0.98;
+            star.chaosVX += (Math.random() - 0.5) * 1.5; // Brownian noise
+            star.chaosVY += (Math.random() - 0.5) * 1.5;
+
+            star.chaosX += star.chaosVX;
+            star.chaosY += star.chaosVY;
+
+            // Bounce off walls in chaos mode
+            if (star.chaosX < 0 || star.chaosX > canvas.width) star.chaosVX *= -1;
+            if (star.chaosY < 0 || star.chaosY > canvas.height) star.chaosVY *= -1;
+
+            // Interpolate from chaos to target
+            star.x = star.chaosX + (star.targetX - star.chaosX) * easeOut;
+            star.y = star.chaosY + (star.targetY - star.chaosY) * easeOut;
+            allSettled = false;
+          } else {
+            // Fully settled normal behavior
+            star.targetX -= star.speed;
+            if (star.targetX < -10) star.targetX = canvas.width + 10;
+            if (star.targetY < -10) star.targetY = canvas.height + 10;
+            if (star.targetY > canvas.height + 10) star.targetY = -10;
+            star.x = star.targetX;
+            star.y = star.targetY;
+          }
+        } else {
+          // Standard background behavior (no initial load)
+          star.targetX -= star.speed;
+          if (star.targetX < -10) star.targetX = canvas.width + 10;
+          if (star.targetY < -10) star.targetY = canvas.height + 10;
+          if (star.targetY > canvas.height + 10) star.targetY = -10;
+          star.x = star.targetX;
+          star.y = star.targetY;
+        }
+
         // Parallax offset based on mouse position and star layer
         const parallaxX = mouseRef.current.x * star.layer * 2;
         const parallaxY = mouseRef.current.y * star.layer * 2;
-
-        // Wrap around screen handling is no longer strictly necessary since they don't drift linearly,
-        // but kept just in case parallax pushes them off extensively.
-
-        // Wrap around screen
-        if (star.x < -10) star.x = canvas.width + 10;
-        if (star.y < -10) star.y = canvas.height + 10;
-        if (star.y > canvas.height + 10) star.y = -10;
 
         // Calculate final position with parallax
         const finalX = star.x + parallaxX;
@@ -178,6 +283,11 @@ const Stars = () => {
           ctx.stroke();
         }
       });
+
+      if (isInitialLoad && allSettled && !settledCalled.current && settleStartTime.current !== null) {
+        settledCalled.current = true;
+        if (onSettled) onSettled();
+      }
 
       animationRef.current = requestAnimationFrame(animate);
     };

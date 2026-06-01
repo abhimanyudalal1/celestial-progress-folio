@@ -55,7 +55,7 @@ export function DynamicNavbar({ viewMode = 'default' }: DynamicNavbarProps) {
         className="hidden md:fixed md:top-2 md:left-1/2 md:transform md:-translate-x-1/2 md:flex md:items-center md:gap-16 md:z-50 md:px-10 md:py-1.5 relative"
         initial={false}
         animate={{
-          backgroundColor: isProjectsMode ? (isDarkMode ? 'rgba(0, 0, 0, 0.6)' : 'rgba(255, 255, 255, 0.6)') : 'transparent',
+          backgroundColor: isProjectsMode ? (isDarkMode ? 'rgba(255, 255, 255, 0.8)' : 'rgba(0, 0, 0, 0.8)') : 'transparent',
         }}
         transition={{ duration: 0.3 }}
         onMouseEnter={() => setIsNavHovered(true)}

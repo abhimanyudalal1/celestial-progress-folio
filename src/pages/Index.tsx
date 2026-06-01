@@ -21,6 +21,58 @@ const Index = () => {
   const { isDarkMode } = useTheme();
   const dimensions = useWindowSize();
 
+  // Loading States
+  const [isAppLoaded, setIsAppLoaded] = useState(false);
+  const [isStarsSettled, setIsStarsSettled] = useState(false);
+
+  // Preload heavy assets
+  useEffect(() => {
+    const imagesToLoad = [
+      '/stargif.gif',
+      '/starhd.png',
+      '/Star%20-%20188959248%20-%20spritesheet.png',
+      '/Islands%20-%20330873532%20-%20spritesheetdark.png',
+      '/Lava%20World%20-%201909546053%20-%20spritesheet.png',
+      '/Gas%20giant%202%20-%20330873532%20-%20spritesheetdark.png',
+      '/Gas%20giant%201%20-%203542928846%20-%20spritesheet.png',
+      '/Terran%20Wet%20-%20330873532%20-%20spritesheetdark.png',
+      '/Terran%20Wet%20-%203542928846%20-%20spritesheet.png',
+      '/Terran%20Dry%20-%20330873532%20-%20spritesheetdark.png',
+      '/Terran%20Dry%20-%203542928846%20-%20spritesheet.png',
+      '/Ice%20World%20-%20330873532%20-%20spritesheetdark.png',
+      '/Ice%20World%20-%201909546053%20-%20spritesheet.png'
+    ];
+
+    let loadedCount = 0;
+    let hasFailed = false;
+
+    const checkDone = () => {
+      if (loadedCount >= imagesToLoad.length && !hasFailed) {
+        setIsAppLoaded(true);
+      }
+    };
+
+    imagesToLoad.forEach(src => {
+      const img = new Image();
+      img.onload = () => {
+        loadedCount++;
+        checkDone();
+      };
+      img.onerror = () => {
+        loadedCount++; // even if fails, continue to prevent infinite loading
+        checkDone();
+      };
+      img.src = src;
+    });
+
+    // Fallback timeout just in case it takes too long or errors silently
+    const timeout = setTimeout(() => {
+      setIsAppLoaded(true);
+    }, 8000);
+
+    return () => clearTimeout(timeout);
+  }, []);
+
   // Projects Data
   const projectsData = toLegacyProjects();
 
@@ -321,13 +373,20 @@ const Index = () => {
 
   return (
     <div className="min-h-screen font-sans" style={{
-      backgroundColor: isDarkMode ? '#ffffff' : 'transparent',
+      backgroundColor: isDarkMode ? '#ffffff' : '#000000',
       transition: 'background-color 1.7s ease-in-out'
     }}>
-      <Stars />
+      <Stars 
+        isInitialLoad={true} 
+        isAppLoaded={isAppLoaded} 
+        onSettled={() => setIsStarsSettled(true)} 
+      />
 
-      {/* Navigation Bar - Stays on top */}
-      <div className="relative z-[100]">
+      <div 
+        className={`transition-opacity duration-[2000ms] ease-in-out ${isStarsSettled ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+      >
+        {/* Navigation Bar - Stays on top */}
+        <div className="relative z-[100]">
         <DynamicNavbar viewMode={navMode} />
       </div>
 
@@ -638,6 +697,8 @@ const Index = () => {
           loading="lazy"
         />
       </div>
+      
+      </div> {/* End of fade-in wrapper */}
     </div>
   );
 };

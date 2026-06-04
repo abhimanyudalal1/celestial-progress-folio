@@ -224,7 +224,7 @@ const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) 
                   x={sunCenterX + baseDimension * 0.16}
                   y={sunCenterY - baseDimension * 0.03}
                   textAnchor="middle"
-                  fill={isDarkMode ? "#000000" : "#ffffff"}
+                  fill={isDarkMode ? "#ffffff" : "#000000"}
                   fontSize={baseDimension * 0.099} // DOUBLED from 0.025 to 0.05
                   fontWeight="bold"
                   className="drop-shadow-lg"
@@ -240,7 +240,7 @@ const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) 
                   x={sunCenterX + baseDimension * 0.16}
                   y={sunCenterY + baseDimension * 0.02}
                   textAnchor="middle"
-                  fill={isDarkMode ? "rgba(0, 0, 0, 0.95)" : "rgba(255, 255, 255, 0.95)"}
+                  fill={isDarkMode ? "rgba(255, 255, 255, 0.95)" : "rgba(0, 0, 0, 0.95)"}
                   fontSize={baseDimension * 0.038} // DOUBLED from 0.012 to 0.024
                   className="drop-shadow-md"
                   style={{
@@ -257,8 +257,8 @@ const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) 
                     cx={sunCenterX + baseDimension * 0.06}
                     cy={sunCenterY + baseDimension * 0.08}
                     r={baseDimension * 0.044} // DOUBLED from 0.012 to 0.024
-                    fill={isDarkMode ? "rgba(0, 0, 0, 0.15)" : "rgba(255, 255, 255, 0.15)"}
-                    stroke={isDarkMode ? "rgba(0, 0, 0, 0.4)" : "rgba(255, 255, 255, 0.4)"}
+                    fill={isDarkMode ? "rgba(255, 255, 255, 0.15)" : "rgba(0, 0, 0, 0.15)"}
+                    stroke={isDarkMode ? "rgba(255, 255, 255, 0.4)" : "rgba(0, 0, 0, 0.4)"}
                     strokeWidth="1"
                     style={{ cursor: 'pointer', transition: 'fill 0.5s ease, stroke 0.5s ease' }}
                     className="pointer-events-auto"
@@ -273,7 +273,7 @@ const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) 
                   >
                     <div className="w-full h-full flex items-center justify-center">
                       <Github
-                        color={isDarkMode ? "black" : "white"}
+                        color={isDarkMode ? "white" : "black"}
                         size="100%"
                         strokeWidth={1.5}
                       />
@@ -285,8 +285,8 @@ const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) 
                     cx={sunCenterX + baseDimension * 0.16}
                     cy={sunCenterY + baseDimension * 0.08}
                     r={baseDimension * 0.044}
-                    fill={isDarkMode ? "rgba(0, 0, 0, 0.15)" : "rgba(255, 255, 255, 0.15)"}
-                    stroke={isDarkMode ? "rgba(0, 0, 0, 0.4)" : "rgba(255, 255, 255, 0.4)"}
+                    fill={isDarkMode ? "rgba(255, 255, 255, 0.15)" : "rgba(0, 0, 0, 0.15)"}
+                    stroke={isDarkMode ? "rgba(255, 255, 255, 0.4)" : "rgba(0, 0, 0, 0.4)"}
                     strokeWidth="1"
                     style={{ cursor: 'pointer', transition: 'fill 0.5s ease, stroke 0.5s ease' }}
                     className="pointer-events-auto"
@@ -301,7 +301,7 @@ const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) 
                   >
                     <div className="w-full h-full flex items-center justify-center">
                       <Linkedin
-                        color={isDarkMode ? "black" : "white"}
+                        color={isDarkMode ? "white" : "black"}
                         size="100%"
                         strokeWidth={1.5}
                       />
@@ -313,8 +313,8 @@ const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) 
                     cx={sunCenterX + baseDimension * 0.26}
                     cy={sunCenterY + baseDimension * 0.08}
                     r={baseDimension * 0.044}
-                    fill={isDarkMode ? "rgba(0, 0, 0, 0.15)" : "rgba(255, 255, 255, 0.15)"}
-                    stroke={isDarkMode ? "rgba(0, 0, 0, 0.4)" : "rgba(255, 255, 255, 0.4)"}
+                    fill={isDarkMode ? "rgba(255, 255, 255, 0.15)" : "rgba(0, 0, 0, 0.15)"}
+                    stroke={isDarkMode ? "rgba(255, 255, 255, 0.4)" : "rgba(0, 0, 0, 0.4)"}
                     strokeWidth="1"
                     style={{ cursor: 'pointer', transition: 'fill 0.5s ease, stroke 0.5s ease' }}
                     className="pointer-events-auto"
@@ -329,7 +329,7 @@ const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) 
                   >
                     <div className="w-full h-full flex items-center justify-center">
                       <Mail
-                        color={isDarkMode ? "black" : "white"}
+                        color={isDarkMode ? "white" : "black"}
                         size="100%"
                         strokeWidth={1.5}
                       />

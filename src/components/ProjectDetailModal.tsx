@@ -111,7 +111,7 @@ export const ProjectDetailModal = ({ project, onClose }: ProjectDetailModalProps
                   {project.title}
                 </h2>
 
-                {/* Progress bar */}
+                {/* Progress bar 
                 <div className="flex items-center gap-4 mt-4">
                   <div 
                     className="flex-1 h-2 rounded-full overflow-hidden"
@@ -132,6 +132,7 @@ export const ProjectDetailModal = ({ project, onClose }: ProjectDetailModalProps
                     {project.completionPercent}%
                   </span>
                 </div>
+                */}
               </div>
 
               {/* Description */}

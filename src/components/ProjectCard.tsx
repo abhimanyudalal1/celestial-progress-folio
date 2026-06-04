@@ -108,7 +108,7 @@ export const ProjectCard = ({ project, index }: ProjectCardProps) => {
             </h3>
           </div>
           
-          {/* Completion indicator */}
+          {/* Completion indicator 
           <div 
             className="flex items-center justify-center w-12 h-12 rounded-full text-xs font-bold"
             style={{
@@ -119,6 +119,7 @@ export const ProjectCard = ({ project, index }: ProjectCardProps) => {
           >
             {project.completionPercent}%
           </div>
+          */}
         </div>
 
         {/* Description */}
@@ -143,7 +144,7 @@ export const ProjectCard = ({ project, index }: ProjectCardProps) => {
           ))}
         </div>
 
-        {/* Progress Bar */}
+        {/* Progress Bar 
         <div className="space-y-2">
           <div className="flex justify-between text-xs">
             <span className="text-gray-400">Progress</span>
@@ -162,6 +163,7 @@ export const ProjectCard = ({ project, index }: ProjectCardProps) => {
             />
           </div>
         </div>
+        */}
 
         {/* Action Buttons */}
         <div className="flex gap-3 pt-2">

@@ -275,7 +275,7 @@ export const DiagonalProjectCard = ({
             />
           </motion.div>
 
-          {/* Progress indicator */}
+          {/* Progress indicator 
           <motion.div
             className="absolute bottom-6 left-1/2 -translate-x-1/2"
             animate={{ opacity: isHovered ? 1 : 0.5 }}
@@ -299,6 +299,7 @@ export const DiagonalProjectCard = ({
               />
             </div>
           </motion.div>
+          */}
         </motion.div>
 
         {/* Expanded state content */}
@@ -379,7 +380,7 @@ export const DiagonalProjectCard = ({
                 ))}
               </motion.div>
 
-              {/* Progress */}
+              {/* Progress 
               <motion.div
                 className="mb-5 max-w-xs"
                 initial={{ opacity: 0, y: 30 }}
@@ -405,6 +406,7 @@ export const DiagonalProjectCard = ({
                   />
                 </div>
               </motion.div>
+              */}
 
               {/* Action buttons */}
               <motion.div

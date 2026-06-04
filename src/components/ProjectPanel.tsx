@@ -156,7 +156,7 @@ const ProjectPanel = ({ project, onClose }: ProjectPanelProps) => {
             </Button>
           </div>
 
-          {/* Progress Section */}
+          {/* Progress Section 
           <div className="flex items-center gap-6 p-4 rounded-2xl bg-white/5 border border-white/10">
             <div
               className="relative w-16 h-16 rounded-full flex items-center justify-center text-lg font-bold"
@@ -164,7 +164,6 @@ const ProjectPanel = ({ project, onClose }: ProjectPanelProps) => {
                 boxShadow: `0 0 25px ${themeColorAlpha(0.2)}`
               }}
             >
-              {/* Ring SVGs */}
               <svg className="absolute inset-0 w-full h-full -rotate-90">
                 <circle
                   cx="32" cy="32" r="28"
@@ -195,6 +194,7 @@ const ProjectPanel = ({ project, onClose }: ProjectPanelProps) => {
               </p>
             </div>
           </div>
+          */}
 
           {/* Description */}
           <div className="space-y-3">

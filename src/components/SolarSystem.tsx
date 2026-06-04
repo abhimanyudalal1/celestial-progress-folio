@@ -97,41 +97,50 @@ const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) 
     <section className="absolute inset-0 flex items-center justify-start pointer-events-none z-10" aria-label="Projects Solar System">
       <div className="relative w-full h-full">
         {/* Dark mode sun - rendered as plain HTML div outside SVG to avoid Safari foreignObject bugs */}
-        {isDarkMode && (
-          <div
-            className="absolute pointer-events-none"
-            style={{
-              /* The SVG viewBox is (-800, 0, 3000, 1000) with preserveAspectRatio="xMinYMid meet".
-                 Sun center is at (-700, 500) in SVG coords. We need to convert to screen coords.
-                 The SVG maps viewBoxLeft=-800 to x=0, and the visible width is 3000 SVG units.
-                 With xMinYMid meet, the SVG scales uniformly to fit. */
-              left: 0,
-              top: 0,
-              width: '100%',
-              height: '100%',
-            }}
-          >
+        {isDarkMode && dimensions.width > 0 && dimensions.height > 0 && (() => {
+          /* Compute the actual SVG-to-screen mapping that preserveAspectRatio="xMinYMid meet" produces.
+             "meet" scales the viewBox uniformly to fit inside the container. "xMinYMid" aligns
+             the left edge (xMin) and vertically centers (YMid). */
+          const containerW = dimensions.width;
+          const containerH = dimensions.height;
+          const scaleX = containerW / viewBoxWidth;
+          const scaleY = containerH / viewBoxHeight;
+          const scale = Math.min(scaleX, scaleY); // "meet" uses the smaller scale
+
+          // xMin alignment: SVG viewBox left edge maps to container x=0
+          const offsetX = 0;
+          // YMid alignment: vertically center the scaled content
+          const offsetY = (containerH - viewBoxHeight * scale) / 2;
+
+          // Convert SVG sun center to screen pixels
+          const sunScreenX = (sunCenterX - viewBoxLeft) * scale + offsetX;
+          const sunScreenY = sunCenterY * scale + offsetY;
+          const sunSize = baseDimension * SUN_SCALE;
+
+          return (
             <div
-              ref={sunRef}
-              style={{
-                position: 'absolute',
-                width: `${baseDimension * SUN_SCALE}px`,
-                height: `${baseDimension * SUN_SCALE}px`,
-                /* Position: The SVG viewBox maps sunCenterX=-700 relative to viewBoxLeft=-800, 
-                   so the sun center is at SVG offset 100 out of 3000 total width.
-                   For Y: sunCenterY=500 out of viewBoxHeight=1000 = 50% */
-                left: `calc(${((sunCenterX - viewBoxLeft) / viewBoxWidth) * 100}% - ${baseDimension * SUN_SCALE / 2}px)`,
-                top: `calc(50% - ${baseDimension * SUN_SCALE / 2}px)`,
-                backgroundImage: `url('/Star%20-%20188959248%20-%20spritesheet.png')`,
-                backgroundSize: `${baseDimension * SUN_SCALE * 50}px ${baseDimension * SUN_SCALE * 3}px`,
-                backgroundRepeat: 'no-repeat',
-                filter: 'contrast(1.1) brightness(1.2)',
-                borderRadius: '50%',
-                overflow: 'hidden',
-              }}
-            />
-          </div>
-        )}
+              className="absolute pointer-events-none"
+              style={{ left: 0, top: 0, width: '100%', height: '100%' }}
+            >
+              <div
+                ref={sunRef}
+                style={{
+                  position: 'absolute',
+                  width: `${sunSize}px`,
+                  height: `${sunSize}px`,
+                  left: `${sunScreenX - sunSize / 2}px`,
+                  top: `${sunScreenY - sunSize / 2}px`,
+                  backgroundImage: `url('/Star%20-%20188959248%20-%20spritesheet.png')`,
+                  backgroundSize: `${sunSize * 50}px ${sunSize * 3}px`,
+                  backgroundRepeat: 'no-repeat',
+                  filter: 'contrast(1.1) brightness(1.2)',
+                  borderRadius: '50%',
+                  overflow: 'hidden',
+                }}
+              />
+            </div>
+          );
+        })()}
         <div className="absolute inset-0 pointer-events-none">
           <svg
             className="w-full h-full"

@@ -26,8 +26,12 @@ export function useWindowSize(delay: number = 250): WindowSize {
 
         window.addEventListener('resize', handleResize);
 
-        // Initial update to ensure correctness if it changed before mount
-        handleResize();
+        // Set dimensions immediately on mount (no debounce) to avoid layout shift.
+        // The debounced handler is only for subsequent resize events.
+        setWindowSize({
+            width: window.innerWidth,
+            height: window.innerHeight,
+        });
 
         return () => {
             window.removeEventListener('resize', handleResize);

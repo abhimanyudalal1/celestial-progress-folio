@@ -21,9 +21,17 @@ const Index = () => {
   const { isDarkMode } = useTheme();
   const dimensions = useWindowSize();
 
+  // Check if initial load has happened in this session
+  const hasLoadedBefore = useMemo(() => {
+    if (typeof window !== 'undefined') {
+      return sessionStorage.getItem('initialLoadComplete') === 'true';
+    }
+    return false;
+  }, []);
+
   // Loading States
-  const [isAppLoaded, setIsAppLoaded] = useState(false);
-  const [isStarsSettled, setIsStarsSettled] = useState(false);
+  const [isAppLoaded, setIsAppLoaded] = useState(hasLoadedBefore);
+  const [isStarsSettled, setIsStarsSettled] = useState(hasLoadedBefore);
 
   // Preload heavy assets
   useEffect(() => {
@@ -386,11 +394,14 @@ const Index = () => {
       transition: 'background-color 1.7s ease-in-out'
     }}>
       <Stars 
-        isInitialLoad={true} 
+        isInitialLoad={!hasLoadedBefore} 
         isAppLoaded={isAppLoaded} 
         onSettled={() => {
           console.log('[Index] Stars settled, revealing UI');
           setIsStarsSettled(true);
+          if (typeof window !== 'undefined') {
+            sessionStorage.setItem('initialLoadComplete', 'true');
+          }
         }} 
       />
 

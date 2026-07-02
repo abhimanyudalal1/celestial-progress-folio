@@ -17,11 +17,11 @@ const About = () => {
   // - Left Sphere Bg: White (Text Black)
   // - Right Half Bg: White
 
-  const leftHalfBg = isDarkMode ? '#000000' : '#ffffff';
-  const leftSphereBg = isDarkMode ? '#ffffff' : '#000000';
-  const leftSphereText = isDarkMode ? '#000000' : '#ffffff';
+  const leftHalfBg = isDarkMode ? '#ffffff' : '#000000';
+  const leftSphereBg = isDarkMode ? '#000000' : '#ffffff';
+  const leftSphereText = isDarkMode ? '#ffffff' : '#000000';
 
-  const rightHalfBg = isDarkMode ? '#ffffff' : '#000000';
+  const rightHalfBg = isDarkMode ? '#000000' : '#ffffff';
 
   return (
     <div className="h-screen w-screen relative overflow-hidden flex flex-col md:flex-row">
@@ -117,7 +117,7 @@ const About = () => {
             className="w-full h-full rounded-full overflow-hidden shadow-2xl"
           >
             <img
-              src={!isDarkMode ? "/me_dark.webp" : "/me.webp"}
+              src={!isDarkMode ? "/me.webp" : "/me_dark.webp"}
               alt="Profile"
               className="w-full h-full object-cover"
             />

@@ -7,6 +7,7 @@ import Stars from "@/components/Stars";
 import { DynamicNavbar, NavbarViewMode } from "@/components/DynamicNavbar";
 import { PlanetProject } from "@/components/Planet";
 import WarpTunnel, { WarpParams } from "@/components/WarpTunnel";
+import { CosmicLoading } from "@/components/CosmicLoading";
 import { toLegacyProjects } from "@/data/projects";
 import { ExternalLink, Github, Mail, Linkedin, Twitter } from "lucide-react";
 import gsap from "gsap";
@@ -14,6 +15,15 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useWindowSize } from "@/hooks/use-window-size";
 
 gsap.registerPlugin(ScrollTrigger);
+
+// Clear the session storage flag ONLY if this is a hard browser reload.
+// This code runs exactly once per hard page load (not during client-side routing).
+if (typeof performance !== 'undefined') {
+  const navEntries = performance.getEntriesByType("navigation");
+  if (navEntries.length > 0 && (navEntries[0] as PerformanceNavigationTiming).type === "reload") {
+    sessionStorage.removeItem("hasPlayedIntro");
+  }
+}
 
 const Index = () => {
   const [selectedProject, setSelectedProject] = useState<PlanetProject | null>(null);
@@ -23,15 +33,12 @@ const Index = () => {
 
   // Check if initial load has happened in this session
   const hasLoadedBefore = useMemo(() => {
-    if (typeof window !== 'undefined') {
-      return sessionStorage.getItem('initialLoadComplete') === 'true';
-    }
-    return false;
+    return sessionStorage.getItem('hasPlayedIntro') === 'true';
   }, []);
 
   // Loading States
   const [isAppLoaded, setIsAppLoaded] = useState(hasLoadedBefore);
-  const [isStarsSettled, setIsStarsSettled] = useState(hasLoadedBefore);
+  const [isCosmicLoadingComplete, setIsCosmicLoadingComplete] = useState(hasLoadedBefore);
 
   // Preload heavy assets
   useEffect(() => {
@@ -98,6 +105,64 @@ const Index = () => {
   const warpRef = useRef<HTMLDivElement>(null);
   const vignetteRef = useRef<HTMLDivElement>(null);
   const eventHorizonRef = useRef<HTMLDivElement>(null);
+  const initialSweepRef = useRef<HTMLDivElement>(null);
+  const navbarRef = useRef<HTMLDivElement>(null);
+  const domWrapperRef = useRef<HTMLDivElement>(null);
+
+  // Synchronize DOM elements sweep with 3D starfield sweep without triggering React state re-renders mid-animation
+  useEffect(() => {
+    if (!hasLoadedBefore) {
+      // 1. Initial Wrapper Opacity
+      if (domWrapperRef.current) {
+        gsap.set(domWrapperRef.current, { opacity: 0, pointerEvents: 'none' });
+        gsap.to(domWrapperRef.current, { 
+          opacity: 1, 
+          duration: 1.5, 
+          delay: 1, 
+          onComplete: () => {
+            if (domWrapperRef.current) {
+              domWrapperRef.current.style.pointerEvents = 'auto';
+            }
+          }
+        });
+      }
+
+      // 2. Animate the planets sweep
+      if (initialSweepRef.current) {
+        gsap.fromTo(initialSweepRef.current,
+          { 
+            x: '-40vw', 
+            y: '40vh', 
+            rotation: -15
+            // Removed scale to prevent "zoomed out" feeling
+          },
+          { 
+            x: 0, 
+            y: 0, 
+            rotation: 0,
+            duration: 5, 
+            delay: 1,
+            ease: 'power3.out' 
+          }
+        );
+      }
+
+      // 3. Navbar fade in
+      if (navbarRef.current) {
+        gsap.fromTo(navbarRef.current,
+          { opacity: 0, y: -20 },
+          { opacity: 1, y: 0, duration: 1.5, delay: 4.5, ease: 'power2.out' }
+        );
+      }
+    } else if (hasLoadedBefore) {
+      if (domWrapperRef.current) {
+        gsap.set(domWrapperRef.current, { opacity: 1, pointerEvents: 'auto' });
+      }
+      if (navbarRef.current) {
+        gsap.set(navbarRef.current, { opacity: 1, y: 0 });
+      }
+    }
+  }, [hasLoadedBefore]);
   const heroRef = useRef<HTMLDivElement>(null);
   const solarSystemRef = useRef<HTMLDivElement>(null);
   const sceneWrapperRef = useRef<HTMLDivElement>(null);
@@ -149,6 +214,9 @@ const Index = () => {
     if (!containerRef.current) return;
 
     let ctx = gsap.context(() => {
+      // PAUSED SCROLLTRIGGER FOR NOW
+      return;
+
       // Calculate total scroll depth flexibly based on number of projects
       // 2000 for phase 1 & 2. 1500 for each project. 1500 for outro.
       const totalScroll = 2000 + (projectsData.length * 1500) + 1500;
@@ -393,31 +461,28 @@ const Index = () => {
       backgroundColor: isDarkMode ? '#ffffff' : '#000000',
       transition: 'background-color 1.7s ease-in-out'
     }}>
+      {!isCosmicLoadingComplete && !hasLoadedBefore && (
+        <CosmicLoading 
+          onComplete={() => {
+            console.log('[Index] Cosmic loading complete, cleanup');
+            setIsCosmicLoadingComplete(true);
+            sessionStorage.setItem('hasPlayedIntro', 'true'); // Mark as played for client-side navigation
+          }}
+        />
+      )}
+      
       <Stars 
-        isInitialLoad={!hasLoadedBefore} 
-        isAppLoaded={isAppLoaded} 
-        onSettled={() => {
-          console.log('[Index] Stars settled, revealing UI');
-          setIsStarsSettled(true);
-          if (typeof window !== 'undefined') {
-            sessionStorage.setItem('initialLoadComplete', 'true');
-          }
-        }} 
+        isInitialLoad={false} 
+        isAppLoaded={true} 
       />
 
-      <div 
-        style={{
-          opacity: isStarsSettled ? 1 : 0,
-          pointerEvents: isStarsSettled ? 'auto' : 'none',
-          transition: 'opacity 2s ease-in-out',
-        }}
-      >
+      <div ref={domWrapperRef}>
         {/* Navigation Bar - Stays on top */}
-        <div className="relative z-[100]">
-        <DynamicNavbar viewMode={navMode} />
-      </div>
+        <div ref={navbarRef} className="relative z-[100]" style={{ opacity: hasLoadedBefore ? 1 : 0 }}>
+          <DynamicNavbar viewMode={navMode} />
+        </div>
 
-      <div ref={containerRef} className="relative h-screen w-full overflow-hidden bg-transparent">
+      <div ref={containerRef} className="relative z-20 h-screen w-full overflow-hidden bg-transparent">
         <div ref={shakeRef} className="absolute inset-0 w-full h-full">
 
           {/* Project Progress Sidebar (Vertical Tracking) */}
@@ -492,17 +557,19 @@ const Index = () => {
           </div>
 
           {/* Phase 2 Overlay (Solar System Scale Target) */}
-          <div ref={sceneWrapperRef} className="absolute inset-0 w-full h-full origin-center">
-            <div ref={heroRef} className="absolute inset-0 z-20 pointer-events-none flex items-center justify-center">
-              <Hero />
-            </div>
+          <div ref={initialSweepRef} className="absolute inset-0 w-full h-full origin-center">
+            <div ref={sceneWrapperRef} className="absolute inset-0 w-full h-full origin-center">
+              <div ref={heroRef} className="absolute inset-0 z-20 pointer-events-none flex items-center justify-center">
+                <Hero />
+              </div>
 
-            <div ref={solarSystemRef} className="absolute inset-0 z-30 flex items-center justify-center pointer-events-none">
-              <div className="pointer-events-auto w-full h-full">
-                <SolarSystem
-                  selectedProject={selectedProject}
-                  setSelectedProject={setSelectedProject}
-                />
+              <div ref={solarSystemRef} className="absolute inset-0 z-30 flex items-center justify-center pointer-events-none">
+                <div className="pointer-events-auto w-full h-full">
+                  <SolarSystem
+                    selectedProject={selectedProject}
+                    setSelectedProject={setSelectedProject}
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -642,24 +709,7 @@ const Index = () => {
             })}
           </div>
 
-          {/* Scroll Instruction Overlay */}
-          {!selectedProject && (
-            <div
-              className="absolute z-50 pointer-events-none"
-              style={{
-                bottom: '5%',
-                left: '50%',
-                transform: 'translateX(-50%)',
-              }}
-            >
-              <div className="relative animate-pulse flex flex-col items-center gap-2">
-                <p className="text-xs uppercase tracking-widest font-medium" style={{ color: isDarkMode ? '#000' : '#fff', opacity: 0.5 }}>
-                  Scroll down to investigate
-                </p>
-                <div className="w-[1px] h-8 bg-gradient-to-b from-transparent via-current to-transparent" style={{ color: isDarkMode ? '#000' : '#fff' }}></div>
-              </div>
-            </div>
-          )}
+
 
           {/* Phase 4 Outro (Vaporized Contact Page) */}
           <div 

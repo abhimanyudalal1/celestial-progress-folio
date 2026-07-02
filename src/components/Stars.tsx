@@ -78,10 +78,10 @@ const Stars = ({ isAppLoaded = true, onSettled, isInitialLoad = false }: StarsPr
     const generateStars = () => {
       const stars: Star[] = [];
       const layers = [
-        { count: 1000, sizeRange: [0.2, 0.8], speedRange: [0.02, 0.05], layer: 1 }, // Distant stars (very slow, small)
-        { count: 100, sizeRange: [0.5, 1.2], speedRange: [0.05, 0.1], layer: 2 },  // Mid stars
-        { count: 100, sizeRange: [0.8, 1.5], speedRange: [0.1, 0.15], layer: 3 },  // Close stars
-        { count: 10, sizeRange: [1.2, 2.0], speedRange: [0.15, 0.2], layer: 4 },  // Closest stars
+        { count: isDarkMode ? 15000 : 1000, sizeRange: [0.2, 0.8], speedRange: [0.02, 0.05], layer: 1 }, // Distant stars (very slow, small)
+        { count: isDarkMode ? 500 : 100, sizeRange: [0.5, 1.2], speedRange: [0.05, 0.1], layer: 2 },  // Mid stars
+        { count: isDarkMode ? 200 : 100, sizeRange: [0.8, 1.5], speedRange: [0.1, 0.15], layer: 3 },  // Close stars
+        { count: isDarkMode ? 50 : 10, sizeRange: [1.2, 2.0], speedRange: [0.15, 0.2], layer: 4 },  // Closest stars
       ];
 
       layers.forEach(layerConfig => {
@@ -297,8 +297,7 @@ const Stars = ({ isAppLoaded = true, onSettled, isInitialLoad = false }: StarsPr
           // Simple drawing for distant stars (Layer 1) - huge performance boost
           ctx.fillStyle = starFill;
           ctx.globalAlpha = currentOpacity * 0.8; // Slightly dimmer
-          ctx.arc(finalX, finalY, star.size, 0, Math.PI * 2);
-          ctx.fill();
+          ctx.fillRect(finalX - star.size, finalY - star.size, star.size * 2, star.size * 2);
           ctx.globalAlpha = 1.0;
         }
 

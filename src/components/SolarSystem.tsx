@@ -1,5 +1,5 @@
 import { PlanetProject } from "./Planet";
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
@@ -29,15 +29,22 @@ const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) 
 
   // Refs for all planet sprites to update them efficiently via GSAP
   const planetRefs = useRef<(HTMLDivElement | null)[]>([]);
-  // Ref for the continuously burning sun sprite
-  const sunRef = useRef<HTMLDivElement>(null);
 
   // Base dimension for responsive scaling
   const baseDimension = Math.min(dimensions.width, dimensions.height);
 
-  const SUN_SCALE = isDarkMode ? 0.95 : 2.35; // Smaller in dark mode, normal in light mode
+  const SUN_SCALE = isDarkMode ? 1.95 : 2.35; // Smaller in dark mode, normal in light mode
+  // const SUN_SCALE = 2.35;
+  const sunSize = baseDimension * SUN_SCALE;
 
-  // Unified Continuous Sprite Animation Loop for Sun and Planets (slow rotation)
+  // SVG viewBox dimensions
+  const { viewBoxWidth, viewBoxHeight, viewBoxLeft, sunCenterX, sunCenterY } = SOLAR_CONFIG;
+
+  // Orbit radii
+  const orbitRadii = getOrbitRadii(baseDimension);
+
+
+  // Continuous Sprite Animation Loop for Planets (slow rotation)
   useEffect(() => {
     let animationFrameId: number;
     let startTime = Date.now();
@@ -45,25 +52,12 @@ const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) 
     const tick = () => {
       const elapsed = (Date.now() - startTime) / 1000;
 
-      // 1. Animate Sun (very slow)
-      if (sunRef.current) {
-        const sunFps = 5; // Extremely slow
-        const frame = Math.floor(elapsed * sunFps) % 150; // 150 frames total
-        const sunW = baseDimension * SUN_SCALE;
-        if (sunW > 0) {
-          const xPos = -(frame % 50) * sunW;
-          const yPos = -Math.floor(frame / 50) * sunW;
-          sunRef.current.style.backgroundPosition = `${xPos}px ${yPos}px`;
-        }
-      }
-
       // 2. Animate Planets (slightly varying slow speeds)
       planetRefs.current.forEach((planetDiv, index) => {
         if (planetDiv) {
           const project = projects[index];
           if (!project) return;
 
-          // Speeds vary slightly per planet e.g., 3.0, 2.7, 2.4, 2.1...
           const planetFps = 3.0 - (index * 0.3);
           const frame = Math.floor(elapsed * planetFps) % 150;
 
@@ -85,62 +79,12 @@ const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) 
     return () => {
       cancelAnimationFrame(animationFrameId);
     };
-  }, [baseDimension, projects]);
-
-  // SVG viewBox dimensions
-  const { viewBoxWidth, viewBoxHeight, viewBoxLeft, sunCenterX, sunCenterY } = SOLAR_CONFIG;
-
-  // Orbit radii
-  const orbitRadii = getOrbitRadii(baseDimension);
+  }, [baseDimension, projects, isDarkMode]);
 
   return (
     <section className="absolute inset-0 flex items-center justify-start pointer-events-none z-10" aria-label="Projects Solar System">
       <div className="relative w-full h-full">
-        {/* Dark mode sun - rendered as plain HTML div outside SVG to avoid Safari foreignObject bugs */}
-        {isDarkMode && dimensions.width > 0 && dimensions.height > 0 && (() => {
-          /* Compute the actual SVG-to-screen mapping that preserveAspectRatio="xMinYMid meet" produces.
-             "meet" scales the viewBox uniformly to fit inside the container. "xMinYMid" aligns
-             the left edge (xMin) and vertically centers (YMid). */
-          const containerW = dimensions.width;
-          const containerH = dimensions.height;
-          const scaleX = containerW / viewBoxWidth;
-          const scaleY = containerH / viewBoxHeight;
-          const scale = Math.min(scaleX, scaleY); // "meet" uses the smaller scale
 
-          // xMin alignment: SVG viewBox left edge maps to container x=0
-          const offsetX = 0;
-          // YMid alignment: vertically center the scaled content
-          const offsetY = (containerH - viewBoxHeight * scale) / 2;
-
-          // Convert SVG sun center to screen pixels
-          const sunScreenX = (sunCenterX - viewBoxLeft) * scale + offsetX;
-          const sunScreenY = sunCenterY * scale + offsetY;
-          const sunSize = baseDimension * SUN_SCALE;
-
-          return (
-            <div
-              className="absolute pointer-events-none"
-              style={{ left: 0, top: 0, width: '100%', height: '100%' }}
-            >
-              <div
-                ref={sunRef}
-                style={{
-                  position: 'absolute',
-                  width: `${sunSize}px`,
-                  height: `${sunSize}px`,
-                  left: `${sunScreenX - sunSize / 2}px`,
-                  top: `${sunScreenY - sunSize / 2}px`,
-                  backgroundImage: `url('/Star%20-%20188959248%20-%20spritesheet.png')`,
-                  backgroundSize: `${sunSize * 50}px ${sunSize * 3}px`,
-                  backgroundRepeat: 'no-repeat',
-                  filter: 'contrast(1.1) brightness(1.2)',
-                  borderRadius: '50%',
-                  overflow: 'hidden',
-                }}
-              />
-            </div>
-          );
-        })()}
         <div className="absolute inset-0 pointer-events-none">
           <svg
             className="w-full h-full"
@@ -163,17 +107,11 @@ const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) 
               </radialGradient>
 
               {/* Dark sun gradient for dark mode */}
-              <radialGradient id="brightSunGradient" cx="50%" cy="50%" r="50%">
-                <stop offset="0%" stopColor="hsl(55 100% 75%)" stopOpacity="1" />
-                <stop offset="40%" stopColor="hsl(50 100% 65%)" stopOpacity="0.9" />
-                <stop offset="80%" stopColor="hsl(45 100% 55%)" stopOpacity="0.85" />
-                <stop offset="100%" stopColor="hsl(35 100% 45%)" stopOpacity="0.8" />
-              </radialGradient>
               <radialGradient id="darkSunGradient" cx="50%" cy="50%" r="50%">
                 <stop offset="0%" stopColor="hsl(0 0% 15%)" stopOpacity="1" />
                 <stop offset="40%" stopColor="hsl(0 0% 10%)" stopOpacity="1" />
-                <stop offset="80%" stopColor="hsl(0 0% 5%)" stopOpacity="1.85" />
-                <stop offset="100%" stopColor="hsl(0 0% 0%)" stopOpacity="1.8" />
+                <stop offset="80%" stopColor="hsl(0 0% 5%)" stopOpacity="1" />
+                <stop offset="100%" stopColor="hsl(0 0% 0%)" stopOpacity="1" />
               </radialGradient>
               {/* Clip path for the sun images */}
               <clipPath id="sunClip">
@@ -185,46 +123,56 @@ const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) 
               </clipPath>
             </defs>
 
-            {/* Clean, bright sun */}
+            {/* Sun visual — rendered as SVG image in both modes */}
             <g>
               <g style={{ pointerEvents: 'auto' }}>
-                <svg
-                  x={sunCenterX - baseDimension * (SUN_SCALE / 2)}
-                  y={sunCenterY - baseDimension * (SUN_SCALE / 2)}
-                  width={baseDimension * SUN_SCALE}
-                  height={baseDimension * SUN_SCALE}
-                  overflow="hidden"
-                  viewBox={`0 0 ${baseDimension * SUN_SCALE} ${baseDimension * SUN_SCALE}`}
-                >
-                  {!isDarkMode && (
-                    <>
-                      <image
-                        href="/stargif.gif"
-                        x="0"
-                        y="0"
-                        width="100%"
-                        height="100%"
-                        preserveAspectRatio="xMidYMid slice"
-                        style={{
-                          mixBlendMode: 'screen',
-                          filter: 'brightness(1.5)'
-                        }}
-                      />
-                      <image
-                        href="/starhd.png"
-                        x="10%"
-                        y="10%"
-                        width="80%"
-                        height="80%"
-                        preserveAspectRatio="xMidYMid meet"
-                        style={{
-                          filter: 'brightness(1.2) drop-shadow(0 0 30px rgba(255,200,50,0.6))'
-                        }}
-                      />
-                    </>
-                  )}
-                </svg>
-              </g>
+                {!isDarkMode ? (
+                  <svg
+                    x={sunCenterX - sunSize / 2}
+                    y={sunCenterY - sunSize / 2}
+                    width={sunSize}
+                    height={sunSize}
+                    overflow="hidden"
+                    viewBox={`0 0 ${sunSize} ${sunSize}`}
+                  >
+                    <image
+                      href="/stargif.gif"
+                      x="0"
+                      y="0"
+                      width="100%"
+                      height="100%"
+                      preserveAspectRatio="xMidYMid slice"
+                      style={{
+                        mixBlendMode: 'screen',
+                        filter: 'brightness(1.5)'
+                      }}
+                    />
+                    <image
+                      href="/starhd.png"
+                      x="10%"
+                      y="10%"
+                      width="80%"
+                      height="80%"
+                      preserveAspectRatio="xMidYMid meet"
+                      style={{
+                        filter: 'brightness(1.2) drop-shadow(0 0 30px rgba(255,200,50,0.6))'
+                      }}
+                    />
+                  </svg>
+                ) : (
+                  <image
+                    href="/stardark.gif"
+                    x={sunCenterX - sunSize / 2}
+                    y={sunCenterY - sunSize / 2}
+                    width={sunSize}
+                    height={sunSize}
+                    preserveAspectRatio="xMidYMid meet"
+                    style={{
+                      filter: 'brightness(1.1) contrast(1.1)'
+                    }}
+                  />
+                )
+                }</g>
 
               {/* Hero text content - NO transformations */}
               <g>

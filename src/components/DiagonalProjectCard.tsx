@@ -3,7 +3,6 @@ import { motion } from 'framer-motion';
 import { ExternalLink, Github, ChevronRight } from 'lucide-react';
 import { Project } from '@/data/projects';
 import { useTheme } from '@/contexts/ThemeContext';
-
 interface DiagonalProjectCardProps {
   project: Project;
   index: number;
@@ -155,15 +154,13 @@ export const DiagonalProjectCard = ({
         }}
         transition={{ duration: 0.3 }}
       >
-        {/* Background gradient - GREY MODE LOGIC */}
-        <div
+        {/* Background - Solid Color */}
+        <div 
           className="absolute inset-0"
           style={{
-            background: isDarkMode
-              ? (isHovered || isExpanded ? '#404040' : themeColor) // Use the distinct shade as base, lighter on hover
-              : (isExpanded
-                ? `linear-gradient(135deg, ${hexToRgba(themeColor, 0.95)} 0%, ${hexToRgba(themeColor, 0.6)} 30%, rgba(10,10,10,0.98) 70%)`
-                : `linear-gradient(135deg, ${hexToRgba(themeColor, 0.85)} 0%, ${hexToRgba(themeColor, 0.4)} 50%, ${hexToRgba(themeColor, 0.15)} 100%)`)
+            backgroundColor: isDarkMode 
+              ? (isHovered || isExpanded ? '#2a2a2a' : themeColor) 
+              : themeColor
           }}
         />
 

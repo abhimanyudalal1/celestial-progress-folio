@@ -19,6 +19,7 @@ gsap.registerPlugin(ScrollTrigger);
 const TOUR_START = 1; // time when the camera departs for the first planet
 const TOUR_PER_PLANET = 4; // time budget per planet (travel + hold + exit)
 const TOUR_FOCUS_OFFSET = 2.2; // visual center of a planet's hold inside its slot
+const NAV_HANDOFF_SCROLL_PX = 260; // scroll depth at which the default navbar hands off to the projects-mode navbar (and back, on the way up)
 
 // Clear the session storage flag ONLY if this is a hard browser reload.
 // This code runs exactly once per hard page load (not during client-side routing).
@@ -166,11 +167,18 @@ const Index = () => {
         setSceneReady(true);
       }
 
-      // 3. Navbar fade in
+      // 3. Navbar fade in.
+      // NOTE: the navbar wrapper holds a position:fixed child (DynamicNavbar). Any
+      // lingering transform here would become the fixed child's containing block and
+      // make it scroll away with the page — so we clear the transform once the slide-in
+      // settles, leaving the navbar truly pinned to the viewport.
       if (navbarRef.current) {
         gsap.fromTo(navbarRef.current,
           { opacity: 0, y: -20 },
-          { opacity: 1, y: 0, duration: 1.5, delay: 4.5, ease: 'power2.out' }
+          {
+            opacity: 1, y: 0, duration: 1.5, delay: 4.5, ease: 'power2.out',
+            onComplete: () => gsap.set(navbarRef.current, { clearProps: 'transform' })
+          }
         );
       }
     } else if (hasLoadedBefore) {
@@ -178,7 +186,8 @@ const Index = () => {
         gsap.set(domWrapperRef.current, { opacity: 1, pointerEvents: 'auto' });
       }
       if (navbarRef.current) {
-        gsap.set(navbarRef.current, { opacity: 1, y: 0 });
+        // opacity only — no transform, so the fixed navbar stays pinned to the viewport
+        gsap.set(navbarRef.current, { opacity: 1, clearProps: 'transform' });
       }
       setSceneReady(true);
     }
@@ -251,8 +260,10 @@ const Index = () => {
             // Derive time from scroll progress (tl.time() lags behind the scrub)
             const t = self.progress * tl.duration();
 
-            // Navbar switches to projects mode once we're en route to the first planet
-            const mode: NavbarViewMode = t > TOUR_START + 1 ? 'projects' : 'default';
+            // Navbar hands off to the projects-mode navbar the moment the default
+            // navbar has scrolled away (past its own height), and hands back the moment
+            // we scroll back up above that same line — symmetric in both directions.
+            const mode: NavbarViewMode = (self.scroll() - self.start) > NAV_HANDOFF_SCROLL_PX ? 'projects' : 'default';
             setNavMode(prev => (prev === mode ? prev : mode));
 
             // Which planet is currently held in focus?

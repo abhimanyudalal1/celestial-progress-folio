@@ -55,7 +55,7 @@ export function DynamicNavbar({ viewMode = 'default' }: DynamicNavbarProps) {
         className="hidden md:fixed md:top-2 md:left-1/2 md:transform md:-translate-x-1/2 md:flex md:items-center md:gap-16 md:z-50 md:px-10 md:py-1.5 relative"
         initial={false}
         animate={{
-          backgroundColor: isProjectsMode ? (isDarkMode ? 'rgba(255, 255, 255, 0.8)' : 'rgba(0, 0, 0, 0.8)') : 'transparent',
+          backgroundColor: isProjectsMode ? (isDarkMode ? 'rgba(0, 0, 0, 0.8)' : 'rgba(255, 255, 255, 0.8)') : 'transparent',
         }}
         transition={{ duration: 0.3 }}
         onMouseEnter={() => setIsNavHovered(true)}
@@ -114,7 +114,7 @@ export function DynamicNavbar({ viewMode = 'default' }: DynamicNavbarProps) {
         {/* Hover outline */}
         <div
           className={`absolute inset-0 border transition-opacity duration-500 pointer-events-none ${isNavHovered ? 'opacity-100' : 'opacity-0'
-            } ${isDarkMode ? 'border-gray-800/40' : 'border-white/30'}`}
+            } ${isProjectsMode ? (isDarkMode ? 'border-white/30' : 'border-gray-800/40') : (isDarkMode ? 'border-gray-800/40' : 'border-white/30')}`}
           style={{
             borderStyle: 'dashed',
             borderWidth: '1.5px',
@@ -140,7 +140,7 @@ export function DynamicNavbar({ viewMode = 'default' }: DynamicNavbarProps) {
                     startTransition();
                   }
                 }}
-                className={`relative font-bold text-lg tracking-wide transition-all duration-300 z-10 px-6 py-3 block ${isDarkMode ? 'text-gray-700' : 'text-gray-300'
+                className={`relative font-bold text-lg tracking-wide transition-all duration-300 z-10 px-6 py-3 block ${isProjectsMode ? (isDarkMode ? 'text-gray-300' : 'text-gray-700') : (isDarkMode ? 'text-gray-700' : 'text-gray-300')
                   }`}
                 onMouseEnter={() => setHoveredIndex(index)}
                 onMouseLeave={() => setHoveredIndex(null)}

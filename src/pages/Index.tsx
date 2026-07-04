@@ -6,7 +6,6 @@ import SolarSystem from "@/components/SolarSystem";
 import Stars from "@/components/Stars";
 import { DynamicNavbar, NavbarViewMode } from "@/components/DynamicNavbar";
 import { PlanetProject } from "@/components/Planet";
-import WarpTunnel, { WarpParams } from "@/components/WarpTunnel";
 import { CosmicLoading } from "@/components/CosmicLoading";
 import { toLegacyProjects } from "@/data/projects";
 import { ExternalLink, Github, Mail, Linkedin, Twitter } from "lucide-react";
@@ -15,6 +14,11 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useWindowSize } from "@/hooks/use-window-size";
 
 gsap.registerPlugin(ScrollTrigger);
+
+// ---- Grand Tour timing constants (GSAP time units, mapped onto scroll via scrub) ----
+const TOUR_START = 1; // time when the camera departs for the first planet
+const TOUR_PER_PLANET = 4; // time budget per planet (travel + hold + exit)
+const TOUR_FOCUS_OFFSET = 2.2; // visual center of a planet's hold inside its slot
 
 // Clear the session storage flag ONLY if this is a hard browser reload.
 // This code runs exactly once per hard page load (not during client-side routing).
@@ -39,6 +43,9 @@ const Index = () => {
   // Loading States
   const [isAppLoaded, setIsAppLoaded] = useState(hasLoadedBefore);
   const [isCosmicLoadingComplete, setIsCosmicLoadingComplete] = useState(hasLoadedBefore);
+  // The scroll tour can only be built once the intro sweep has landed the scene at rest,
+  // because it measures the real on-screen planet positions.
+  const [sceneReady, setSceneReady] = useState(false);
 
   // Preload heavy assets
   useEffect(() => {
@@ -101,13 +108,22 @@ const Index = () => {
   const projectsData = toLegacyProjects();
 
   const containerRef = useRef<HTMLDivElement>(null);
-  const shakeRef = useRef<HTMLDivElement>(null);
-  const warpRef = useRef<HTMLDivElement>(null);
-  const vignetteRef = useRef<HTMLDivElement>(null);
-  const eventHorizonRef = useRef<HTMLDivElement>(null);
   const initialSweepRef = useRef<HTMLDivElement>(null);
   const navbarRef = useRef<HTMLDivElement>(null);
   const domWrapperRef = useRef<HTMLDivElement>(null);
+  const heroRef = useRef<HTMLDivElement>(null);
+  const solarSystemRef = useRef<HTMLDivElement>(null);
+  const sceneWrapperRef = useRef<HTMLDivElement>(null);
+  const outroRef = useRef<HTMLDivElement>(null);
+  const hintRef = useRef<HTMLDivElement>(null);
+  const focusScrimRef = useRef<HTMLDivElement>(null);
+
+  // Project focus cards + sidebar nodes
+  const focusCardRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const sidebarNodeRefs = useRef<(HTMLButtonElement | null)[]>([]);
+
+  // Navigation State storage for GSAP progress
+  const timelineRef = useRef<gsap.core.Timeline | null>(null);
 
   // Synchronize DOM elements sweep with 3D starfield sweep without triggering React state re-renders mid-animation
   useEffect(() => {
@@ -115,10 +131,10 @@ const Index = () => {
       // 1. Initial Wrapper Opacity
       if (domWrapperRef.current) {
         gsap.set(domWrapperRef.current, { opacity: 0, pointerEvents: 'none' });
-        gsap.to(domWrapperRef.current, { 
-          opacity: 1, 
-          duration: 1.5, 
-          delay: 1, 
+        gsap.to(domWrapperRef.current, {
+          opacity: 1,
+          duration: 1.5,
+          delay: 1,
           onComplete: () => {
             if (domWrapperRef.current) {
               domWrapperRef.current.style.pointerEvents = 'auto';
@@ -130,21 +146,24 @@ const Index = () => {
       // 2. Animate the planets sweep
       if (initialSweepRef.current) {
         gsap.fromTo(initialSweepRef.current,
-          { 
-            x: '-40vw', 
-            y: '40vh', 
+          {
+            x: '-40vw',
+            y: '40vh',
             rotation: -15
             // Removed scale to prevent "zoomed out" feeling
           },
-          { 
-            x: 0, 
-            y: 0, 
+          {
+            x: 0,
+            y: 0,
             rotation: 0,
-            duration: 5, 
+            duration: 5,
             delay: 1,
-            ease: 'power3.out' 
+            ease: 'power3.out',
+            onComplete: () => setSceneReady(true)
           }
         );
+      } else {
+        setSceneReady(true);
       }
 
       // 3. Navbar fade in
@@ -161,295 +180,222 @@ const Index = () => {
       if (navbarRef.current) {
         gsap.set(navbarRef.current, { opacity: 1, y: 0 });
       }
+      setSceneReady(true);
     }
   }, [hasLoadedBefore]);
-  const heroRef = useRef<HTMLDivElement>(null);
-  const solarSystemRef = useRef<HTMLDivElement>(null);
-  const sceneWrapperRef = useRef<HTMLDivElement>(null);
-  const warpParamsRef = useRef<WarpParams>({ chromatic: 0 });
-  const masterSvgRef = useRef<HTMLDivElement>(null);
-  const masterPathRef = useRef<SVGPathElement>(null);
-  const outroRef = useRef<HTMLDivElement>(null);
 
-  // Phase 3 Refs array
-  const flybyRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const massivePlanetRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const textRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const sidebarNodeRefs = useRef<(HTMLButtonElement | null)[]>([]);
-
-  // Navigation State storage for GSAP progress
-  const timelineRef = useRef<gsap.core.Timeline | null>(null);
-  const totalScrollRef = useRef<number>(0);
-
-  // Mathematical generation of the single seamless tracking flight path
-  const masterFlightPathD = useMemo(() => {
-    if (dimensions.width === 0) return "";
-    const cw = dimensions.width;
-    const ch = dimensions.height;
-    
-    // Line originates from the top center
-    let d = `M ${cw * 0.5} 0`; 
-    
-    projectsData.forEach((project, i) => {
-       const isLeft = i % 2 === 0;
-       const px = isLeft ? cw * 0.25 : cw * 0.75;
-       const py = (i * ch) + (ch * 0.5);
-       const prevX = i === 0 ? cw * 0.5 : (i % 2 === 0 ? cw * 0.75 : cw * 0.25);
-       const prevY = i === 0 ? 0 : ((i - 1) * ch) + (ch * 0.5);
-       
-       // Vertical tangents for mathematically smooth continuous S-curves
-       d += ` C ${prevX} ${prevY + ch * 0.4}, ${px} ${py - ch * 0.4}, ${px} ${py}`;
-    });
-    
-    // Final exit tail off the bottom of the system
-    const lastIndex = projectsData.length - 1;
-    const lastX = lastIndex % 2 === 0 ? cw * 0.25 : cw * 0.75;
-    const lastY = (lastIndex * ch) + (ch * 0.5);
-    d += ` C ${lastX} ${lastY + ch * 0.4}, ${cw * 0.5} ${(lastIndex + 1) * ch}, ${cw * 0.5} ${(lastIndex + 1.5) * ch}`;
-    
-    return d;
-  }, [dimensions, projectsData.length]);
-
+  // ---- THE GRAND TOUR ----
+  // One pinned, scrubbed timeline that flies the camera (the scene wrapper) across the
+  // real solar system: each scroll segment centers and magnifies the next project planet
+  // in place, lights up its orbit, and reveals a mission-log card beside it. After the
+  // last planet the camera pulls back out and the system dims into the contact outro.
   useEffect(() => {
-    if (!containerRef.current) return;
+    if (!sceneReady || !containerRef.current || !sceneWrapperRef.current) return;
+    if (dimensions.width === 0) return;
 
-    let ctx = gsap.context(() => {
-      // PAUSED SCROLLTRIGGER FOR NOW
-      return;
+    const container = containerRef.current;
 
-      // Calculate total scroll depth flexibly based on number of projects
-      // 2000 for phase 1 & 2. 1500 for each project. 1500 for outro.
-      const totalScroll = 2000 + (projectsData.length * 1500) + 1500;
-      totalScrollRef.current = totalScroll;
+    const ctx = gsap.context(() => {
+      const cRect = container.getBoundingClientRect();
+      const cw = cRect.width;
+      const ch = cRect.height;
+      const containerCx = cRect.left + cw / 2;
+      const containerCy = cRect.top + ch / 2;
+
+      const planetGroups = Array.from(container.querySelectorAll<SVGGElement>('.planet-group'));
+      const orbitEls = Array.from(container.querySelectorAll<SVGEllipseElement>('.solar-system-stage ellipse'));
+      if (planetGroups.length < projectsData.length) return;
+
+      // Compute the camera pose (pan + zoom of the scene wrapper) that places each
+      // planet at the fixed focus point (left third, where the scrim porthole sits).
+      // All coordinates are relative to the container center, which is also the
+      // wrapper's transform origin — so a point p under scale s and translation t
+      // lands at p*s + t.
+      const fx = 0.32 * cw - cw / 2;
+      const fy = 0.46 * ch - ch / 2;
+      const poses = projectsData.map((_, i) => {
+        const group = planetGroups[i];
+        const spriteEl = group.querySelector('.planet-inner') ?? group;
+        const r = (spriteEl as Element).getBoundingClientRect();
+        const px = r.left + r.width / 2 - containerCx;
+        const py = r.top + r.height / 2 - containerCy;
+
+        // Zoom each planet to a similar apparent size, from its *measured* on-screen
+        // size (the 3D perspective foreshortens planets, so config sizes are wrong here)
+        const apparentDiameter = Math.max(r.width, 8);
+        const scale = Math.min(3.4, Math.max(1.4, (ch * 0.30) / apparentDiameter));
+
+        return {
+          x: fx - px * scale,
+          y: fy - py * scale,
+          scale,
+        };
+      });
+
+      const tourEnd = TOUR_START + poses.length * TOUR_PER_PLANET;
+      const totalScroll = 1000 + projectsData.length * 1300 + 1500;
+
+      // Fade the scroll hint in once the tour is armed (one-shot, not scrubbed)
+      if (hintRef.current) {
+        gsap.to(hintRef.current, { opacity: 1, duration: 0.8, delay: 0.2 });
+      }
 
       const tl = gsap.timeline({
         scrollTrigger: {
-          trigger: containerRef.current,
+          trigger: container,
           start: "top top",
           end: `+=${totalScroll}`,
           scrub: 1,
           pin: true,
           onUpdate: (self) => {
-            const progress = self.progress;
+            // Derive time from scroll progress (tl.time() lags behind the scrub)
+            const t = self.progress * tl.duration();
 
-            // --- Animation Time-Based Logic ---
-            if (timelineRef.current) {
-              const t = timelineRef.current.time();
-              
-              // Dynamic Navbar Switch
-              // The Event Horizon flash begins at 3.9 and scales up massively.
-              // It physically engulfs the top navbar precisely around t = 4.4.
-              if (t > 4.4) {
-                setNavMode(prev => prev !== 'projects' ? 'projects' : prev);
-              } else {
-                setNavMode(prev => prev !== 'default' ? 'default' : prev);
-              }
+            // Navbar switches to projects mode once we're en route to the first planet
+            const mode: NavbarViewMode = t > TOUR_START + 1 ? 'projects' : 'default';
+            setNavMode(prev => (prev === mode ? prev : mode));
 
-              // Project Sidebar Tracking
-              let currentIdx = -1;
-              projectsData.forEach((_, i) => {
-                const center = 7.0 + (i * 4.0); // Exact visual center of the project phase
-                if (t >= center - 2.0 && t <= center + 2.0) {
-                  currentIdx = i;
-                }
-              });
-
-              // Update Sidebar DOM nodes directly for maximum performance
-              sidebarNodeRefs.current.forEach((btn, i) => {
-                if (!btn) return;
-                const ring = btn.querySelector('.active-ring');
-                if (i === currentIdx) {
-                  btn.classList.add('scale-110');
-                  btn.classList.remove('scale-100', 'opacity-50');
-                  if (ring) {
-                    ring.classList.remove('opacity-0', 'scale-50');
-                    ring.classList.add('opacity-100', 'scale-100');
-                  }
-                } else {
-                  btn.classList.add('scale-100', 'opacity-50');
-                  btn.classList.remove('scale-110');
-                  if (ring) {
-                    ring.classList.add('opacity-0', 'scale-50');
-                    ring.classList.remove('opacity-100', 'scale-100');
-                  }
-                }
-              });
-
-              // Fade in/out the entire sidebar explicitly during Phase 3
-              const sidebarParent = document.getElementById('project-sidebar');
-              if (sidebarParent) {
-                const isPhase3 = t >= 4.5 && t <= (25.0); // Between Event Horizon and Outro
-                sidebarParent.style.opacity = isPhase3 ? '1' : '0';
-                sidebarParent.style.pointerEvents = isPhase3 ? 'auto' : 'none';
-              }
-
-              // Update the vertical track "progress filler" line
-              const fillLine = document.getElementById('project-sidebar-fill');
-              if (fillLine) {
-                const startT = 5.0; // Start of Phase 3
-                const endT = 7.0 + ((projectsData.length - 1) * 4.0) + 2.0; // End of final node interaction
-                let fillPercent = 0;
-                if (t <= startT) fillPercent = 0;
-                else if (t >= endT) fillPercent = 100;
-                else fillPercent = ((t - startT) / (endT - startT)) * 100;
-                
-                fillLine.style.height = `${fillPercent}%`;
-              }
-            }
-
-            // Animate Massive Planets (if they exist in the DOM)
-            const frame = Math.floor(progress * 149);
-            massivePlanetRefs.current.forEach((el) => {
-              if (el) {
-                const W = 600;
-                const xPos = -(frame % 50) * W;
-                const yPos = -Math.floor(frame / 50) * W;
-                el.style.backgroundPosition = `${xPos}px ${yPos}px`;
+            // Which planet is currently held in focus?
+            let currentIdx = -1;
+            poses.forEach((_, i) => {
+              const center = TOUR_START + i * TOUR_PER_PLANET + TOUR_FOCUS_OFFSET;
+              if (t >= center - TOUR_PER_PLANET / 2 && t <= center + TOUR_PER_PLANET / 2) {
+                currentIdx = i;
               }
             });
+
+            // Update rail DOM nodes directly for maximum performance
+            sidebarNodeRefs.current.forEach((btn, i) => {
+              if (!btn) return;
+              const dot = btn.querySelector('.node-dot');
+              if (i === currentIdx) {
+                dot?.classList.remove('opacity-40', 'scale-100');
+                dot?.classList.add('opacity-100', 'scale-[1.8]');
+              } else {
+                dot?.classList.add('opacity-40', 'scale-100');
+                dot?.classList.remove('opacity-100', 'scale-[1.8]');
+              }
+            });
+
+            // Sidebar is only visible while touring planets
+            const sidebarParent = document.getElementById('project-sidebar');
+            if (sidebarParent) {
+              const inTour = t >= TOUR_START + 1.2 && t <= tourEnd + 0.3;
+              sidebarParent.style.opacity = inTour ? '1' : '0';
+              sidebarParent.style.pointerEvents = inTour ? 'auto' : 'none';
+            }
+
+            // Vertical track "progress filler" line, first focus → last focus
+            const fillLine = document.getElementById('project-sidebar-fill');
+            if (fillLine) {
+              const startT = TOUR_START + TOUR_FOCUS_OFFSET;
+              const endT = TOUR_START + (poses.length - 1) * TOUR_PER_PLANET + TOUR_FOCUS_OFFSET;
+              let fillPercent = 0;
+              if (t <= startT) fillPercent = 0;
+              else if (t >= endT) fillPercent = 100;
+              else fillPercent = ((t - startT) / (endT - startT)) * 100;
+
+              fillLine.style.height = `${fillPercent}%`;
+            }
           }
         }
       });
 
-      // Dedicated ScrollTrigger for G-Force Shake (Phase 1 Cinematic Rumble)
-      let shakeTween: gsap.core.Tween;
-      ScrollTrigger.create({
-        trigger: containerRef.current,
-        start: "top top",
-        end: "+=1200px", // Shakes until warp ends
-        onEnter: () => {
-          shakeTween = gsap.to(shakeRef.current, { x: "random(-4, 4)", y: "random(-4, 4)", duration: 0.05, repeat: -1, yoyo: true });
-        },
-        onLeave: () => {
-          if (shakeTween) shakeTween.kill();
-          gsap.to(shakeRef.current, { x: 0, y: 0, duration: 0.1 });
-        },
-        onEnterBack: () => {
-          shakeTween = gsap.to(shakeRef.current, { x: "random(-4, 4)", y: "random(-4, 4)", duration: 0.05, repeat: -1, yoyo: true });
-        },
-        onLeaveBack: () => {
-          if (shakeTween) shakeTween.kill();
-          gsap.to(shakeRef.current, { x: 0, y: 0, duration: 0.1 });
+      // Departure: hint dissolves, gentle dolly-in so the first camera move feels continuous
+      if (hintRef.current) {
+        // immediateRender off + explicit from, so reversing to the top restores the hint
+        tl.fromTo(hintRef.current,
+          { opacity: 1, y: 0 },
+          { opacity: 0, y: 16, duration: 0.5, immediateRender: false },
+          0);
+      }
+      tl.to(sceneWrapperRef.current, { scale: 1.06, duration: 1, ease: "power1.inOut" }, 0);
+
+      // Depth-of-field scrim: blurs and dims everything outside the porthole at the
+      // focus point. It stays up for the whole tour — planets fly into the clear zone.
+      if (focusScrimRef.current) {
+        tl.fromTo(focusScrimRef.current,
+          { opacity: 0 },
+          { opacity: 1, duration: 1, ease: "power1.inOut" },
+          TOUR_START + 0.8);
+        tl.to(focusScrimRef.current,
+          { opacity: 0, duration: 1.2, ease: "power1.inOut" },
+          TOUR_START + poses.length * TOUR_PER_PLANET - 0.6);
+      }
+
+      // Visit each planet in place
+      poses.forEach((pose, i) => {
+        const t = TOUR_START + i * TOUR_PER_PLANET;
+
+        // Camera glides so the planet arrives at its focus point, magnified
+        tl.to(sceneWrapperRef.current, {
+          x: pose.x,
+          y: pose.y,
+          scale: pose.scale,
+          duration: 1.8,
+          ease: "power2.inOut"
+        }, t);
+
+        // Its orbit line brightens while in focus
+        if (orbitEls[i]) {
+          tl.to(orbitEls[i], { opacity: 1, duration: 0.5 }, t + 0.8);
+          tl.to(orbitEls[i], { opacity: 0.7, duration: 0.5 }, t + 3.4);
+        }
+
+        // Mission-log card drifts in on the open right side
+        const card = focusCardRefs.current[i];
+        if (card) {
+          tl.fromTo(card,
+            { opacity: 0, x: 80, filter: 'blur(8px)' },
+            { opacity: 1, x: 0, filter: 'blur(0px)', duration: 0.7, ease: "power2.out" },
+            t + 1.1);
+          tl.set(card, { pointerEvents: 'auto' }, t + 1.1);
+          tl.to(card,
+            { opacity: 0, x: -60, filter: 'blur(6px)', duration: 0.6, ease: "power2.in" },
+            t + 3.3);
+          tl.set(card, { pointerEvents: 'none' }, t + 3.9);
         }
       });
 
-      // PHASE 1: Warp / Hero fading out
-      // Starts after a tiny initial scroll (time = 0.2)
-      tl.fromTo(warpRef.current, { opacity: 0, scale: 1 }, { opacity: 0.8, duration: 0.2 }, 0.2);
-      // Warp continuous acceleration spans the entire Phase 2
-      tl.to(warpRef.current, { scale: 4, ease: "power2.in", duration: 3.5 }, 0.4);
-      
-      // Cinematic Vignette enters to create tunnel vision (no grain requested)
-      tl.fromTo(vignetteRef.current, { opacity: 0 }, { opacity: 1, duration: 0.4 }, 0.2);
-      tl.to(vignetteRef.current, { opacity: 0, duration: 0.4 }, 3.5);
+      // Return: pull the camera back out to reveal the whole system...
+      tl.to(sceneWrapperRef.current, {
+        x: 0,
+        y: 0,
+        scale: 0.9,
+        duration: 2,
+        ease: "power2.inOut"
+      }, tourEnd);
 
-      tl.to(heroRef.current, { opacity: 0, y: -200, scale: 1.2, filter: 'blur(10px)', duration: 1 }, 0.2);
-
-      // PHASE 2: Solar System Zoom In and Sun Ignition
-      // Rotation starts at 0.7 and ends at 3.9
-      tl.fromTo(sceneWrapperRef.current,
-        { scale: 1, x: '0vw', y: '0vh', rotation: 0 },
-        { scale: 1.72, x: '10vw', y: '25vh', rotation: 75, duration: 3.2, ease: "power1.inOut" },
-        0.7);
-
-      // Halfway through rotation, the chromatic aberration flares up
-      tl.to(warpParamsRef.current, { chromatic: 1, duration: 1.5, ease: "power1.in" }, 2.0);
-
-      // PHASE 2 CLIMAX: Event Horizon Portal Transition
-      // The ring starts tiny and expands massively to wipe the solar system away
-      tl.fromTo(eventHorizonRef.current,
-        { scale: 0, opacity: 0 },
-        { scale: 30, opacity: 1, duration: 1.7, ease: "power2.inOut" },
-        3.9
+      // ...then let it dim into deep space while the contact outro surfaces
+      tl.to(solarSystemRef.current, { opacity: 0.12, filter: 'blur(8px)', duration: 1.4, ease: "power1.inOut" }, tourEnd + 0.8);
+      tl.fromTo(outroRef.current,
+        { opacity: 0, scale: 0.92, y: 60 },
+        { opacity: 1, scale: 1, y: 0, duration: 1.6, ease: "power3.out" },
+        tourEnd + 1.2
       );
-      // As the ring edge washes over the scene, fade out the solar system
-      tl.to(solarSystemRef.current, { opacity: 0, filter: 'blur(40px)', duration: 0.8 }, 4.1);
-      // Once fully expanded, fade the ring itself out — leaving clean deep space
-      tl.to(eventHorizonRef.current, { opacity: 0, duration: 0.6 }, 4.6);
+      tl.set(outroRef.current, { pointerEvents: 'auto' }, tourEnd + 1.8);
 
-      // Draw the master orbit track as the event horizon fades, revealing the projects
-      tl.set(masterPathRef.current, { strokeDasharray: 12000, strokeDashoffset: 12000 }, 4.6);
-      tl.to(masterPathRef.current, { strokeDashoffset: 0, duration: 2.5, ease: "power2.out" }, 4.7);
+      // Small tail so the outro holds on screen before the pin releases
+      tl.to({}, { duration: 0.8 }, tourEnd + 2.8);
 
-
-      // PHASE 3: Project Flybys — starts after event horizon fades
-      let time = 5.0;
-
-      projectsData.forEach((project, i) => {
-        const flybyWrapper = flybyRefs.current[i];
-        const planetEl = massivePlanetRefs.current[i];
-        const textEl = textRefs.current[i];
-
-        if (!flybyWrapper || !planetEl || !textEl) return;
-
-        // Intro
-        tl.fromTo(flybyWrapper, { opacity: 0, pointerEvents: "none" }, { opacity: 1, pointerEvents: "auto", duration: 0.1 }, time);
-
-        const isPlanetLeft = i % 2 === 0;
-        const entryX = isPlanetLeft ? "50vw" : "-50vw";
-        const exitX = isPlanetLeft ? "-50vw" : "50vw";
-
-        // Planet sweeps in and grows
-        tl.fromTo(planetEl,
-          { scale: 0.1, x: entryX, opacity: 0, rotation: -90 },
-          { scale: 1, x: "0vw", opacity: 1, rotation: 0, duration: 1.5, ease: "power3.out" },
-          time);
-
-        // Text fades in from the side shortly after
-        tl.fromTo(textEl,
-          { opacity: 0, x: isPlanetLeft ? 100 : -100, filter: 'blur(10px)' },
-          { opacity: 1, x: 0, filter: 'blur(0px)', duration: 1, ease: "power2.out" },
-          time + 0.5);
-
-        // Holding period for reading
-        time += 2.5;
-
-        // Outro (sweep out)
-        tl.to(planetEl, { scale: 1.5, x: exitX, opacity: 0, filter: 'blur(20px)', duration: 1.5, ease: "power3.in" }, time);
-        
-        // As we exit this planet and head to the next, physically pan the massive master SVG down seamlessly!
-        if (i < projectsData.length - 1) {
-          tl.to(masterSvgRef.current, { y: -((i + 1) * dimensions.height), duration: 3.0, ease: "power2.inOut" }, time);
-        }
-
-        tl.to(textEl, { opacity: 0, x: isPlanetLeft ? -100 : 100, filter: 'blur(10px)', duration: 1, ease: "power2.in" }, time);
-        tl.set(flybyWrapper, { pointerEvents: "none" }, time + 1.5); // Hide wrapper
-
-        time += 1.5; // Stacking next element seamlessly
-      });
-
-      // PHASE 4: Outro Vaporization
-      // Trace the wire to the exact center of the screen
-      tl.to(masterSvgRef.current, { y: -(projectsData.length * dimensions.height), duration: 2.0, ease: "power2.inOut" }, time);
-
-      // Vaporize the track into bright glowing dust
-      tl.to(masterSvgRef.current, { opacity: 0, filter: 'blur(30px) brightness(2)', duration: 1.5, ease: "power2.in" }, time + 1.0);
-
-      // Fade in Contact screen smoothly as the screen vaporizes
-      tl.fromTo(outroRef.current, 
-        { opacity: 0, scale: 0.9, y: 50, pointerEvents: "none" },
-        { opacity: 1, scale: 1, y: 0, duration: 1.5, ease: "power3.out", pointerEvents: "auto" },
-        time + 1.2
-      );
-      
       timelineRef.current = tl;
+    }, container);
 
-    }, containerRef);
+    return () => {
+      timelineRef.current = null;
+      ctx.revert();
+    };
+  }, [sceneReady, projectsData.length, dimensions]);
 
-    return () => ctx.revert();
-  }, [projectsData.length, dimensions]); // Rebuild when dimensions change strictly for responsive heights
-
-  // Click handler for Sidebar navigation
+  // Click handler for Sidebar navigation — jump to the hold point of planet `index`
   const handleSidebarClick = (index: number) => {
-    if (!timelineRef.current) return;
-    
     const tl = timelineRef.current;
-    
-    // The exact visual center of project `index` is 7.0 + i*4.0 in GSAP time units
-    const targetTime = 7.0 + (index * 4.0);
-    const progressPercentage = targetTime / tl.duration();
-    const targetScroll = progressPercentage * totalScrollRef.current;
-    
+    const st = tl?.scrollTrigger;
+    if (!tl || !st) return;
+
+    const targetTime = TOUR_START + index * TOUR_PER_PLANET + TOUR_FOCUS_OFFSET;
+    const targetScroll = st.start + (targetTime / tl.duration()) * (st.end - st.start);
+
     window.scrollTo({
       top: targetScroll,
       behavior: 'smooth'
@@ -462,7 +408,7 @@ const Index = () => {
       transition: 'background-color 1.7s ease-in-out'
     }}>
       {!isCosmicLoadingComplete && !hasLoadedBefore && (
-        <CosmicLoading 
+        <CosmicLoading
           onComplete={() => {
             console.log('[Index] Cosmic loading complete, cleanup');
             setIsCosmicLoadingComplete(true);
@@ -470,10 +416,10 @@ const Index = () => {
           }}
         />
       )}
-      
-      <Stars 
-        isInitialLoad={false} 
-        isAppLoaded={true} 
+
+      <Stars
+        isInitialLoad={false}
+        isAppLoaded={true}
       />
 
       <div ref={domWrapperRef}>
@@ -483,80 +429,51 @@ const Index = () => {
         </div>
 
       <div ref={containerRef} className="relative z-20 h-screen w-full overflow-hidden bg-transparent">
-        <div ref={shakeRef} className="absolute inset-0 w-full h-full">
 
-          {/* Project Progress Sidebar (Vertical Tracking) */}
-          <div 
-            id="project-sidebar" 
-            className="fixed right-6 md:right-12 top-1/2 -translate-y-1/2 z-[100] flex flex-col items-center opacity-0 transition-opacity duration-500 pointer-events-none"
-            style={{ height: `${projectsData.length * 110}px` }}
+          {/* Tour Navigation Rail — thin hairline, small dots, active label */}
+          <div
+            id="project-sidebar"
+            className="fixed right-5 md:right-9 top-1/2 -translate-y-1/2 z-[100] opacity-0 transition-opacity duration-500 pointer-events-none"
+            style={{ height: `${projectsData.length * 56}px` }}
           >
-            {/* Background Thin Line running vertically (Behind Nodes) */}
-            <div className="absolute top-0 bottom-0 w-[2px] transition-colors duration-700 left-1/2 -translate-x-1/2 z-0" 
-                 style={{ backgroundColor: isDarkMode ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.15)' }} />
+            {/* Hairline track */}
+            <div className="absolute top-1 bottom-1 w-px left-1/2 -translate-x-1/2"
+                 style={{ backgroundColor: isDarkMode ? 'rgba(0,0,0,0.15)' : 'rgba(255,255,255,0.2)' }} />
 
-            {/* Active Progress Thicker Fill Line */}
-            <div id="project-sidebar-fill" 
-                 className="absolute top-0 w-[3px] transition-colors duration-700 left-1/2 -translate-x-1/2 z-[5] ease-linear shadow-[0_0_8px_rgba(255,255,255,0.8)]" 
-                 style={{ 
-                   height: '0%', 
-                   backgroundColor: isDarkMode ? '#000' : '#fff' 
+            {/* Progress fill */}
+            <div id="project-sidebar-fill"
+                 className="absolute top-1 w-px left-1/2 -translate-x-1/2"
+                 style={{
+                   height: '0%',
+                   backgroundColor: isDarkMode ? 'rgba(0,0,0,0.7)' : 'rgba(255,255,255,0.8)'
                  }} />
-            
-            {/* Clickable Nodes Wrapper */}
-            <div className="relative w-full h-full flex flex-col justify-between items-center py-10 z-10">
+
+            {/* Nodes */}
+            <div className="relative h-full flex flex-col justify-between items-center">
                {projectsData.map((project, i) => (
                  <button
                    key={`sidebar-node-${project.id}`}
                    ref={el => { if (sidebarNodeRefs.current) sidebarNodeRefs.current[i] = el; }}
                    onClick={() => handleSidebarClick(i)}
-                   className="relative w-7 h-7 rounded-full border-0 outline-none transition-all duration-500 ease-out flex items-center justify-center opacity-50 shadow-lg"
-                   style={{ backgroundColor: `hsl(${project.accentColor})` }}
+                   className="group relative flex items-center justify-center w-5 h-5 border-0 outline-none bg-transparent"
                    aria-label={`Scroll to ${project.title}`}
                  >
-                    {/* The Active Circular Outline Marker */}
-                    <div className="active-ring absolute -inset-2 rounded-full border-[2.5px] opacity-0 scale-50 transition-all duration-500 shadow-md" 
-                         style={{ borderColor: isDarkMode ? '#000' : '#fff' }} />
+                    <span
+                      className="node-label absolute right-6 whitespace-nowrap font-mono text-[10px] uppercase tracking-[0.25em] opacity-0 translate-x-1 transition-all duration-500 group-hover:opacity-60 group-hover:translate-x-0"
+                      style={{ color: isDarkMode ? 'rgba(0,0,0,0.75)' : 'rgba(255,255,255,0.85)' }}
+                    >
+                      0{i + 1} · {project.title}
+                    </span>
+                    <span
+                      className="node-dot w-2 h-2 rounded-full opacity-40 scale-100 transition-all duration-500"
+                      style={{ backgroundColor: isDarkMode ? '#000000' : `hsl(${project.accentColor})` }}
+                    />
                  </button>
                ))}
             </div>
           </div>
 
-          {/* Cinematic Vignette */}
-          <div
-            ref={vignetteRef}
-            className="absolute inset-0 z-[15] pointer-events-none opacity-0"
-            style={{
-              background: isDarkMode 
-                ? 'radial-gradient(circle, transparent 30%, rgba(255,255,255,0.95) 100%)' 
-                : 'radial-gradient(circle, transparent 30%, rgba(0,0,0,0.95) 100%)',
-            }}
-          />
-
-          {/* Phase 1 Overlay (Warp Streaks) */}
-          <div ref={warpRef} className="absolute inset-0 z-10 pointer-events-none mix-blend-screen opacity-0" style={{ mixBlendMode: isDarkMode ? 'multiply' : 'screen' }}>
-            <WarpTunnel params={warpParamsRef} isDarkMode={isDarkMode} />
-          </div>
-
-          {/* Event Horizon Portal Transition */}
-          <div className="absolute inset-0 z-[60] pointer-events-none flex items-center justify-center overflow-hidden mix-blend-screen">
-            <div
-              ref={eventHorizonRef}
-              className="rounded-full"
-              style={{
-                width: '150px',
-                height: '150px',
-                background: isDarkMode 
-                  ? 'radial-gradient(circle, transparent 35%, rgba(0, 150, 255, 0.5) 43%, rgba(255, 255, 255, 1) 48%, rgba(255, 255, 255, 1) 52%, rgba(0, 200, 255, 0.8) 60%, rgba(0, 50, 200, 0.2) 75%, transparent 100%)'
-                  : 'radial-gradient(circle, transparent 35%, rgba(255, 220, 0, 0.5) 43%, rgba(255, 255, 255, 1) 48%, rgba(255, 255, 255, 1) 52%, rgba(255, 120, 0, 0.8) 60%, rgba(255, 0, 0, 0.3) 75%, transparent 100%)',
-                filter: 'blur(6px)',
-                opacity: 0,
-                transform: 'scale(0)',
-              }}
-            />
-          </div>
-
-          {/* Phase 2 Overlay (Solar System Scale Target) */}
+          {/* The Scene (Camera Target): hero sun + solar system, panned & zoomed by the tour */}
           <div ref={initialSweepRef} className="absolute inset-0 w-full h-full origin-center">
             <div ref={sceneWrapperRef} className="absolute inset-0 w-full h-full origin-center">
               <div ref={heroRef} className="absolute inset-0 z-20 pointer-events-none flex items-center justify-center">
@@ -574,85 +491,63 @@ const Index = () => {
             </div>
           </div>
 
-          {/* Phase 3 Overlays (Full Screen Ship Spotlights) */}
-          <div className="absolute inset-0 z-40 pointer-events-none">
-            
-            {/* The Unified Seamless Track */}
-            <div 
-              ref={masterSvgRef}
-              className="absolute left-0 top-0 w-full pointer-events-none z-0"
-              style={{ height: `${projectsData.length * 100}vh` }}
+          {/* Depth-of-field scrim: blurs & dims the scene except the porthole at the
+              focus point, keeping the held planet crisp and the card text readable */}
+          <div
+            ref={focusScrimRef}
+            className="absolute inset-0 z-[35] pointer-events-none opacity-0"
+            style={{
+              backdropFilter: 'blur(5px)',
+              WebkitBackdropFilter: 'blur(5px)',
+              backgroundColor: isDarkMode ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.35)',
+              maskImage: 'radial-gradient(circle 42vh at 32% 46%, transparent 55%, black 100%)',
+              WebkitMaskImage: 'radial-gradient(circle 42vh at 32% 46%, transparent 55%, black 100%)',
+            }}
+          />
+
+          {/* Scroll hint */}
+          <div className="absolute inset-x-0 bottom-8 z-40 flex justify-center pointer-events-none">
+            <div
+              ref={hintRef}
+              className="flex flex-col items-center gap-2 opacity-0"
+              style={{ color: isDarkMode ? 'rgba(0,0,0,0.6)' : 'rgba(255,255,255,0.6)' }}
             >
-               <svg className="w-full h-full" preserveAspectRatio="xMidYMin slice">
-                  <path 
-                    ref={masterPathRef}
-                    d={masterFlightPathD}
-                    stroke={isDarkMode ? "black" : "white"}
-                    strokeWidth="5"
-                    fill="none"
-                    strokeLinecap="round"
-                    strokeDasharray="12000"
-                    strokeDashoffset="12000"
-                    className={isDarkMode ? "drop-shadow-[0_0_15px_rgba(0,0,0,0.4)]" : "drop-shadow-[0_0_15px_rgba(255,255,255,0.8)]"}
-                  />
-               </svg>
+              <p className="font-mono text-xs uppercase tracking-[0.4em]">Scroll to begin the tour</p>
+              <div
+                className="w-[1px] h-8 animate-pulse"
+                style={{ backgroundColor: isDarkMode ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.4)' }}
+              />
             </div>
+          </div>
 
-            {projectsData.map((project, index) => {
-              let spriteUrl = "";
-              switch (project.id) {
-                case "1": spriteUrl = isDarkMode ? "/Islands%20-%20330873532%20-%20spritesheetdark.png" : "/Lava%20World%20-%201909546053%20-%20spritesheet.png"; break;
-                case "2": spriteUrl = isDarkMode ? "/Gas%20giant%202%20-%20330873532%20-%20spritesheetdark.png" : "/Gas%20giant%201%20-%203542928846%20-%20spritesheet.png"; break;
-                case "3": spriteUrl = isDarkMode ? "/Terran%20Wet%20-%20330873532%20-%20spritesheetdark.png" : "/Terran%20Wet%20-%203542928846%20-%20spritesheet.png"; break;
-                case "4": spriteUrl = isDarkMode ? "/Terran%20Dry%20-%20330873532%20-%20spritesheetdark.png" : "/Terran%20Dry%20-%203542928846%20-%20spritesheet.png"; break;
-                case "5": spriteUrl = isDarkMode ? "/Ice%20World%20-%20330873532%20-%20spritesheetdark.png" : "/Ice%20World%20-%201909546053%20-%20spritesheet.png"; break;
-              }
-
-              // We alternate planet side to justify the S-curve weave
-              const isPlanetLeft = index % 2 === 0;
-
-              const planetMarkup = (
-                <div className="relative w-1/2 flex items-center justify-center">
-                  <div
-                    ref={(el) => massivePlanetRefs.current[index] = el}
-                    className="relative origin-center z-10"
-                    style={{
-                      width: '600px',
-                      height: '600px',
-                      backgroundImage: `url('${spriteUrl}')`,
-                      backgroundSize: `${600 * 50}px ${600 * 3}px`,
-                      backgroundRepeat: 'no-repeat',
-                      backgroundPosition: '0px 0px',
-                      filter: isDarkMode ? 'brightness(0.9) contrast(1.2)' : 'brightness(1.1) contrast(1.1)',
-                      borderRadius: '50%',
-                      boxShadow: `0 0 100px -20px ${project.accentColor}`
-                    }}
-                  />
-                </div>
-              );
-
-              const textMarkup = (
+          {/* Mission-log focus cards, one per planet, on the open right side.
+              Mono in dark mode; accent-tinted in light mode. */}
+          <div className="absolute inset-0 z-40 pointer-events-none">
+            {projectsData.map((project, index) => (
+              <div
+                key={`focus-card-${project.id}`}
+                className="absolute inset-y-0 right-[6%] flex items-center justify-end pointer-events-none"
+                style={{ width: '44%' }}
+              >
                 <div
-                  ref={(el) => textRefs.current[index] = el}
-                  className={`w-1/2 flex flex-col gap-6 max-w-2xl px-8 ${isPlanetLeft ? 'items-start' : 'items-end text-right'}`}
-                  style={{
-                    color: isDarkMode ? '#000000' : '#ffffff'
-                  }}
+                  ref={(el) => focusCardRefs.current[index] = el}
+                  className="flex flex-col gap-5 max-w-xl items-start opacity-0 pointer-events-none"
+                  style={{ color: isDarkMode ? '#000000' : '#ffffff' }}
                 >
                   <p
-                    className="font-mono text-sm uppercase tracking-[0.3em] font-semibold"
-                    style={{ color: project.accentColor }}
+                    className="font-mono text-xs md:text-sm uppercase tracking-[0.35em] font-semibold"
+                    style={{ color: isDarkMode ? 'rgba(0,0,0,0.55)' : `hsl(${project.accentColor})` }}
                   >
-                    Dataset {index + 1} // Phase Render
+                    Orbit 0{index + 1} <span className="opacity-50">/ 0{projectsData.length}</span>
                   </p>
-                  <h2 className="text-5xl md:text-7xl font-bold tracking-tight mb-2 leading-tight drop-shadow-md">
+                  <h2 className="text-4xl md:text-6xl font-bold tracking-tight leading-tight drop-shadow-md">
                     {project.title}
                   </h2>
-                  <p className="text-xl md:text-2xl leading-relaxed font-light" style={{ color: isDarkMode ? '#444' : '#ccc' }}>
+                  <p className="text-base md:text-lg leading-relaxed font-light" style={{ color: isDarkMode ? '#444' : '#ccc' }}>
                     {project.description}
                   </p>
 
-                  <div className={`flex flex-wrap gap-2 my-4 ${isPlanetLeft ? 'justify-start' : 'justify-end'}`}>
+                  <div className="flex flex-wrap gap-2 my-2 justify-start">
                     {project.stack.map(tech => (
                       <span
                         key={tech}
@@ -663,7 +558,7 @@ const Index = () => {
                     ))}
                   </div>
 
-                  <div className={`flex gap-4 mt-2 ${isPlanetLeft ? 'justify-start' : 'justify-end'}`}>
+                  <div className="flex gap-4 mt-1 justify-start">
                     {project.links.github && (
                       <a
                         href={project.links.github}
@@ -678,41 +573,22 @@ const Index = () => {
                         href={project.links.live}
                         target="_blank" rel="noopener noreferrer"
                         className="flex items-center gap-2 px-6 py-3 rounded-full font-medium transition-all hover:scale-105"
-                        style={{ backgroundColor: project.accentColor, color: isDarkMode ? '#fff' : '#000' }}
+                        style={{
+                          backgroundColor: isDarkMode ? '#000000' : `hsl(${project.accentColor})`,
+                          color: isDarkMode ? '#ffffff' : '#000000'
+                        }}
                       >
                         <ExternalLink size={20} /> Open Project
                       </a>
                     )}
                   </div>
                 </div>
-              );
-
-              return (
-                <div
-                  key={project.id}
-                  ref={(el) => flybyRefs.current[index] = el}
-                  className="absolute inset-0 flex items-center justify-between px-10 md:px-24 opacity-0 pointer-events-none z-10"
-                >
-                  {isPlanetLeft ? (
-                    <>
-                      {planetMarkup}
-                      {textMarkup}
-                    </>
-                  ) : (
-                    <>
-                      {textMarkup}
-                      {planetMarkup}
-                    </>
-                  )}
-                </div>
-              );
-            })}
+              </div>
+            ))}
           </div>
 
-
-
-          {/* Phase 4 Outro (Vaporized Contact Page) */}
-          <div 
+          {/* Outro (Contact) — surfaces as the system dims after the tour */}
+          <div
             ref={outroRef}
             className="absolute inset-0 z-[70] flex items-center justify-center opacity-0 pointer-events-none"
           >
@@ -723,14 +599,14 @@ const Index = () => {
               <p className="text-xl md:text-2xl mb-12 font-light" style={{ color: isDarkMode ? '#444' : '#ccc' }}>
                 Let's build something incredible. Reach out across the void.
               </p>
-              
+
               <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
-                <a 
+                <a
                   href="mailto:contact@example.com"
                   className="flex items-center gap-3 px-8 py-4 rounded-full font-semibold text-lg transition-transform hover:scale-105"
-                  style={{ 
-                    backgroundColor: isDarkMode ? '#000' : '#fff', 
-                    color: isDarkMode ? '#fff' : '#000' 
+                  style={{
+                    backgroundColor: isDarkMode ? '#000' : '#fff',
+                    color: isDarkMode ? '#fff' : '#000'
                   }}
                 >
                   <Mail size={24} /> Mail Me
@@ -750,7 +626,6 @@ const Index = () => {
             </div>
           </div>
 
-        </div>
       </div>
 
       {selectedProject && (
@@ -774,7 +649,7 @@ const Index = () => {
           loading="lazy"
         />
       </div>
-      
+
       </div> {/* End of fade-in wrapper */}
     </div>
   );

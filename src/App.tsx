@@ -12,6 +12,7 @@ import NotFound from "./pages/NotFound";
 import BlogPostView from "./pages/BlogPostView";
 import { TransitionProvider } from "@/contexts/TransitionContext";
 import { TransitionController } from "@/components/TransitionController";
+import { BackgroundMusic } from "@/components/BackgroundMusic";
 
 const queryClient = new QueryClient();
 
@@ -24,6 +25,7 @@ const App = () => (
         <BrowserRouter>
           <TransitionProvider>
             <TransitionController />
+            <BackgroundMusic />
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/blogs" element={<Blogs />} />

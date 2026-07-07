@@ -55,7 +55,7 @@ export function DynamicNavbar({ viewMode = 'default' }: DynamicNavbarProps) {
         className="hidden md:fixed md:top-2 md:left-1/2 md:transform md:-translate-x-1/2 md:flex md:items-center md:gap-16 md:z-50 md:px-10 md:py-1.5 relative"
         initial={false}
         animate={{
-          backgroundColor: isProjectsMode ? (isDarkMode ? 'rgba(0, 0, 0, 0.8)' : 'rgba(255, 255, 255, 0.8)') : 'transparent',
+          backgroundColor: isProjectsMode ? (isDarkMode ? 'rgba(0, 0, 0, 0.8)' : 'rgba(255, 255, 255, 1)') : 'transparent',
         }}
         transition={{ duration: 0.3 }}
         onMouseEnter={() => setIsNavHovered(true)}
@@ -150,8 +150,8 @@ export function DynamicNavbar({ viewMode = 'default' }: DynamicNavbarProps) {
                   <motion.div
                     layoutId="navHover"
                     className={`absolute inset-0 border rounded-full pointer-events-none ${isProjectsMode
-                        ? (isDarkMode ? 'border-white/40' : 'border-gray-800/50')
-                        : (isDarkMode ? 'border-gray-800/50' : 'border-white/40')
+                      ? (isDarkMode ? 'border-white/40' : 'border-gray-800/50')
+                      : (isDarkMode ? 'border-gray-800/50' : 'border-white/40')
                       }`}
                     style={{
                       borderStyle: 'dashed',
@@ -165,19 +165,17 @@ export function DynamicNavbar({ viewMode = 'default' }: DynamicNavbarProps) {
 
                 {/* Text with special styling for name */}
                 <span
-                  className={`relative transition-all duration-300 ${hoveredIndex === index
-                    ? isProjectsMode
-                      ? (isDarkMode ? 'text-white' : 'text-gray-900')
-                      : (isDarkMode ? 'text-gray-900' : 'text-white')
-                    : isDarkMode ? 'text-gray-700' : 'text-gray-300'
-                    } ${(link as any).isName
+                  className={`relative transition-all duration-300 ${(link as any).isName
                       ? isDarkMode
                         ? moonTextClass
                         : 'bg-gradient-to-r from-amber-400 to-red-500 bg-clip-text text-transparent font-black text-lg'
-                      : ''
-                    } ${(link as any).isActive
-                      ? 'text-white'
-                      : ''
+                      : (link as any).isActive
+                        ? (isDarkMode ? 'text-white' : 'text-black')
+                        : hoveredIndex === index
+                          ? isProjectsMode
+                            ? (isDarkMode ? 'text-white' : 'text-gray-900')
+                            : (isDarkMode ? 'text-gray-900' : 'text-white')
+                          : isDarkMode ? 'text-gray-700' : 'text-gray-300'
                     }`}
                 >
                   {link.label}
@@ -195,8 +193,8 @@ export function DynamicNavbar({ viewMode = 'default' }: DynamicNavbarProps) {
                 {/* Hover star dot */}
                 {hoveredIndex === index && !(link as any).isActive && (
                   <span className={`absolute -top-1 left-1/2 transform -translate-x-1/2 w-1 h-1 rounded-full animate-pulse ${isProjectsMode
-                      ? (isDarkMode ? 'bg-white' : 'bg-gray-900')
-                      : (isDarkMode ? 'bg-gray-900' : 'bg-white')
+                    ? (isDarkMode ? 'bg-white' : 'bg-gray-900')
+                    : (isDarkMode ? 'bg-gray-900' : 'bg-white')
                     }`} />
                 )}
               </Link>

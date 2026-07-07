@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { ExternalLink, Github, ChevronRight } from 'lucide-react';
 import { Project } from '@/data/projects';
 import { useTheme } from '@/contexts/ThemeContext';
+
 interface DiagonalProjectCardProps {
   project: Project;
   index: number;
@@ -11,13 +12,36 @@ interface DiagonalProjectCardProps {
   onExpand: (index: number | null) => void;
 }
 
-// Background images for each planet type
-const PLANET_BACKGROUNDS: Record<string, string | null> = {
-  lava: '/lavaa.png',
-  cracked: null,
-  terran: null,
-  ringed: null,
-  ice: null,
+// Planet spritesheets (50 cols × 3 rows) — same art as the solar system hero
+const PLANET_SPRITES: Record<string, { light: string; dark: string }> = {
+  lava: { light: '/Lava%20World%20-%201909546053%20-%20spritesheet.png', dark: '/Islands%20-%20330873532%20-%20spritesheetdark.png' },
+  cracked: { light: '/Gas%20giant%201%20-%203542928846%20-%20spritesheet.png', dark: '/Gas%20giant%202%20-%20330873532%20-%20spritesheetdark.png' },
+  terran: { light: '/Terran%20Wet%20-%203542928846%20-%20spritesheet.png', dark: '/Terran%20Wet%20-%20330873532%20-%20spritesheetdark.png' },
+  ringed: { light: '/Terran%20Dry%20-%203542928846%20-%20spritesheet.png', dark: '/Terran%20Dry%20-%20330873532%20-%20spritesheetdark.png' },
+  ice: { light: '/Ice%20World%20-%201909546053%20-%20spritesheet.png', dark: '/Ice%20World%20-%20330873532%20-%20spritesheetdark.png' },
+};
+
+// Static first frame of a planet spritesheet, rendered as a circle
+const PlanetSprite = ({ type, size, isDarkMode, glow }: {
+  type: string; size: number; isDarkMode: boolean; glow?: string;
+}) => {
+  const sprite = PLANET_SPRITES[type];
+  if (!sprite) return null;
+  return (
+    <div
+      aria-hidden="true"
+      style={{
+        width: size,
+        height: size,
+        borderRadius: '50%',
+        backgroundImage: `url('${isDarkMode ? sprite.dark : sprite.light}')`,
+        backgroundSize: `${size * 50}px ${size * 3}px`,
+        backgroundPosition: '0px 0px',
+        backgroundRepeat: 'no-repeat',
+        boxShadow: glow,
+      }}
+    />
+  );
 };
 
 export const DiagonalProjectCard = ({
@@ -27,24 +51,17 @@ export const DiagonalProjectCard = ({
   expandedIndex,
   onExpand,
 }: DiagonalProjectCardProps) => {
-  const { themeColor: originalThemeColor } = project;
   const { isDarkMode } = useTheme();
   const [isHovered, setIsHovered] = useState(false);
 
-  // Distinct Grey/Black Shades for Dark Mode Project Backgrounds
-  const GREY_SHADES = [
-    '#1c1917', // Warm Black (Stone-900)
-    '#111827', // Cool Black (Gray-900)
-    '#27272a', // Zinc-900
-    '#323232', // Neutral Dark Grey
-    '#262626', // Neutral-800
-  ];
+  // Distinct charcoal shades for the strict-mono dark mode panels
+  const GREY_SHADES = ['#1c1917', '#111827', '#27272a', '#323232', '#262626'];
 
-  // In Night Mode, override the colorful theme with a specific grey shade based on index
-  // Use modulo to cycle through shades if more projects than shades
-  const themeColor = isDarkMode
-    ? GREY_SHADES[index % GREY_SHADES.length]
-    : originalThemeColor;
+  // Panel background vs accent are separate: in dark (mono) mode the accent is
+  // white so labels/chips/buttons stay readable on the charcoal panel — the old
+  // design tinted them in the panel's own color and they vanished.
+  const panelColor = isDarkMode ? GREY_SHADES[index % GREY_SHADES.length] : '#0a0a0a';
+  const accent = isDarkMode ? '#ffffff' : project.themeColor;
 
   const isExpanded = expandedIndex === index;
   const hasExpanded = expandedIndex !== null;
@@ -76,9 +93,8 @@ export const DiagonalProjectCard = ({
       return index * collapsedWidth;
     }
 
-    // Cards after expanded
+    // Cards after expanded: expanded card width + all collapsed cards before this one
     if (expandedIndex !== null) {
-      // Fix: Calculate position based on the expanded card width + all collapsed cards before this one (which is index - 1)
       return expandedWidth + (index - 1) * collapsedWidth;
     }
 
@@ -99,26 +115,25 @@ export const DiagonalProjectCard = ({
   // Skew angle for diagonal effect
   const skewAngle = -12;
 
-  // Background image
-  const backgroundImage = PLANET_BACKGROUNDS[project.planetType];
-
   const handleClick = () => {
-    if (isExpanded) {
-      onExpand(null);
-    } else {
-      onExpand(index);
-    }
+    onExpand(isExpanded ? null : index);
   };
-
-  // Grey Mode Colors
-  const greyBase = '#1E1E1E';
-  const greyHover = '#2A2A2A';
 
   return (
     <motion.div
-      className="fixed top-0 bottom-0 cursor-pointer overflow-hidden"
+      className="fixed top-0 bottom-0 cursor-pointer overflow-hidden outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white/80"
       style={{
         zIndex: isExpanded ? 30 : isHovered ? 25 : 10 + index,
+      }}
+      role="button"
+      tabIndex={0}
+      aria-expanded={isExpanded}
+      aria-label={`${project.title} — ${isExpanded ? 'collapse' : 'expand'} project details`}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          handleClick();
+        }
       }}
       initial={{
         left: `${index * defaultWidth}%`,
@@ -154,59 +169,50 @@ export const DiagonalProjectCard = ({
         }}
         transition={{ duration: 0.3 }}
       >
-        {/* Background - Solid Color */}
-        <div 
+        {/* Panel: deep space tinted toward the planet's accent at the base */}
+        <div
           className="absolute inset-0"
           style={{
-            backgroundColor: isDarkMode 
-              ? (isHovered || isExpanded ? '#2a2a2a' : themeColor) 
-              : themeColor
+            background: isDarkMode
+              ? panelColor
+              : `linear-gradient(170deg, #050505 0%, #0b0b0d 45%, ${hexToRgba(project.themeColor, 0.34)} 135%)`,
           }}
         />
 
-        {/* Background image if available */}
-        {backgroundImage && (
-          <motion.div
-            className="absolute inset-0"
-            style={{
-              backgroundImage: `url(${backgroundImage})`,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-              mixBlendMode: 'overlay',
-            }}
-            animate={{
-              opacity: isExpanded ? 0.3 : 0.4,
-            }}
-          />
-        )}
+        {/* Faint starfield texture via radial dots (kept subtle for smooth paint) */}
+        <div
+          className="absolute inset-0 opacity-[0.22] pointer-events-none"
+          style={{
+            backgroundImage: `radial-gradient(${isDarkMode ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.5)'} 1px, transparent 1px)`,
+            backgroundSize: '46px 46px',
+          }}
+        />
 
-        {/* Animated glow on hover */}
+        {/* Accent glow that breathes in on hover / expand */}
         <motion.div
           className="absolute inset-0 pointer-events-none"
-          animate={{
-            opacity: isHovered || isExpanded ? 1 : 0,
-          }}
+          animate={{ opacity: isHovered || isExpanded ? 1 : 0 }}
           transition={{ duration: 0.3 }}
           style={{
-            background: `linear-gradient(135deg, transparent 0%, ${hexToRgba(themeColor, 0.2)} 50%, transparent 100%)`,
-            boxShadow: `inset 0 0 100px ${hexToRgba(themeColor, 0.2)}`,
+            background: `linear-gradient(135deg, transparent 0%, ${hexToRgba(accent, isDarkMode ? 0.08 : 0.16)} 50%, transparent 100%)`,
+            boxShadow: `inset 0 0 120px ${hexToRgba(accent, isDarkMode ? 0.06 : 0.18)}`,
           }}
         />
 
-        {/* Vertical divider line */}
+        {/* Accent divider between sectors */}
         <div
           className="absolute right-0 top-0 bottom-0 w-px"
           style={{
-            background: `linear-gradient(to bottom, transparent, ${themeColor}, transparent)`,
+            background: `linear-gradient(to bottom, transparent, ${hexToRgba(accent, 0.8)}, transparent)`,
           }}
         />
       </motion.div>
 
       {/* Content container (un-skewed) */}
       <div className="absolute inset-0 flex">
-        {/* Collapsed state content - vertical title */}
+        {/* Collapsed state content */}
         <motion.div
-          className="absolute inset-0 flex flex-col justify-center items-center text-center px-2"
+          className="absolute inset-0 flex flex-col justify-center items-center text-center px-3"
           animate={{
             opacity: isExpanded ? 0 : 1,
             x: isExpanded ? -50 : 0,
@@ -214,43 +220,40 @@ export const DiagonalProjectCard = ({
           transition={{ duration: 0.3 }}
           style={{ pointerEvents: isExpanded ? 'none' : 'auto' }}
         >
-          {/* Planet indicator */}
+          {/* Planet + sector label */}
           <motion.div
-            className="mb-4"
-            animate={{ y: isHovered ? -5 : 0 }}
+            className="mb-5 flex flex-col items-center gap-3"
+            animate={{ y: isHovered ? -6 : 0 }}
             transition={{ duration: 0.3 }}
           >
-            <div
-              className="w-3 h-3 rounded-full mx-auto mb-2"
-              style={{
-                background: themeColor,
-                boxShadow: `0 0 15px ${themeColor}`,
-                animation: 'pulse 2s infinite',
-              }}
+            <PlanetSprite
+              type={project.planetType}
+              size={hasExpanded ? 44 : 64}
+              isDarkMode={isDarkMode}
+              glow={`0 0 ${isHovered ? 42 : 26}px ${hexToRgba(accent, isDarkMode ? 0.25 : 0.5)}`}
             />
             <span
-              className="text-[10px] font-semibold uppercase tracking-[0.2em]"
-              style={{ color: hexToRgba('#fff', 0.6) }}
+              className="font-mono text-[10px] font-medium uppercase tracking-[0.3em]"
+              style={{ color: hexToRgba(accent, 0.75) }}
             >
-              {project.planetType}
+              0{index + 1}
             </span>
           </motion.div>
 
-          {/* Title - vertical */}
+          {/* Title — vertical when another sector is expanded */}
           <motion.h3
-            className="text-xl md:text-2xl lg:text-3xl font-black text-white tracking-tight leading-tight break-words"
+            className="text-xl md:text-2xl lg:text-3xl font-bold text-white tracking-tight leading-tight"
             style={{
               writingMode: hasExpanded ? 'vertical-rl' : 'horizontal-tb',
               textOrientation: 'mixed',
               transform: hasExpanded ? 'rotate(180deg)' : 'none',
-              textShadow: `0 0 30px ${hexToRgba(themeColor, 0.6)}`,
+              textShadow: `0 0 30px ${hexToRgba(accent, isDarkMode ? 0.3 : 0.55)}`,
               maxHeight: hasExpanded ? '60vh' : 'auto',
-              maxWidth: hasExpanded ? '100%' : '180px', // Force wrap in horizontal mode
+              maxWidth: hasExpanded ? '100%' : '200px',
               whiteSpace: 'normal',
+              textWrap: 'balance' as never,
             }}
-            animate={{
-              scale: isHovered ? 1.05 : 1,
-            }}
+            animate={{ scale: isHovered ? 1.04 : 1 }}
             transition={{ duration: 0.3 }}
           >
             {project.title}
@@ -258,7 +261,7 @@ export const DiagonalProjectCard = ({
 
           {/* Expand indicator */}
           <motion.div
-            className="mt-4"
+            className="mt-5"
             animate={{
               opacity: isHovered ? 1 : 0.4,
               x: isHovered ? 3 : 0,
@@ -266,40 +269,14 @@ export const DiagonalProjectCard = ({
             transition={{ duration: 0.3 }}
           >
             <ChevronRight
-              size={20}
+              size={18}
               className="text-white"
-              style={{ filter: `drop-shadow(0 0 8px ${themeColor})` }}
+              style={{ filter: `drop-shadow(0 0 8px ${hexToRgba(accent, 0.8)})` }}
             />
           </motion.div>
-
-          {/* Progress indicator 
-          <motion.div
-            className="absolute bottom-6 left-1/2 -translate-x-1/2"
-            animate={{ opacity: isHovered ? 1 : 0.5 }}
-          >
-            <div
-              className="text-[10px] font-bold mb-1"
-              style={{ color: themeColor }}
-            >
-              {project.completionPercent}%
-            </div>
-            <div
-              className="w-8 h-0.5 rounded-full overflow-hidden"
-              style={{ background: hexToRgba(themeColor, 0.3) }}
-            >
-              <div
-                className="h-full rounded-full"
-                style={{
-                  width: `${project.completionPercent}%`,
-                  background: themeColor,
-                }}
-              />
-            </div>
-          </motion.div>
-          */}
         </motion.div>
 
-        {/* Expanded state content */}
+        {/* Expanded state content — mirrors the home tour's mission-log cards */}
         <motion.div
           className="absolute inset-0 flex items-center overflow-hidden"
           initial={{ opacity: 0 }}
@@ -310,44 +287,33 @@ export const DiagonalProjectCard = ({
           transition={{ duration: 0.4, delay: isExpanded ? 0.1 : 0 }}
           style={{ pointerEvents: isExpanded ? 'auto' : 'none' }}
         >
-          <div className="w-full h-full flex items-center px-8 md:px-12 lg:px-16 py-12">
+          <div className="w-full h-full flex items-center justify-between gap-8 px-8 md:px-14 lg:px-20 py-12">
             <div className="max-w-xl">
-              {/* Planet badge */}
-              <motion.div
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-4"
-                style={{
-                  background: hexToRgba(themeColor, 0.2),
-                  border: `1px solid ${themeColor}`,
-                }}
+              {/* Mission-log kicker */}
+              <motion.p
+                className="font-mono text-xs md:text-sm font-semibold uppercase tracking-[0.35em] mb-5"
+                style={{ color: isDarkMode ? 'rgba(255,255,255,0.65)' : project.themeColor }}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: isExpanded ? 1 : 0, y: isExpanded ? 0 : 20 }}
                 transition={{ delay: 0.15 }}
               >
-                <span
-                  className="w-2.5 h-2.5 rounded-full"
-                  style={{ background: themeColor, animation: 'pulse 2s infinite' }}
-                />
-                <span style={{ color: themeColor }} className="text-sm font-semibold uppercase tracking-wider">
-                  {project.planetType} Planet
-                </span>
-              </motion.div>
+                Orbit 0{index + 1} <span className="opacity-50">/ 0{totalProjects}</span>
+              </motion.p>
 
               {/* Title */}
               <motion.h1
-                className="text-3xl md:text-4xl lg:text-5xl font-black text-white mb-3"
+                className="text-3xl md:text-5xl lg:text-6xl font-bold text-white tracking-tight leading-tight mb-5"
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: isExpanded ? 1 : 0, y: isExpanded ? 0 : 30 }}
                 transition={{ delay: 0.2 }}
-                style={{
-                  textShadow: `0 0 40px ${hexToRgba(themeColor, 0.4)}`,
-                }}
+                style={{ textShadow: `0 0 40px ${hexToRgba(accent, isDarkMode ? 0.2 : 0.35)}` }}
               >
                 {project.title}
               </motion.h1>
 
               {/* Description */}
               <motion.p
-                className="text-gray-300 text-sm md:text-base leading-relaxed mb-4 line-clamp-4"
+                className="text-sm md:text-base lg:text-lg font-light leading-relaxed mb-6 line-clamp-4 text-white/70"
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: isExpanded ? 1 : 0, y: isExpanded ? 0 : 30 }}
                 transition={{ delay: 0.25 }}
@@ -357,7 +323,7 @@ export const DiagonalProjectCard = ({
 
               {/* Tech Stack */}
               <motion.div
-                className="flex flex-wrap gap-2 mb-4"
+                className="flex flex-wrap gap-2 mb-8"
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: isExpanded ? 1 : 0, y: isExpanded ? 0 : 30 }}
                 transition={{ delay: 0.3 }}
@@ -365,49 +331,16 @@ export const DiagonalProjectCard = ({
                 {project.techStack.slice(0, 5).map((tech) => (
                   <span
                     key={tech}
-                    className="px-2.5 py-1 rounded-md text-xs font-medium"
-                    style={{
-                      background: hexToRgba(themeColor, 0.15),
-                      color: themeColor,
-                      border: `1px solid ${hexToRgba(themeColor, 0.3)}`,
-                    }}
+                    className="px-3 py-1 text-xs md:text-sm border rounded-full text-white/90 bg-white/10 border-white/20"
                   >
                     {tech}
                   </span>
                 ))}
               </motion.div>
 
-              {/* Progress 
+              {/* Action buttons — same pills as the tour cards */}
               <motion.div
-                className="mb-5 max-w-xs"
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: isExpanded ? 1 : 0, y: isExpanded ? 0 : 30 }}
-                transition={{ delay: 0.35 }}
-              >
-                <div className="flex justify-between mb-1.5">
-                  <span className="text-gray-400 text-xs">Progress</span>
-                  <span style={{ color: themeColor }} className="font-bold text-xs">
-                    {project.completionPercent}%
-                  </span>
-                </div>
-                <div
-                  className="h-1.5 rounded-full overflow-hidden"
-                  style={{ background: hexToRgba(themeColor, 0.2) }}
-                >
-                  <motion.div
-                    className="h-full rounded-full"
-                    style={{ background: themeColor }}
-                    initial={{ width: 0 }}
-                    animate={{ width: isExpanded ? `${project.completionPercent}%` : 0 }}
-                    transition={{ delay: 0.4, duration: 0.8, ease: "easeOut" }}
-                  />
-                </div>
-              </motion.div>
-              */}
-
-              {/* Action buttons */}
-              <motion.div
-                className="flex gap-3 flex-wrap"
+                className="flex gap-4 flex-wrap items-center"
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: isExpanded ? 1 : 0, y: isExpanded ? 0 : 30 }}
                 transition={{ delay: 0.4 }}
@@ -417,15 +350,11 @@ export const DiagonalProjectCard = ({
                     href={project.links.github}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all hover:scale-105"
-                    style={{
-                      border: `2px solid ${themeColor}`,
-                      color: themeColor,
-                    }}
+                    className="flex items-center gap-2 px-6 py-3 rounded-full font-medium text-sm md:text-base text-white border border-white/25 bg-white/5 transition-all hover:bg-white/10 hover:scale-105"
                     onClick={(e) => e.stopPropagation()}
                   >
-                    <Github size={16} />
-                    Code
+                    <Github size={18} />
+                    Repository
                   </a>
                 )}
                 {project.links.demo && (
@@ -433,29 +362,33 @@ export const DiagonalProjectCard = ({
                     href={project.links.demo}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all hover:scale-105"
+                    className="flex items-center gap-2 px-6 py-3 rounded-full font-medium text-sm md:text-base transition-all hover:scale-105"
                     style={{
-                      background: themeColor,
+                      background: accent,
                       color: '#000',
                     }}
                     onClick={(e) => e.stopPropagation()}
                   >
-                    <ExternalLink size={16} />
-                    Demo
+                    <ExternalLink size={18} />
+                    Open Project
                   </a>
                 )}
               </motion.div>
 
-              {/* Click hint */}
+              {/* Collapse hint */}
               <motion.p
-                className="text-gray-500 text-[10px] mt-4"
+                className="font-mono text-[10px] uppercase tracking-[0.3em] mt-8 text-white/40"
                 initial={{ opacity: 0 }}
-                animate={{ opacity: isExpanded ? 0.7 : 0 }}
+                animate={{ opacity: isExpanded ? 1 : 0 }}
                 transition={{ delay: 0.5 }}
               >
-                Click to collapse
+                Click anywhere to collapse · Esc
               </motion.p>
             </div>
+
+            {/* Right side intentionally left blank — reserved for project media
+                (screenshots / videos) to be added later */}
+            <div className="hidden md:block shrink-0 w-[260px]" aria-hidden="true" />
           </div>
         </motion.div>
       </div>

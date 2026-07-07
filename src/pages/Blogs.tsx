@@ -45,14 +45,13 @@ const Blogs = () => {
         )}>
           {/* Header Section */}
           <div className="text-center pt-16 pb-12 px-8 border-b border-gray-200 dark:border-gray-800">
-            <h1 className="text-4xl md:text-5xl font-bold mb-4 tracking-tight font-serif"
-              style={{ fontFamily: "'Crimson Pro', serif" }}>
+            <h1 className="text-4xl md:text-5xl font-bold mb-4 tracking-tight font-serif">
               Engineering & Research
             </h1>
             <p className={cn(
               "text-xl italic font-serif opacity-80 max-w-2xl mx-auto",
               isDarkMode ? "text-gray-400" : "text-gray-600"
-            )} style={{ fontFamily: "'Crimson Pro', serif" }}>
+            )}>
               Explorations in AI, Systems, and Design.
             </p>
           </div>

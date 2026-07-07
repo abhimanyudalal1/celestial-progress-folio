@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { DynamicNavbar } from "@/components/DynamicNavbar";
 import Stars from "@/components/Stars";
@@ -10,19 +10,24 @@ const GridView = () => {
   const { isDarkMode } = useTheme();
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
 
+  // Escape collapses the expanded sector
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setExpandedIndex(null);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
   return (
     <div
       className="h-screen relative overflow-hidden"
       style={{
-        backgroundColor: isDarkMode ? '#ffffff' : '#000000', // White in Dark Mode as requested
+        backgroundColor: isDarkMode ? '#ffffff' : '#000000',
         transition: 'background-color 0.5s ease'
       }}
     >
-      {/* Starfield Background - Hide in Dark Mode if we want pure white, or keep it? 
-          Stars are usually white/light, so they won't show on white BG. 
-          The user asked for "background to be white", likely implying a clean look.
-          We can hide stars or invert them. Let's hide them for now to ensure "White".
-       */}
+      {/* Starfield behind the sectors (space mode only — invisible on mono white) */}
       <div className={`fixed inset-0 z-0 ${isDarkMode ? 'opacity-0' : 'opacity-100'} transition-opacity duration-500`}>
         <Stars />
       </div>
@@ -30,27 +35,24 @@ const GridView = () => {
       {/* Dynamic Navbar with Projects Mode */}
       <DynamicNavbar viewMode="projects" />
 
-      {/* Title overlay when no project is expanded */}
+      {/* Mission index chip — sits above the sectors, matches the tour's mono labels */}
       <AnimatePresence>
         {expandedIndex === null && (
           <motion.div
-            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-5 pointer-events-none text-center"
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.9 }}
-            transition={{ duration: 0.4 }}
+            className="fixed bottom-8 inset-x-0 z-40 flex justify-center pointer-events-none"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 12 }}
+            transition={{ duration: 0.4, delay: 0.5 }}
           >
-            <h1 className={`text-4xl md:text-6xl font-black tracking-tight select-none ${isDarkMode ? 'text-black/5' : 'text-white/10'}`}>
-              PROJECTS
-            </h1>
-            <p className={`text-sm mt-2 ${isDarkMode ? 'text-black/20' : 'text-white/20'}`}>
-              Click a card to explore
+            <p className="font-mono text-[10px] font-medium uppercase tracking-[0.35em] px-5 py-2.5 rounded-full border border-white/15 bg-black/30 text-white/60 backdrop-blur-md">
+              Mission Index · 0{projects.length} Sectors · Select to expand
             </p>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Diagonal Accordion Project Cards */}
+      {/* Diagonal Accordion Project Sectors */}
       {projects.map((project, index) => (
         <DiagonalProjectCard
           key={project.id}

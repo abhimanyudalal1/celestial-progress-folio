@@ -1,5 +1,5 @@
 @import 'highlight.js/styles/github-dark.css';
-@import url('https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,200..900;1,200..900&display=swap');
+/* Fonts are loaded via <link> in index.html (preconnect + swap) — see the type system there */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -249,10 +249,11 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground antialiased;
+    @apply bg-background text-foreground antialiased font-sans;
     background: var(--gradient-space);
     min-height: 100vh;
     overflow-x: hidden;
+    text-rendering: optimizeLegibility;
     position: relative;
     cursor: url('/spaceship-cursor.svg') 12 12, auto;
     transition: background-color 2s ease-in-out, color 2s ease-in-out;
@@ -546,4 +547,14 @@ All colors MUST be HSL.
 
 .tour-orbit-counterspin {
   animation: tour-orbit-spin 28s linear infinite reverse;
+}
+
+/* Projects page: gentle float for the expanded card's planet sprite */
+@keyframes sector-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-14px); }
+}
+
+.sector-float {
+  animation: sector-float 7s ease-in-out infinite;
 }

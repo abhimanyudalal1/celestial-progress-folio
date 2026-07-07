@@ -23,40 +23,63 @@ export const DailyLogFeed: React.FC<DailyLogFeedProps> = ({ logs }) => {
     }, [logs]);
 
     return (
-        <div className="w-full max-w-3xl mx-auto py-8">
-            {/* Main Heading */}
-            <h2 className={cn(
-                "text-3xl font-black mb-8 pb-4 border-b-2",
-                isDarkMode ? "text-gray-100 border-gray-700" : "text-gray-900 border-gray-300"
-            )}>
-                Project Timeline:
-            </h2>
+        <div className="w-full max-w-3xl mx-auto pb-8">
+            {Object.entries(groupedLogs).map(([monthYear, monthLogs], groupIndex) => (
+                <section key={monthYear} aria-label={monthYear} className="mb-10 last:mb-0">
+                    {/* Month rule: quiet mono label + hairline + count */}
+                    <div className="flex items-center gap-3 mb-5">
+                        <h3 className={cn(
+                            "font-mono text-xs font-medium uppercase tracking-[0.25em]",
+                            isDarkMode ? "text-gray-400" : "text-gray-500"
+                        )}>
+                            {monthYear}
+                        </h3>
+                        <div className={cn(
+                            "h-px flex-1",
+                            isDarkMode ? "bg-gray-800" : "bg-gray-200"
+                        )} aria-hidden="true" />
+                        <span className={cn(
+                            "font-mono text-[10px] uppercase tracking-[0.15em]",
+                            isDarkMode ? "text-gray-600" : "text-gray-400"
+                        )}>
+                            {monthLogs.length} {monthLogs.length === 1 ? 'log' : 'logs'}
+                        </span>
+                    </div>
 
-            {Object.entries(groupedLogs).map(([monthYear, monthLogs]) => (
-                <div key={monthYear} className="mb-12">
-                    {/* Month Header */}
-                    <h3 className={cn(
-                        "text-2xl font-bold mb-6 sticky top-20 z-10 py-2 backdrop-blur-sm",
-                        isDarkMode ? "text-gray-100 bg-black/20" : "text-gray-800 bg-white/40"
+                    {/* Continuous rail with entries */}
+                    <ol className={cn(
+                        "relative ml-1 border-l list-none",
+                        isDarkMode ? "border-gray-800" : "border-gray-200"
                     )}>
-                        {monthYear}
-                    </h3>
-
-                    <div className="space-y-2">
                         {monthLogs.map((log, index) => (
                             <TimelineEntry
                                 key={log.slug}
                                 log={log}
-                                isExpanded={index === 0} // Expand first item by default
+                                isExpanded={groupIndex === 0 && index === 0} // latest entry open by default
+                                isLatest={groupIndex === 0 && index === 0}
                             />
                         ))}
-                    </div>
-                </div>
+                    </ol>
+                </section>
             ))}
 
             {logs.length === 0 && (
-                <div className="text-center py-12 text-gray-500">
-                    No daily logs found for this project. Start writing in src/content/daily/[blog-slug]/!
+                <div className={cn(
+                    "text-center rounded-lg border border-dashed py-14 px-6",
+                    isDarkMode ? "border-gray-800" : "border-gray-200"
+                )}>
+                    <p className={cn(
+                        "font-serif text-lg mb-1",
+                        isDarkMode ? "text-gray-300" : "text-gray-700"
+                    )}>
+                        No research notes yet
+                    </p>
+                    <p className={cn(
+                        "font-mono text-xs uppercase tracking-[0.15em]",
+                        isDarkMode ? "text-gray-600" : "text-gray-400"
+                    )}>
+                        Daily logs for this post will appear here
+                    </p>
                 </div>
             )}
         </div>

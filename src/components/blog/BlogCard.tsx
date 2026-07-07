@@ -40,15 +40,15 @@ export const BlogCard: React.FC<BlogCardProps> = ({ post }) => {
                 <h3 className={cn(
                     "text-2xl font-bold mb-2 font-serif leading-tight",
                     isDarkMode ? "text-gray-100" : "text-black"
-                )} style={{ fontFamily: "'Crimson Pro', serif" }}>
+                )}>
                     {post.title}
                 </h3>
 
                 {/* Subtitle / Description */}
                 <p className={cn(
-                    "text-sm italic mb-4 line-clamp-3",
+                    "text-sm italic mb-4 line-clamp-3 font-serif",
                     isDarkMode ? "text-gray-400" : "text-gray-600"
-                )} style={{ fontFamily: "'Crimson Pro', serif" }}>
+                )}>
                     {post.description}
                 </p>
 

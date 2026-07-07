@@ -80,7 +80,18 @@ const BlogPostView = () => {
                                 <BookOpen size={14} /> Timeline
                             </button>
                         </SheetTrigger>
-                        <SheetContent side="left" className={cn("w-[85vw]", isDarkMode ? "bg-black text-white" : "bg-white text-gray-900")}>
+                        <SheetContent side="left" className={cn("w-[85vw] overflow-y-auto", isDarkMode ? "bg-black text-white" : "bg-white text-gray-900")}>
+                            <SheetHeader className="mb-6 mt-2 text-left">
+                                <p className={cn(
+                                    "font-mono text-[10px] uppercase tracking-[0.25em] mb-1",
+                                    isDarkMode ? "text-gray-500" : "text-gray-400"
+                                )}>
+                                    Source notes
+                                </p>
+                                <SheetTitle className={cn("font-serif text-2xl", isDarkMode ? "text-white" : "text-gray-900")}>
+                                    Research Log
+                                </SheetTitle>
+                            </SheetHeader>
                             <DailyLogFeed logs={dailyLogs} />
                         </SheetContent>
                     </Sheet>
@@ -96,60 +107,105 @@ const BlogPostView = () => {
                         <Sheet>
                             {/* Timeline Heading */}
                             <h3 className={cn(
-                                "text-sm font-black uppercase tracking-wider mb-4",
-                                isDarkMode ? "text-gray-300" : "text-gray-700"
+                                "font-mono text-xs font-medium uppercase tracking-[0.25em] mb-5",
+                                isDarkMode ? "text-gray-400" : "text-gray-500"
                             )}>
-                                Project Timeline:
+                                Research Log
                             </h3>
                             
-                            <div className="relative pl-4 border-l-2 border-gray-200 dark:border-gray-800 space-y-8 py-2">
-                                <div className="absolute top-0 left-[-2px] w-full h-full pointer-events-none">
-                                    {/* Line is effectively the border-l on the parent */}
-                                </div>
+                            {dailyLogs.length > 0 ? (
+                                <ol className="relative list-none m-0 p-0">
+                                    {/* Rail: starts exactly at the first dot's center, fades out past the last */}
+                                    <div
+                                        aria-hidden="true"
+                                        className={cn(
+                                            "absolute left-[3.5px] top-[9px] bottom-0 w-px pointer-events-none",
+                                            "bg-gradient-to-b",
+                                            isDarkMode
+                                                ? "from-gray-700 via-gray-800 to-transparent"
+                                                : "from-gray-300 via-gray-200 to-transparent"
+                                        )}
+                                    />
 
-                                {dailyLogs.length > 0 ? (
-                                    dailyLogs.slice(0, 5).map((log, index) => (
-                                        <SheetTrigger asChild key={log.slug}>
-                                            <button className="group relative flex items-start text-left w-full pl-6 transition-all">
-                                                {/* Dot */}
-                                                <div className={cn(
-                                                    "absolute left-[-17px] top-1.5 w-4 h-4 rounded-full border-4 transition-all z-10",
-                                                    isDarkMode
-                                                        ? "bg-black border-gray-600 group-hover:border-white group-hover:bg-gray-800"
-                                                        : "bg-white border-gray-300 group-hover:border-black group-hover:bg-gray-100"
-                                                )} />
+                                    {dailyLogs.slice(0, 5).map((log, index) => (
+                                        <li key={log.slug}>
+                                            <SheetTrigger asChild>
+                                                <button className={cn(
+                                                    "group relative w-full text-left pl-6 pb-6 rounded-md",
+                                                    "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2",
+                                                    isDarkMode ? "focus-visible:outline-white" : "focus-visible:outline-gray-900"
+                                                )}>
+                                                    {/* Dot — center sits precisely on the rail */}
+                                                    <span
+                                                        aria-hidden="true"
+                                                        className={cn(
+                                                            "absolute left-0 top-[5px] w-2 h-2 rounded-full ring-4 transition-all duration-300 group-hover:scale-125",
+                                                            index === 0
+                                                                ? "bg-blue-500"
+                                                                : isDarkMode
+                                                                    ? "bg-gray-600 group-hover:bg-gray-300"
+                                                                    : "bg-gray-300 group-hover:bg-gray-600",
+                                                            isDarkMode ? "ring-[#121212]" : "ring-white"
+                                                        )}
+                                                    />
 
-                                                {/* Text */}
-                                                <div className="group-hover:translate-x-1 transition-transform">
-                                                    <h4 className={cn(
-                                                        "font-bold text-sm leading-tight mb-1 font-serif",
-                                                        isDarkMode ? "text-gray-200 group-hover:text-white" : "text-gray-800 group-hover:text-black"
-                                                    )} style={{ fontFamily: "'Crimson Pro', serif" }}>
-                                                        {log.title}
-                                                    </h4>
-                                                    <span className="text-[10px] font-mono opacity-50 uppercase tracking-widest block">
-                                                        {log.date}
+                                                    <span className="block transition-transform duration-300 group-hover:translate-x-1">
+                                                        <time
+                                                            dateTime={log.date}
+                                                            className={cn(
+                                                                "block font-mono text-[10px] font-medium uppercase tracking-[0.18em] mb-1",
+                                                                index === 0
+                                                                    ? "text-blue-500"
+                                                                    : isDarkMode ? "text-gray-500" : "text-gray-400"
+                                                            )}
+                                                        >
+                                                            {log.date}
+                                                        </time>
+                                                        <span className={cn(
+                                                            "block font-serif text-[15px] font-semibold leading-snug",
+                                                            isDarkMode
+                                                                ? "text-gray-300 group-hover:text-white"
+                                                                : "text-gray-700 group-hover:text-black"
+                                                        )}>
+                                                            {log.title}
+                                                        </span>
                                                     </span>
-                                                </div>
-                                            </button>
-                                        </SheetTrigger>
-                                    ))
-                                ) : (
-                                    <div className="text-xs opacity-50 pl-6 italic">Loading stream...</div>
-                                )}
+                                                </button>
+                                            </SheetTrigger>
+                                        </li>
+                                    ))}
+                                </ol>
+                            ) : (
+                                <p className={cn(
+                                    "font-serif italic text-sm",
+                                    isDarkMode ? "text-gray-600" : "text-gray-400"
+                                )}>
+                                    No logs yet.
+                                </p>
+                            )}
 
-                                {/* View All Link / Context Button */}
+                            {/* Open the full research log */}
+                            {dailyLogs.length > 0 && (
                                 <SheetTrigger asChild>
                                     <button className={cn(
-                                        "group flex items-center gap-2 mt-8 text-xs font-bold uppercase tracking-wider pl-6 transition-colors",
-                                        isDarkMode ? "text-blue-400 hover:text-blue-300" : "text-blue-600 hover:text-blue-800"
+                                        "group mt-2 inline-flex items-center gap-2 rounded-full border px-4 py-2",
+                                        "font-mono text-[10px] font-medium uppercase tracking-[0.2em] transition-colors",
+                                        "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2",
+                                        isDarkMode
+                                            ? "border-gray-800 text-gray-400 hover:border-gray-600 hover:text-white focus-visible:outline-white"
+                                            : "border-gray-200 text-gray-500 hover:border-gray-400 hover:text-gray-900 focus-visible:outline-gray-900"
                                     )}>
-                                        <BookOpen size={14} />
-                                        <span>Full Stream</span>
+                                        <BookOpen size={13} aria-hidden="true" />
+                                        <span>Full stream</span>
+                                        <span className={cn(
+                                            "rounded-full px-1.5 py-0.5 text-[9px] leading-none",
+                                            isDarkMode ? "bg-gray-800 text-gray-400" : "bg-gray-100 text-gray-500"
+                                        )}>
+                                            {dailyLogs.length}
+                                        </span>
                                     </button>
                                 </SheetTrigger>
-
-                            </div>
+                            )}
 
                             <SheetContent
                                 side="left"
@@ -158,12 +214,18 @@ const BlogPostView = () => {
                                     isDarkMode ? "bg-black/95 border-gray-800 text-white" : "bg-white/95 border-gray-200 text-gray-900"
                                 )}
                             >
-                                <SheetHeader className="mb-8 mt-4">
-                                    <SheetTitle className={cn("text-2xl font-bold", isDarkMode ? "text-white" : "text-gray-900")}>
-                                        Project Timeline
+                                <SheetHeader className="mb-8 mt-4 text-left">
+                                    <p className={cn(
+                                        "font-mono text-[10px] uppercase tracking-[0.25em] mb-1",
+                                        isDarkMode ? "text-gray-500" : "text-gray-400"
+                                    )}>
+                                        Source notes
+                                    </p>
+                                    <SheetTitle className={cn("font-serif text-3xl", isDarkMode ? "text-white" : "text-gray-900")}>
+                                        Research Log
                                     </SheetTitle>
-                                    <p className={cn("text-sm", isDarkMode ? "text-gray-400" : "text-gray-500")}>
-                                        Chronological research notes and updates.
+                                    <p className={cn("text-sm font-serif italic", isDarkMode ? "text-gray-400" : "text-gray-500")}>
+                                        The raw, chronological notes this post was distilled from.
                                     </p>
                                 </SheetHeader>
                                 <DailyLogFeed logs={dailyLogs} />
@@ -177,8 +239,7 @@ const BlogPostView = () => {
 
                     {/* Article Header */}
                     <header className="mb-12">
-                        <h1 className="text-4xl md:text-6xl font-black mb-6 leading-tight tracking-tight font-serif"
-                            style={{ fontFamily: "'Crimson Pro', serif" }}>
+                        <h1 className="text-4xl md:text-6xl font-black mb-6 leading-tight tracking-tight font-serif">
                             {post.title}
                         </h1>
 
@@ -186,7 +247,7 @@ const BlogPostView = () => {
                             <p className={cn(
                                 "text-xl md:text-2xl font-serif italic mb-8 leading-relaxed",
                                 isDarkMode ? "text-gray-400" : "text-gray-500"
-                            )} style={{ fontFamily: "'Crimson Pro', serif" }}>
+                            )}>
                                 {post.subtitle}
                             </p>
                         )}
@@ -232,8 +293,9 @@ const BlogPostView = () => {
                     <article className={cn(
                         "prose prose-lg md:prose-xl max-w-none font-serif",
                         isDarkMode ? "prose-invert" : "prose-gray",
-                        "prose-headings:font-black prose-headings:tracking-tight prose-h1:text-4xl"
-                    )} style={{ fontFamily: "'Crimson Pro', serif" }}>
+                        "prose-headings:font-black prose-headings:tracking-tight prose-h1:text-4xl",
+                        "prose-code:font-mono prose-pre:font-mono prose-a:underline-offset-4"
+                    )}>
                         <ReactMarkdown
                             remarkPlugins={[remarkGfm]}
                             rehypePlugins={[rehypeHighlight]}

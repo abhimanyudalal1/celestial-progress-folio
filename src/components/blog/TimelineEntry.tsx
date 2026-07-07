@@ -1,84 +1,133 @@
-import React, { useState } from 'react';
+import React, { useId, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
 import { DailyLog } from '@/lib/blog';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/contexts/ThemeContext';
 
 interface TimelineEntryProps {
     log: DailyLog;
     isExpanded?: boolean;
+    /** Marks the most recent entry — gets the accent dot */
+    isLatest?: boolean;
 }
 
-export const TimelineEntry: React.FC<TimelineEntryProps> = ({ log, isExpanded = false }) => {
+export const TimelineEntry: React.FC<TimelineEntryProps> = ({ log, isExpanded = false, isLatest = false }) => {
     const [isOpen, setIsOpen] = useState(isExpanded);
     const { isDarkMode } = useTheme();
+    const contentId = useId();
 
     return (
-        <div className="relative pl-8 pb-8 border-l border-dashed border-gray-300 dark:border-gray-700 last:border-0 last:pb-0">
-            {/* Timeline Dot */}
-            <div
+        <li className="relative pl-6 pb-7 last:pb-2">
+            {/* Timeline dot, aligned with the date row */}
+            <span
+                aria-hidden="true"
                 className={cn(
-                    "absolute left-[-5px] top-1.5 w-2.5 h-2.5 rounded-full ring-4 ring-background transition-colors duration-300",
-                    isDarkMode
-                        ? "bg-blue-500 ring-black"
-                        : "bg-blue-600 ring-white"
+                    "absolute -left-[5px] top-[1.05rem] w-[9px] h-[9px] rounded-full ring-4 transition-colors",
+                    isLatest
+                        ? "bg-blue-500 ring-blue-500/15"
+                        : isDarkMode
+                            ? "bg-gray-600 ring-black/40"
+                            : "bg-gray-300 ring-white"
                 )}
             />
 
-            {/* Date and Title Header / Clickable Area */}
-            <div
-                className="group cursor-pointer mb-2"
-                onClick={() => setIsOpen(!isOpen)}
-            >
-                {/* Date */}
-                <div className="flex items-center gap-3 mb-1">
-                    <span className={cn(
-                        "text-xs font-mono font-bold uppercase tracking-wider opacity-60 group-hover:opacity-100 transition-opacity",
-                        isDarkMode ? "text-blue-300" : "text-blue-600"
-                    )}>
-                        {log.date}
-                    </span>
-                    <div className={cn(
-                        "opacity-0 group-hover:opacity-100 transition-opacity",
-                        isDarkMode ? "text-gray-300" : "text-gray-600"
-                    )}>
-                        {isOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                    </div>
-                </div>
-                
-                {/* Title */}
-                <h4 className={cn(
-                    "text-base font-bold group-hover:text-blue-500 transition-colors",
-                    isDarkMode ? "text-gray-200" : "text-gray-800"
-                )}>
-                    {log.title}
-                </h4>
-            </div>
-
-            {/* Content Card */}
-            <div
+            {/* Disclosure header — a real button: keyboard operable, screen-reader labelled */}
+            <button
+                type="button"
+                aria-expanded={isOpen}
+                aria-controls={contentId}
+                onClick={() => setIsOpen(v => !v)}
                 className={cn(
-                    "transition-all duration-300 ease-in-out overflow-hidden pl-2",
-                    isOpen ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-50"
+                    "group w-full text-left rounded-lg px-3 py-2 -ml-3 transition-colors",
+                    "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2",
+                    isDarkMode
+                        ? "hover:bg-white/5 focus-visible:outline-white"
+                        : "hover:bg-gray-100 focus-visible:outline-gray-900"
                 )}
             >
-                <div className={cn(
-                    "rounded-md p-4 text-sm prose prose-sm max-w-none transition-colors duration-300 border",
-                    isDarkMode
-                        ? "bg-gray-900/50 border-gray-800 prose-invert"
-                        : "bg-gray-50 border-gray-200 prose-gray"
-                )}>
-                    <ReactMarkdown
-                        remarkPlugins={[remarkGfm]}
-                        rehypePlugins={[rehypeHighlight]}
+                <span className="flex items-baseline justify-between gap-3">
+                    <time
+                        dateTime={log.date}
+                        className={cn(
+                            "font-mono text-[11px] font-medium uppercase tracking-[0.18em]",
+                            isLatest
+                                ? "text-blue-500"
+                                : isDarkMode ? "text-gray-500" : "text-gray-400"
+                        )}
                     >
-                        {log.content}
-                    </ReactMarkdown>
+                        {log.date}
+                    </time>
+                    <ChevronDown
+                        size={16}
+                        aria-hidden="true"
+                        className={cn(
+                            "shrink-0 translate-y-0.5 transition-transform duration-300",
+                            isOpen && "rotate-180",
+                            isDarkMode ? "text-gray-500 group-hover:text-gray-300" : "text-gray-400 group-hover:text-gray-700"
+                        )}
+                    />
+                </span>
+
+                <span className={cn(
+                    "block font-serif text-lg font-semibold leading-snug mt-0.5",
+                    isDarkMode ? "text-gray-100" : "text-gray-900"
+                )}>
+                    {log.title}
+                </span>
+
+                {log.tags && log.tags.length > 0 && (
+                    <span className="flex flex-wrap gap-1.5 mt-2">
+                        {log.tags.map(tag => (
+                            <span
+                                key={tag}
+                                className={cn(
+                                    "font-mono text-[10px] uppercase tracking-[0.12em] px-1.5 py-0.5 rounded border",
+                                    isDarkMode
+                                        ? "border-gray-700 text-gray-400"
+                                        : "border-gray-200 text-gray-500"
+                                )}
+                            >
+                                {tag}
+                            </span>
+                        ))}
+                    </span>
+                )}
+            </button>
+
+            {/* Collapsible content: grid-rows animation; `invisible` removes the collapsed
+                content from the tab order and accessibility tree (max-height hacks don't) */}
+            <div
+                id={contentId}
+                role="region"
+                aria-label={`${log.title} — log content`}
+                className={cn(
+                    "grid transition-[grid-template-rows] duration-300 ease-out motion-reduce:transition-none",
+                    isOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+                )}
+            >
+                <div className={cn("overflow-hidden", !isOpen && "invisible")}>
+                    <div className={cn(
+                        "mt-2 rounded-lg border p-4",
+                        "prose prose-sm max-w-none",
+                        "prose-headings:font-serif prose-headings:tracking-tight",
+                        "prose-code:font-mono prose-code:text-[0.85em] prose-pre:font-mono prose-pre:text-xs",
+                        "prose-a:underline prose-a:underline-offset-4",
+                        isDarkMode
+                            ? "bg-white/[0.03] border-gray-800 prose-invert"
+                            : "bg-gray-50 border-gray-200 prose-gray"
+                    )}>
+                        <ReactMarkdown
+                            remarkPlugins={[remarkGfm]}
+                            rehypePlugins={[rehypeHighlight]}
+                        >
+                            {log.content}
+                        </ReactMarkdown>
+                    </div>
                 </div>
             </div>
-        </div>
+        </li>
     );
 };

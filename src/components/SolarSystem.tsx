@@ -12,6 +12,9 @@ import { toLegacyProjects } from "@/data/projects";
 interface SolarSystemProps {
   selectedProject: PlanetProject | null;
   setSelectedProject: (project: PlanetProject | null) => void;
+  /** When provided, clicking a planet calls this (with the project's index)
+      instead of opening the legacy project panel. */
+  onPlanetClick?: (index: number) => void;
 }
 
 import { SOLAR_CONFIG, getPlanetPosition, getOrbitRadii, getPlanetAngle } from "@/lib/solar-system-config";
@@ -23,7 +26,7 @@ import { useWindowSize } from '@/hooks/use-window-size';
 
 // ... (other imports)
 
-const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) => {
+const SolarSystem = ({ selectedProject, setSelectedProject, onPlanetClick }: SolarSystemProps) => {
   const dimensions = useWindowSize(); // Debounced resize hook
   const { isDarkMode } = useTheme();
 
@@ -384,7 +387,7 @@ const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) 
                     <g
                       className="pointer-events-auto planet-group gravity-source"
                       style={{ cursor: 'pointer', pointerEvents: 'auto' }}
-                      onClick={() => setSelectedProject(project)}
+                      onClick={() => onPlanetClick ? onPlanetClick(index) : setSelectedProject(project)}
                       transform={`translate(${position.x}, ${position.y})`}
                     >
                       <g
@@ -439,7 +442,7 @@ const SolarSystem = ({ selectedProject, setSelectedProject }: SolarSystemProps) 
                                 cursor: 'pointer'
                               }}
                               className="pointer-events-auto"
-                              onClick={() => setSelectedProject(project)}
+                              onClick={() => onPlanetClick ? onPlanetClick(index) : setSelectedProject(project)}
                             >
                               <div
                                 ref={(el) => planetRefs.current[index] = el}

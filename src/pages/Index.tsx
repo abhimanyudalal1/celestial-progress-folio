@@ -119,9 +119,10 @@ const Index = () => {
   const hintRef = useRef<HTMLDivElement>(null);
   const focusScrimRef = useRef<HTMLDivElement>(null);
 
-  // Project focus cards + sidebar nodes
+  // Project focus cards + sidebar nodes + orbiting link satellites
   const focusCardRefs = useRef<(HTMLDivElement | null)[]>([]);
   const sidebarNodeRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const orbitRingRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   // Navigation State storage for GSAP progress
   const timelineRef = useRef<gsap.core.Timeline | null>(null);
@@ -288,12 +289,21 @@ const Index = () => {
               }
             });
 
-            // Sidebar is only visible while touring planets
+            // Sidebar, return button and scrim hit-area are only live while touring
+            const inTour = t >= TOUR_START + 1.2 && t <= tourEnd + 0.3;
             const sidebarParent = document.getElementById('project-sidebar');
             if (sidebarParent) {
-              const inTour = t >= TOUR_START + 1.2 && t <= tourEnd + 0.3;
               sidebarParent.style.opacity = inTour ? '1' : '0';
               sidebarParent.style.pointerEvents = inTour ? 'auto' : 'none';
+            }
+            const returnBtn = document.getElementById('tour-return');
+            if (returnBtn) {
+              returnBtn.style.opacity = inTour ? '1' : '0';
+              returnBtn.style.pointerEvents = inTour ? 'auto' : 'none';
+            }
+            if (focusScrimRef.current) {
+              // While touring, the dimmed space becomes a click target to zoom back out
+              focusScrimRef.current.style.pointerEvents = inTour ? 'auto' : 'none';
             }
 
             // Vertical track "progress filler" line, first focus → last focus
@@ -366,6 +376,18 @@ const Index = () => {
             t + 3.3);
           tl.set(card, { pointerEvents: 'none' }, t + 3.9);
         }
+
+        // Orbiting quick-link satellites materialize around the held planet
+        const ring = orbitRingRefs.current[i];
+        if (ring) {
+          tl.fromTo(ring,
+            { opacity: 0, scale: 0.85 },
+            { opacity: 1, scale: 1, duration: 0.6, ease: "power2.out" },
+            t + 1.2);
+          tl.set(ring, { pointerEvents: 'auto' }, t + 1.2);
+          tl.to(ring, { opacity: 0, scale: 0.9, duration: 0.5, ease: "power2.in" }, t + 3.3);
+          tl.set(ring, { pointerEvents: 'none' }, t + 3.8);
+        }
       });
 
       // Return: pull the camera back out to reveal the whole system...
@@ -398,8 +420,9 @@ const Index = () => {
     };
   }, [sceneReady, projectsData.length, dimensions]);
 
-  // Click handler for Sidebar navigation — jump to the hold point of planet `index`
-  const handleSidebarClick = (index: number) => {
+  // Fly the camera to planet `index`'s hold point — used by the rail nodes AND by
+  // clicking a planet directly (same zoom as scrolling there, because it IS scrolling there)
+  const scrollToPlanet = (index: number) => {
     const tl = timelineRef.current;
     const st = tl?.scrollTrigger;
     if (!tl || !st) return;
@@ -411,6 +434,30 @@ const Index = () => {
       top: targetScroll,
       behavior: 'smooth'
     });
+  };
+
+  // Zoom back out to the full system (top of the tour)
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Escape always returns to the zoomed-out system
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && window.scrollY > 10) scrollToTop();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+  // Clicking the dimmed space around the porthole zooms back out;
+  // clicks near the focused planet itself are ignored.
+  const handleScrimClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const holeX = rect.left + rect.width * 0.32;
+    const holeY = rect.top + rect.height * 0.46;
+    const dist = Math.hypot(e.clientX - holeX, e.clientY - holeY);
+    if (dist > rect.height * 0.26) scrollToTop();
   };
 
   return (
@@ -465,7 +512,7 @@ const Index = () => {
                  <button
                    key={`sidebar-node-${project.id}`}
                    ref={el => { if (sidebarNodeRefs.current) sidebarNodeRefs.current[i] = el; }}
-                   onClick={() => handleSidebarClick(i)}
+                   onClick={() => scrollToPlanet(i)}
                    className="group relative flex items-center justify-center w-5 h-5 border-0 outline-none bg-transparent"
                    aria-label={`Scroll to ${project.title}`}
                  >
@@ -496,6 +543,7 @@ const Index = () => {
                   <SolarSystem
                     selectedProject={selectedProject}
                     setSelectedProject={setSelectedProject}
+                    onPlanetClick={scrollToPlanet}
                   />
                 </div>
               </div>
@@ -506,6 +554,7 @@ const Index = () => {
               focus point, keeping the held planet crisp and the card text readable */}
           <div
             ref={focusScrimRef}
+            onClick={handleScrimClick}
             className="absolute inset-0 z-[35] pointer-events-none opacity-0"
             style={{
               backdropFilter: 'blur(5px)',
@@ -596,6 +645,89 @@ const Index = () => {
                 </div>
               </div>
             ))}
+          </div>
+
+          {/* Orbiting quick-link satellites: small glassy icons revolving slowly around
+              the focused planet's porthole; hover reveals the label, click opens the link */}
+          <div className="absolute inset-0 z-[38] pointer-events-none">
+            {projectsData.map((project, index) => {
+              const orbitLinks = [
+                ...(project.links.github ? [{ label: 'Repository', href: project.links.github, Icon: Github }] : []),
+                ...(project.links.live ? [{ label: 'Live Site', href: project.links.live, Icon: ExternalLink }] : []),
+              ];
+              if (orbitLinks.length === 0) return null;
+              return (
+                <div
+                  key={`orbit-ring-${project.id}`}
+                  className="absolute"
+                  style={{ left: '32%', top: '46%' }}
+                >
+                  <div
+                    ref={(el) => orbitRingRefs.current[index] = el}
+                    className="relative opacity-0 pointer-events-none"
+                    style={{ width: '44vh', height: '44vh', marginLeft: '-22vh', marginTop: '-22vh' }}
+                  >
+                    <div className="absolute inset-0 tour-orbit-spin">
+                      {orbitLinks.map((link, li) => {
+                        const angleDeg = -30 + li * 180;
+                        const angle = (angleDeg * Math.PI) / 180;
+                        const xPct = 50 + 50 * Math.cos(angle);
+                        const yPct = 50 + 50 * Math.sin(angle);
+                        return (
+                          <div
+                            key={link.label}
+                            className="absolute"
+                            style={{ left: `${xPct}%`, top: `${yPct}%` }}
+                          >
+                            <div className="-translate-x-1/2 -translate-y-1/2">
+                              <div className="tour-orbit-counterspin">
+                                <a
+                                  href={link.href}
+                                  target="_blank" rel="noopener noreferrer"
+                                  className="group relative flex items-center justify-center w-12 h-12 rounded-full border backdrop-blur-md transition-transform duration-300 hover:scale-110"
+                                  style={{
+                                    backgroundColor: isDarkMode ? 'rgba(255,255,255,0.75)' : 'rgba(0,0,0,0.55)',
+                                    borderColor: isDarkMode ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.3)',
+                                    color: isDarkMode ? '#000000' : '#ffffff'
+                                  }}
+                                  aria-label={`${project.title} — ${link.label}`}
+                                >
+                                  <link.Icon size={18} />
+                                  <span
+                                    className="absolute top-full mt-2 left-1/2 -translate-x-1/2 whitespace-nowrap font-mono text-[10px] uppercase tracking-[0.25em] opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+                                    style={{ color: isDarkMode ? 'rgba(0,0,0,0.8)' : 'rgba(255,255,255,0.9)' }}
+                                  >
+                                    {link.label}
+                                  </span>
+                                </a>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Return to orbit — zooms back out to the full system */}
+          <div
+            id="tour-return"
+            className="fixed bottom-6 inset-x-0 z-[90] flex justify-center opacity-0 pointer-events-none transition-opacity duration-500"
+          >
+            <button
+              onClick={scrollToTop}
+              className="font-mono text-[11px] uppercase tracking-[0.3em] px-5 py-2.5 rounded-full border backdrop-blur-md transition-transform hover:scale-105"
+              style={{
+                color: isDarkMode ? 'rgba(0,0,0,0.75)' : 'rgba(255,255,255,0.85)',
+                borderColor: isDarkMode ? 'rgba(0,0,0,0.25)' : 'rgba(255,255,255,0.25)',
+                backgroundColor: isDarkMode ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.4)'
+              }}
+            >
+              ↩ Return to orbit
+            </button>
           </div>
 
           {/* Outro (Contact) — surfaces as the system dims after the tour */}

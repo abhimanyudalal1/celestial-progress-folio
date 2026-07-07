@@ -534,3 +534,16 @@ All colors MUST be HSL.
     }
   }
 }
+/* Grand Tour: orbiting quick-link satellites around the focused planet */
+@keyframes tour-orbit-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.tour-orbit-spin {
+  animation: tour-orbit-spin 28s linear infinite;
+}
+
+.tour-orbit-counterspin {
+  animation: tour-orbit-spin 28s linear infinite reverse;
+}

@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "Bash(git -C /Users/abhimanyu/Desktop/celestial-progress-folio diff --stat)"
+    ]
+  }
+}

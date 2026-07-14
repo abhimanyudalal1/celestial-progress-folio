@@ -11,9 +11,10 @@ import { toLegacyProjects } from "@/data/projects";
 import { ExternalLink, Github, Mail, Linkedin, Twitter } from "lucide-react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { ScrollToPlugin } from "gsap/ScrollToPlugin";
 import { useWindowSize } from "@/hooks/use-window-size";
 
-gsap.registerPlugin(ScrollTrigger);
+gsap.registerPlugin(ScrollTrigger, ScrollToPlugin);
 
 // ---- Grand Tour timing constants (GSAP time units, mapped onto scroll via scrub) ----
 const TOUR_START = 1; // time when the camera departs for the first planet
@@ -126,6 +127,8 @@ const Index = () => {
 
   // Navigation State storage for GSAP progress
   const timelineRef = useRef<gsap.core.Timeline | null>(null);
+  // The active programmatic scroll tween (planet click / rail node / return-to-orbit)
+  const scrollTweenRef = useRef<gsap.core.Tween | null>(null);
 
   // Synchronize DOM elements sweep with 3D starfield sweep without triggering React state re-renders mid-animation
   useEffect(() => {
@@ -257,6 +260,7 @@ const Index = () => {
           end: `+=${totalScroll}`,
           scrub: 1,
           pin: true,
+          anticipatePin: 1,
           onUpdate: (self) => {
             // Derive time from scroll progress (tl.time() lags behind the scrub)
             const t = self.progress * tl.duration();
@@ -420,6 +424,37 @@ const Index = () => {
     };
   }, [sceneReady, projectsData.length, dimensions]);
 
+  // Drive the scroll with GSAP instead of native smooth scrolling: native scroll
+  // finishes in a fixed ~0.5s no matter the distance and isn't frame-synced with the
+  // scrubbed timeline, so long hops whipped past intermediate planets and stuttered.
+  // Duration scales with distance so a hop across the whole tour glides instead.
+  const animateScrollTo = (targetScroll: number) => {
+    scrollTweenRef.current?.kill();
+    const distance = Math.abs(targetScroll - window.scrollY);
+    if (distance < 1) return;
+
+    const duration = gsap.utils.clamp(0.8, 3, distance / 1100);
+    scrollTweenRef.current = gsap.to(window, {
+      scrollTo: { y: targetScroll, autoKill: false },
+      duration,
+      ease: 'power1.inOut',
+      overwrite: 'auto',
+      onComplete: () => { scrollTweenRef.current = null; },
+    });
+  };
+
+  // If the user scrolls mid-flight, hand control back immediately
+  useEffect(() => {
+    const cancelFlight = () => scrollTweenRef.current?.kill();
+    window.addEventListener('wheel', cancelFlight, { passive: true });
+    window.addEventListener('touchmove', cancelFlight, { passive: true });
+    return () => {
+      window.removeEventListener('wheel', cancelFlight);
+      window.removeEventListener('touchmove', cancelFlight);
+      scrollTweenRef.current?.kill();
+    };
+  }, []);
+
   // Fly the camera to planet `index`'s hold point — used by the rail nodes AND by
   // clicking a planet directly (same zoom as scrolling there, because it IS scrolling there)
   const scrollToPlanet = (index: number) => {
@@ -430,15 +465,12 @@ const Index = () => {
     const targetTime = TOUR_START + index * TOUR_PER_PLANET + TOUR_FOCUS_OFFSET;
     const targetScroll = st.start + (targetTime / tl.duration()) * (st.end - st.start);
 
-    window.scrollTo({
-      top: targetScroll,
-      behavior: 'smooth'
-    });
+    animateScrollTo(targetScroll);
   };
 
   // Zoom back out to the full system (top of the tour)
   const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    animateScrollTo(0);
   };
 
   // Escape always returns to the zoomed-out system
@@ -533,7 +565,11 @@ const Index = () => {
 
           {/* The Scene (Camera Target): hero sun + solar system, panned & zoomed by the tour */}
           <div ref={initialSweepRef} className="absolute inset-0 w-full h-full origin-center">
-            <div ref={sceneWrapperRef} className="absolute inset-0 w-full h-full origin-center">
+            <div
+              ref={sceneWrapperRef}
+              className="absolute inset-0 w-full h-full origin-center"
+              style={{ willChange: 'transform' }}
+            >
               <div ref={heroRef} className="absolute inset-0 z-20 pointer-events-none flex items-center justify-center">
                 <Hero />
               </div>

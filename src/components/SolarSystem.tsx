@@ -51,6 +51,9 @@ const SolarSystem = ({ selectedProject, setSelectedProject, onPlanetClick }: Sol
   useEffect(() => {
     let animationFrameId: number;
     let startTime = Date.now();
+    // Sprite frames only advance a few times per second — track the last drawn frame
+    // per planet so we don't dirty style/paint on every rAF while the camera moves
+    const lastDrawnFrame: number[] = [];
 
     const tick = () => {
       const elapsed = (Date.now() - startTime) / 1000;
@@ -63,6 +66,8 @@ const SolarSystem = ({ selectedProject, setSelectedProject, onPlanetClick }: Sol
 
           const planetFps = 3.0 - (index * 0.3);
           const frame = Math.floor(elapsed * planetFps) % 150;
+          if (lastDrawnFrame[index] === frame) return;
+          lastDrawnFrame[index] = frame;
 
           const planetRadius = baseDimension * (project.planetSize || 0.07);
           const planetW = planetRadius * 2;

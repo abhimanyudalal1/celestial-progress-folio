@@ -26,6 +26,8 @@ interface StarsProps {
   isInitialLoad?: boolean;
 }
 
+const starsInstanceId = Math.random().toString(36).slice(2, 6);
+
 const Stars = ({ isAppLoaded = true, onSettled, isInitialLoad = false }: StarsProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number>();
@@ -34,6 +36,19 @@ const Stars = ({ isAppLoaded = true, onSettled, isInitialLoad = false }: StarsPr
   const gravityCenterRef = useRef<{ x: number, y: number } | null>(null);
   const { isDarkMode } = useTheme();
   const dimensions = useWindowSize(); // Debounced resize hook
+
+  const isDarkModeRef = useRef(isDarkMode);
+  const lastDimensionsRef = useRef({ width: dimensions.width, height: dimensions.height });
+
+  useEffect(() => {
+    isDarkModeRef.current = isDarkMode;
+  }, [isDarkMode]);
+
+  // Debug: track mount/unmount
+  useEffect(() => {
+    console.log(`[Stars ${starsInstanceId}] MOUNTED`);
+    return () => console.log(`[Stars ${starsInstanceId}] UNMOUNTED`);
+  }, []);
 
   const [explosionStarted, setExplosionStarted] = useState(!isInitialLoad);
   const explosionStartedRef = useRef(!isInitialLoad);
@@ -70,18 +85,38 @@ const Stars = ({ isAppLoaded = true, onSettled, isInitialLoad = false }: StarsPr
 
     // Set canvas size
     const resizeCanvas = () => {
-      canvas.width = dimensions.width;
-      canvas.height = dimensions.height;
+      const prevWidth = lastDimensionsRef.current.width;
+      const prevHeight = lastDimensionsRef.current.height;
+      const newWidth = dimensions.width;
+      const newHeight = dimensions.height;
+
+      canvas.width = newWidth;
+      canvas.height = newHeight;
+
+      if (starsRef.current.length > 0 && (prevWidth !== newWidth || prevHeight !== newHeight)) {
+        const scaleX = newWidth / (prevWidth || 1);
+        const scaleY = newHeight / (prevHeight || 1);
+        starsRef.current.forEach(star => {
+          star.x *= scaleX;
+          star.y *= scaleY;
+          star.targetX *= scaleX;
+          star.targetY *= scaleY;
+          star.chaosX *= scaleX;
+          star.chaosY *= scaleY;
+        });
+      }
+
+      lastDimensionsRef.current = { width: newWidth, height: newHeight };
     };
 
     // Generate stars with different layers for parallax effect
     const generateStars = () => {
       const stars: Star[] = [];
       const layers = [
-        { count: isDarkMode ? 15000 : 1000, sizeRange: [0.2, 0.8], speedRange: [0.02, 0.05], layer: 1 }, // Distant stars (very slow, small)
-        { count: isDarkMode ? 500 : 100, sizeRange: [0.5, 1.2], speedRange: [0.05, 0.1], layer: 2 },  // Mid stars
-        { count: isDarkMode ? 200 : 100, sizeRange: [0.8, 1.5], speedRange: [0.1, 0.15], layer: 3 },  // Close stars
-        { count: isDarkMode ? 50 : 10, sizeRange: [1.2, 2.0], speedRange: [0.15, 0.2], layer: 4 },  // Closest stars
+        { count: 1000, sizeRange: [0.2, 0.8], speedRange: [0.02, 0.05], layer: 1 }, // Distant stars (very slow, small)
+        { count: 100, sizeRange: [0.5, 1.2], speedRange: [0.05, 0.1], layer: 2 },  // Mid stars
+        { count: 80, sizeRange: [0.8, 1.5], speedRange: [0.1, 0.15], layer: 3 },  // Close stars
+        { count: 15, sizeRange: [1.2, 2.0], speedRange: [0.15, 0.2], layer: 4 },  // Closest stars
       ];
 
       layers.forEach(layerConfig => {
@@ -255,7 +290,7 @@ const Stars = ({ isAppLoaded = true, onSettled, isInitialLoad = false }: StarsPr
         let glowEnd = 'rgba(0,0,0,0)';
         let sparkleColor = `rgba(0,0,0, ${currentOpacity * 0.6})`;
 
-        if (!isDarkMode) {
+        if (!isDarkModeRef.current) {
           // Colorful Mode (Dark Background)
           if (star.hue !== undefined) {
             starFill = `hsla(${star.hue}, ${star.saturation}%, ${star.lightness}%, 1)`;
@@ -328,7 +363,9 @@ const Stars = ({ isAppLoaded = true, onSettled, isInitialLoad = false }: StarsPr
 
     // Initialize/Update on resize (debounced)
     resizeCanvas();
-    generateStars();
+    if (starsRef.current.length === 0) {
+      generateStars();
+    }
     animate();
 
     window.addEventListener('mousemove', handleMouseMove);
@@ -340,18 +377,27 @@ const Stars = ({ isAppLoaded = true, onSettled, isInitialLoad = false }: StarsPr
       }
       window.removeEventListener('mousemove', handleMouseMove);
     };
-  }, [isDarkMode, dimensions]);
+  }, [dimensions.width, dimensions.height]);
 
   return (
-    <canvas
-      ref={canvasRef}
-      className="fixed inset-0 pointer-events-none z-0"
-      style={{
-        background: isDarkMode ? 'transparent' : 'radial-gradient(ellipse at center, #0f1419 0%, #000000 10%)',
-        transition: 'background 0.7s ease-in-out'
-      }}
-      aria-hidden="true"
-    />
+    <>
+      <div
+        className="fixed inset-0 pointer-events-none z-0 transition-opacity duration-700"
+        style={{
+          background: 'radial-gradient(ellipse at center, #0f1419 0%, #000000 10%)',
+          opacity: isDarkMode ? 0 : 1
+        }}
+        aria-hidden="true"
+      />
+      <canvas
+        ref={canvasRef}
+        className="fixed inset-0 pointer-events-none z-0"
+        style={{
+          background: 'transparent'
+        }}
+        aria-hidden="true"
+      />
+    </>
   );
 };
 

@@ -630,14 +630,15 @@ const Index = () => {
             }}
           />
 
-          {/* Focus vignette: the corners darken softly while a planet is hovered */}
+          {/* Focus vignette: the corners darken softly while a planet is hovered.
+              farthest-corner circle → 100% lands exactly on the screen corners */}
           <div
             ref={vignetteRef}
             className="fixed inset-0 z-[150] pointer-events-none"
             style={{
               opacity: 0,
               transition: 'opacity 0.45s ease',
-              background: 'radial-gradient(115% 115% at 50% 50%, transparent 55%, rgba(0,0,0,0.55) 100%)',
+              background: 'radial-gradient(circle at 50% 50%, transparent 48%, rgba(0,0,0,0.25) 76%, rgba(0,0,0,0.65) 100%)',
             }}
           />
 

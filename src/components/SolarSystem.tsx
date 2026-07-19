@@ -15,6 +15,8 @@ interface SolarSystemProps {
   /** When provided, clicking a planet calls this (with the project's index)
       instead of opening the legacy project panel. */
   onPlanetClick?: (index: number) => void;
+  /** Fires with true/false as the cursor enters/leaves a planet (drives the focus vignette). */
+  onPlanetHover?: (hovering: boolean) => void;
 }
 
 import { SOLAR_CONFIG, getPlanetPosition, getOrbitRadii, getPlanetAngle } from "@/lib/solar-system-config";
@@ -26,7 +28,7 @@ import { useWindowSize } from '@/hooks/use-window-size';
 
 // ... (other imports)
 
-const SolarSystem = ({ selectedProject, setSelectedProject, onPlanetClick }: SolarSystemProps) => {
+const SolarSystem = ({ selectedProject, setSelectedProject, onPlanetClick, onPlanetHover }: SolarSystemProps) => {
   const dimensions = useWindowSize(); // Debounced resize hook
   const { isDarkMode } = useTheme();
 
@@ -393,6 +395,8 @@ const SolarSystem = ({ selectedProject, setSelectedProject, onPlanetClick }: Sol
                       className="pointer-events-auto planet-group gravity-source"
                       style={{ cursor: 'pointer', pointerEvents: 'auto' }}
                       onClick={() => onPlanetClick ? onPlanetClick(index) : setSelectedProject(project)}
+                      onMouseEnter={() => onPlanetHover?.(true)}
+                      onMouseLeave={() => onPlanetHover?.(false)}
                       transform={`translate(${position.x}, ${position.y})`}
                     >
                       <g

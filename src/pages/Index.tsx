@@ -127,6 +127,12 @@ const Index = () => {
   // Navigation State storage for GSAP progress
   const timelineRef = useRef<gsap.core.Timeline | null>(null);
 
+  // Eye-blink transition: vignette on planet hover, lids close over the jump
+  const vignetteRef = useRef<HTMLDivElement>(null);
+  const lidTopRef = useRef<HTMLDivElement>(null);
+  const lidBottomRef = useRef<HTMLDivElement>(null);
+  const blinkTlRef = useRef<gsap.core.Timeline | null>(null);
+
   // Synchronize DOM elements sweep with 3D starfield sweep without triggering React state re-renders mid-animation
   useEffect(() => {
     if (!hasLoadedBefore) {
@@ -420,6 +426,63 @@ const Index = () => {
     };
   }, [sceneReady, projectsData.length, dimensions]);
 
+  // Corners of the screen darken while the cursor rests on a planet — a quiet
+  // "focusing" cue. Driven straight through the ref (CSS handles the fade), so
+  // hovering never re-renders the scene.
+  const handlePlanetHover = (hovering: boolean) => {
+    if (vignetteRef.current) vignetteRef.current.style.opacity = hovering ? '1' : '0';
+  };
+
+  // EYE BLINK: two curved lids close over the screen; while it's fully covered the
+  // scroll + scrubbed timeline snap straight to the destination (any jank happens in
+  // the dark), then the lids open on the planet already in focus. The lids are the
+  // only thing animated — the scene itself is never touched, so nothing can wedge.
+  const blinkTo = (targetScroll: number) => {
+    const tl = timelineRef.current;
+    const st = tl?.scrollTrigger;
+    if (!tl || !st) return;
+    if (blinkTlRef.current?.isActive()) return; // one blink at a time
+    if (Math.abs(targetScroll - window.scrollY) < 2) return;
+
+    const topLid = lidTopRef.current;
+    const bottomLid = lidBottomRef.current;
+    if (!topLid || !bottomLid) {
+      window.scrollTo({ top: targetScroll, behavior: 'smooth' });
+      return;
+    }
+
+    handlePlanetHover(false); // release the hover vignette before the blink
+
+    const blink = gsap.timeline();
+
+    // Close (lids always start from fully open — fromTo keeps every run deterministic).
+    // y: 0 matters: the lids' resting position comes from a CSS translateY(-101%),
+    // which GSAP parses as a *pixel* y offset — without resetting it the lids animate
+    // entirely off-screen and the blink is invisible.
+    blink.fromTo(topLid, { y: 0, yPercent: -101 }, { yPercent: 0, duration: 0.28, ease: 'power3.in' }, 0);
+    blink.fromTo(bottomLid, { y: 0, yPercent: 101 }, { yPercent: 0, duration: 0.28, ease: 'power3.in' }, 0);
+
+    // Jump while the screen is fully covered
+    blink.add(() => {
+      st.scroll(targetScroll);
+      ScrollTrigger.update();
+      st.getTween()?.progress(1); // scrub completes instantly, in the dark
+      // Hard guarantee: render the timeline at the exact destination state right now.
+      // If the scrub tween wasn't catchable above, it would otherwise keep easing for
+      // ~1s and the camera flight would still be visible when the lids open.
+      const p = gsap.utils.clamp(0, 1, (targetScroll - st.start) / (st.end - st.start));
+      tl.totalProgress(p);
+    }, 0.3);
+
+    // Open on the new view
+    blink.to(topLid, { yPercent: -101, duration: 0.55, ease: 'power2.inOut' }, 0.42);
+    blink.to(bottomLid, { yPercent: 101, duration: 0.55, ease: 'power2.inOut' }, 0.42);
+
+    blinkTlRef.current = blink;
+  };
+
+  useEffect(() => () => { blinkTlRef.current?.kill(); }, []);
+
   // Fly the camera to planet `index`'s hold point — used by the rail nodes AND by
   // clicking a planet directly (same zoom as scrolling there, because it IS scrolling there)
   const scrollToPlanet = (index: number) => {
@@ -430,15 +493,12 @@ const Index = () => {
     const targetTime = TOUR_START + index * TOUR_PER_PLANET + TOUR_FOCUS_OFFSET;
     const targetScroll = st.start + (targetTime / tl.duration()) * (st.end - st.start);
 
-    window.scrollTo({
-      top: targetScroll,
-      behavior: 'smooth'
-    });
+    blinkTo(targetScroll);
   };
 
   // Zoom back out to the full system (top of the tour)
   const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    blinkTo(0);
   };
 
   // Escape always returns to the zoomed-out system
@@ -548,6 +608,7 @@ const Index = () => {
                     selectedProject={selectedProject}
                     setSelectedProject={setSelectedProject}
                     onPlanetClick={scrollToPlanet}
+                    onPlanetHover={handlePlanetHover}
                   />
                 </div>
               </div>
@@ -568,6 +629,42 @@ const Index = () => {
               WebkitMaskImage: 'radial-gradient(circle 42vh at 32% 46%, transparent 55%, black 100%)',
             }}
           />
+
+          {/* Focus vignette: the corners darken softly while a planet is hovered */}
+          <div
+            ref={vignetteRef}
+            className="fixed inset-0 z-[150] pointer-events-none"
+            style={{
+              opacity: 0,
+              transition: 'opacity 0.45s ease',
+              background: 'radial-gradient(115% 115% at 50% 50%, transparent 55%, rgba(0,0,0,0.55) 100%)',
+            }}
+          />
+
+          {/* Eye-blink lids: curved panels that close over the planet jump and open
+              on the new view. Transform-only animation, never interactive. */}
+          <div className="fixed inset-0 z-[200] pointer-events-none overflow-hidden">
+            <div
+              ref={lidTopRef}
+              className="absolute left-[-5%] right-[-5%] top-0"
+              style={{
+                height: '62%',
+                backgroundColor: '#000000',
+                borderRadius: '0 0 50% 50% / 0 0 14vh 14vh',
+                transform: 'translateY(-101%)',
+              }}
+            />
+            <div
+              ref={lidBottomRef}
+              className="absolute left-[-5%] right-[-5%] bottom-0"
+              style={{
+                height: '62%',
+                backgroundColor: '#000000',
+                borderRadius: '50% 50% 0 0 / 14vh 14vh 0 0',
+                transform: 'translateY(101%)',
+              }}
+            />
+          </div>
 
           {/* Scroll hint */}
           <div className="absolute inset-x-0 bottom-8 z-40 flex justify-center pointer-events-none">

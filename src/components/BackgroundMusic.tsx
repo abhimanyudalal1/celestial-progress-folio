@@ -42,7 +42,9 @@ export function BackgroundMusic() {
   };
 
   return (
-    <div className="fixed top-6 right-6 md:top-6 md:right-10 z-50 flex items-center gap-4">
+    // Hidden on mobile: it collides with the menu button, and the mobile index
+    // has its own music entry point (the spinning disc + drawer)
+    <div className="fixed top-6 right-6 md:top-6 md:right-10 z-50 hidden md:flex items-center gap-4">
       {/* Tooltip text */}
       <AnimatePresence>
         {!hasInteracted && (

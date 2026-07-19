@@ -24,11 +24,15 @@ interface StarsProps {
   isAppLoaded?: boolean;
   onSettled?: () => void;
   isInitialLoad?: boolean;
+  /** Scales the star count per layer (mobile passes ~0.2 to keep the canvas cheap). */
+  densityScale?: number;
+  /** Scales individual star size (mobile passes <1 so stars stay visually smaller than planets). */
+  sizeScale?: number;
 }
 
 const starsInstanceId = Math.random().toString(36).slice(2, 6);
 
-const Stars = ({ isAppLoaded = true, onSettled, isInitialLoad = false }: StarsProps) => {
+const Stars = ({ isAppLoaded = true, onSettled, isInitialLoad = false, densityScale = 1, sizeScale = 1 }: StarsProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number>();
   const starsRef = useRef<Star[]>([]);
@@ -120,7 +124,8 @@ const Stars = ({ isAppLoaded = true, onSettled, isInitialLoad = false }: StarsPr
       ];
 
       layers.forEach(layerConfig => {
-        for (let i = 0; i < layerConfig.count; i++) {
+        const count = Math.max(1, Math.round(layerConfig.count * densityScale));
+        for (let i = 0; i < count; i++) {
           // Random color tint - significantly more variety
           const randomVal = Math.random();
           let hue, saturation, lightness;
@@ -145,7 +150,7 @@ const Stars = ({ isAppLoaded = true, onSettled, isInitialLoad = false }: StarsPr
             targetY,
             x: targetX, // Set dynamically later
             y: targetY, // Set dynamically later
-            size: Math.random() * (layerConfig.sizeRange[1] - layerConfig.sizeRange[0]) + layerConfig.sizeRange[0],
+            size: (Math.random() * (layerConfig.sizeRange[1] - layerConfig.sizeRange[0]) + layerConfig.sizeRange[0]) * sizeScale,
             opacity: Math.random() * 0.6 + 0.4,
             speed: Math.random() * (layerConfig.speedRange[1] - layerConfig.speedRange[0]) + layerConfig.speedRange[0],
             layer: layerConfig.layer,

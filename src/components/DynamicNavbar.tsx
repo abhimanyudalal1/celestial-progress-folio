@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Home, PenLine, Rocket, User } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useTransition } from '@/contexts/TransitionContext';
 import SkyToggle from './ui/sky-toggle';
@@ -208,86 +209,104 @@ export function DynamicNavbar({ viewMode = 'default' }: DynamicNavbarProps) {
         </div>
       </motion.nav >
 
-      {/* Mobile Navigation */}
-      < div className="md:hidden fixed top-4 right-4 z-50" >
-        <button
-          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          className={`p-3 rounded-full backdrop-blur-md transition-colors ${isDarkMode
-            ? 'text-gray-700 bg-white/10 hover:bg-white/20'
-            : 'text-gray-300 bg-black/20 hover:bg-black/40'
-            }`}
-          aria-label="Toggle menu"
+      {/* Mobile Navigation: full-width top bar, dropdown expands beneath it */}
+      <div className="md:hidden fixed top-0 inset-x-0 z-50">
+        <div
+          className="flex items-center justify-between pl-5 pr-3 h-14 border-b"
+          style={{
+            backgroundColor: isDarkMode ? 'rgba(255,255,255,0.94)' : 'rgba(12,12,12,0.9)',
+            borderColor: isDarkMode ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,0.12)',
+          }}
         >
-          {isMobileMenuOpen ? (
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          ) : (
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          )}
-        </button>
-      </div >
+          <Link
+            to="/"
+            onClick={() => setIsMobileMenuOpen(false)}
+            className={`font-bold text-lg tracking-wide ${isDarkMode
+              ? 'bg-gradient-to-r from-slate-500 to-slate-800 bg-clip-text text-transparent'
+              : 'bg-gradient-to-r from-amber-400 to-red-500 bg-clip-text text-transparent'
+              }`}
+          >
+            Abhimanyu
+          </Link>
+          <button
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className={`flex items-center justify-center w-11 h-11 rounded-md border transition-colors ${isDarkMode
+              ? 'border-black/25 text-gray-900 active:bg-black/10'
+              : 'border-white/25 text-gray-100 active:bg-white/10'
+              }`}
+            aria-label="Toggle menu"
+            aria-expanded={isMobileMenuOpen}
+          >
+            {isMobileMenuOpen ? (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            ) : (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            )}
+          </button>
+        </div>
 
-      {/* Mobile Menu */}
-      <AnimatePresence>
-        {
-          isMobileMenuOpen && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className={`md:hidden fixed inset-0 z-40 flex flex-col items-center justify-center ${isDarkMode ? 'bg-white/95' : 'bg-black/95'
-                }`}
+        <AnimatePresence>
+          {isMobileMenuOpen && (
+            <motion.nav
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.22, ease: 'easeOut' }}
+              className="overflow-hidden border-b"
+              style={{
+                backgroundColor: isDarkMode ? 'rgba(255,255,255,0.94)' : 'rgba(12,12,12,0.9)',
+                borderColor: isDarkMode ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,0.12)',
+              }}
             >
-
-
-              <nav className="flex flex-col items-center gap-8 relative z-10">
-                {navLinks.map((link, index) => (
-                  <motion.div
-                    key={link.to}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.1 }}
-                  >
-                    <Link
-                      to={link.to}
-                      onClick={(e) => {
-                        setIsMobileMenuOpen(false);
-                        if (link.to === '/grid-view' && location.pathname === '/') {
-                          e.preventDefault();
-                          startTransition();
-                        }
-                      }}
-                      className={`text-3xl font-bold transition-colors ${(link as any).isName
-                        ? isDarkMode
-                          ? moonTextClass
-                          : 'bg-gradient-to-r from-amber-400 to-red-500 bg-clip-text text-transparent font-black text-lg'
-                        : isProjectsMode
-                          ? (isDarkMode ? 'text-gray-800 hover:text-white' : 'text-gray-200 hover:text-black')
-                          : (isDarkMode ? 'text-gray-800 hover:text-black' : 'text-gray-200 hover:text-white')
-                        }`}
-                    >
-                      {link.label}
-                    </Link>
-                  </motion.div>
-                ))}
-
-                {/* Theme toggle in mobile menu */}
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: navLinks.length * 0.1 }}
-                  className="mt-4"
+              <ul className="px-5 py-1">
+                {[
+                  { label: 'Home', to: '/', Icon: Home },
+                  { label: 'Blogs', to: '/blogs', Icon: PenLine },
+                  { label: 'Projects', to: '/grid-view', Icon: Rocket },
+                  { label: 'About', to: '/about', Icon: User },
+                ].map(({ label, to, Icon }) => {
+                  const isActive = location.pathname === to;
+                  return (
+                    <li key={to}>
+                      <Link
+                        to={to}
+                        onClick={(e) => {
+                          setIsMobileMenuOpen(false);
+                          if (to === '/grid-view' && location.pathname === '/') {
+                            e.preventDefault();
+                            startTransition();
+                          }
+                        }}
+                        className={`flex items-center gap-3 py-3.5 text-lg ${isActive ? 'font-bold' : 'font-medium'} ${isDarkMode
+                          ? (isActive ? 'text-black' : 'text-gray-700')
+                          : (isActive ? 'text-white' : 'text-gray-300')
+                          }`}
+                      >
+                        <Icon size={19} strokeWidth={isActive ? 2.2 : 1.8} />
+                        {label}
+                      </Link>
+                    </li>
+                  );
+                })}
+                <li
+                  className="flex items-center justify-between py-3 border-t"
+                  style={{ borderColor: isDarkMode ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)' }}
                 >
+                  <span className={`text-sm font-medium ${isDarkMode ? 'text-gray-600' : 'text-gray-400'}`}>
+                    Theme
+                  </span>
                   <SkyToggle />
-                </motion.div>
-              </nav>
-            </motion.div>
-          )
-        }
-      </AnimatePresence >
+                </li>
+              </ul>
+            </motion.nav>
+          )}
+        </AnimatePresence>
+      </div>
+
     </>
   );
 }

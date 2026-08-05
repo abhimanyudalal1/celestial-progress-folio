@@ -206,7 +206,10 @@ const MobileIndex = () => {
     blink.fromTo(topLid, { y: 0, yPercent: -101 }, { yPercent: 0, duration: 0.26, ease: "power3.in" }, 0);
     blink.fromTo(bottomLid, { y: 0, yPercent: 101 }, { yPercent: 0, duration: 0.26, ease: "power3.in" }, 0);
     blink.add(() => {
-      window.scrollTo({ top: targetScroll, behavior: "auto" });
+      // "instant", not "auto": the page sets `html { scroll-behavior: smooth }`,
+      // and "auto" defers to that CSS — Chrome would animate the jump AFTER the
+      // lids open instead of snapping while the screen is covered.
+      window.scrollTo({ top: targetScroll, behavior: "instant" });
     }, 0.3);
     blink.to(topLid, { yPercent: -101, duration: 0.5, ease: "power2.inOut" }, 0.44);
     blink.to(bottomLid, { yPercent: 101, duration: 0.5, ease: "power2.inOut" }, 0.44);
@@ -234,7 +237,7 @@ const MobileIndex = () => {
     const tl = gsap.timeline();
     tl.set(el, { display: "block", scale: 0, opacity: 1, transformOrigin: "50% 50%" });
     tl.to(el, { scale: 26, duration: 0.5, ease: "power2.in" });
-    tl.add(() => { window.scrollTo({ top: targetScroll, behavior: "auto" }); });
+    tl.add(() => { window.scrollTo({ top: targetScroll, behavior: "instant" }); });
     tl.to(el, { opacity: 0, duration: 0.5, ease: "power1.out", delay: 0.12 });
     tl.set(el, { display: "none" });
     wipeTlRef.current = tl;
@@ -532,8 +535,8 @@ const MobileIndex = () => {
                 </div>
               </div>
 
-              {/* Mission log — full width, everything in thumb reach */}
-              <div className="mt-8 flex flex-col gap-4" style={{ color: fg }}>
+              {/* Mission log — full width on phones, capped on tablets */}
+              <div className="mt-8 flex flex-col gap-4 w-full max-w-[560px]" style={{ color: fg }}>
                 <p
                   className="mob-reveal font-mono text-[11px] uppercase tracking-[0.35em] font-semibold"
                   style={{ color: isDarkMode ? "rgba(0,0,0,0.55)" : `hsl(${project.accentColor})` }}
@@ -617,7 +620,7 @@ const MobileIndex = () => {
           <h2 className="mob-reveal text-4xl font-bold tracking-tight drop-shadow-md" style={{ color: fg }}>
             Wanna know more<br />about me?
           </h2>
-          <p className="mob-reveal mob-d1 mt-5 text-lg font-light" style={{ color: muted }}>
+          <p className="mob-reveal mob-d1 mt-5 text-lg font-light max-w-md" style={{ color: muted }}>
             Let's build something incredible.<br />Reach out across the void.
           </p>
 

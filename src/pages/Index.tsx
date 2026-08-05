@@ -12,7 +12,7 @@ import { ExternalLink, Github, Mail, Linkedin, Twitter } from "lucide-react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useWindowSize } from "@/hooks/use-window-size";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useMobileExperience } from "@/hooks/use-mobile";
 import MobileIndex from "@/pages/MobileIndex";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -906,7 +906,7 @@ const DesktopIndex = () => {
 // with a pinned scroll-scrubbed camera — a composition that cannot survive a
 // portrait viewport (see MobileIndex for the vertical tour that replaces it).
 const Index = () => {
-  const isMobile = useIsMobile();
+  const isMobile = useMobileExperience();
   return isMobile ? <MobileIndex /> : <DesktopIndex />;
 };
 

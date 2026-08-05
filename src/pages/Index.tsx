@@ -466,14 +466,25 @@ const DesktopIndex = () => {
 
     // Jump while the screen is fully covered
     blink.add(() => {
-      st.scroll(targetScroll);
+      // The page sets `html { scroll-behavior: smooth }`. Chrome applies that to
+      // programmatic scrolls too, so it would *animate* to the target over a long,
+      // distance-dependent glide — the lids would reopen mid-flight with the camera
+      // still travelling. Pin it to instant for the jump, then restore.
+      const html = document.documentElement;
+      const prevBehavior = html.style.scrollBehavior;
+      html.style.scrollBehavior = 'auto';
+
+      window.scrollTo({ top: targetScroll, behavior: 'instant' as ScrollBehavior });
       ScrollTrigger.update();
       st.getTween()?.progress(1); // scrub completes instantly, in the dark
+
       // Hard guarantee: render the timeline at the exact destination state right now.
       // If the scrub tween wasn't catchable above, it would otherwise keep easing for
       // ~1s and the camera flight would still be visible when the lids open.
       const p = gsap.utils.clamp(0, 1, (targetScroll - st.start) / (st.end - st.start));
       tl.totalProgress(p);
+
+      html.style.scrollBehavior = prevBehavior;
     }, 0.3);
 
     // Open on the new view

@@ -3,7 +3,8 @@ import { useTheme } from "@/contexts/ThemeContext";
 import Stars from "@/components/Stars";
 import { DynamicNavbar, NavbarViewMode } from "@/components/DynamicNavbar";
 import { toLegacyProjects } from "@/data/projects";
-import { getPlanetSprite, SPRITE_COLS, SPRITE_FRAMES } from "@/lib/planet-sprites";
+import { stops, flybys, getLedTo, formatRange, yearOf, type Milestone } from "@/data/milestones";
+import { getSpriteByType, getSpriteOffset, getSpriteSheetSize, SPRITE_FRAMES } from "@/lib/planet-sprites";
 import { useWindowSize } from "@/hooks/use-window-size";
 import { ExternalLink, Github, Mail, Linkedin, Twitter, Music, Download, ArrowUp } from "lucide-react";
 import { Drawer } from "vaul";
@@ -22,9 +23,22 @@ import gsap from "gsap";
 
 const SPRITE_FPS = 2.5;
 
-// Hero status card — edit these when the situation changes
+// Hero status card. "Now" is derived from the path rather than typed here, so it
+// can't drift out of date the way the old hardcoded "Intern @ IIT Bombay" did —
+// the newest ongoing role wins, falling back to the most recent one.
+const currentRole =
+  [...stops, ...flybys.map(f => f.milestone)]
+    .filter(m => m.kind === "role")
+    .sort((a, b) => b.start.localeCompare(a.start))
+    .find(m => m.end === null) ??
+  [...stops, ...flybys.map(f => f.milestone)]
+    .filter(m => m.kind === "role")
+    .sort((a, b) => b.start.localeCompare(a.start))[0];
+
 const HERO_STATUS = {
-  now: "Intern @ IIT Bombay",
+  now: currentRole
+    ? `${currentRole.role ? `${currentRole.role} @ ` : ""}${currentRole.title}`
+    : "Open to work",
   focus: "ML · Fullstack",
 };
 
@@ -45,7 +59,7 @@ const PlanetSprite = ({ spriteUrl, size }: { spriteUrl: string; size: number }) 
       const frame = Math.floor(((Date.now() - start) / 1000) * SPRITE_FPS) % SPRITE_FRAMES;
       if (frame !== lastFrame) {
         lastFrame = frame;
-        el.style.backgroundPosition = `${-(frame % SPRITE_COLS) * size}px ${-Math.floor(frame / SPRITE_COLS) * size}px`;
+        el.style.backgroundPosition = getSpriteOffset(frame, size);
       }
       rafId = requestAnimationFrame(tick);
     };
@@ -76,13 +90,57 @@ const PlanetSprite = ({ spriteUrl, size }: { spriteUrl: string; size: number }) 
         borderRadius: "50%",
         overflow: "hidden",
         backgroundImage: `url('${spriteUrl}')`,
-        backgroundSize: `${size * SPRITE_COLS}px ${size * 3}px`,
+        backgroundSize: getSpriteSheetSize(size),
         backgroundRepeat: "no-repeat",
         backgroundPosition: "0px 0px",
       }}
     />
   );
 };
+
+/**
+ * A minor milestone passed between stops. Deliberately a short row rather than a
+ * full screen — it is something you go past, not something you stop at. Never
+ * registered in sectionRefs, so it stays out of the rail's index space, which
+ * nextIdx / wipeColorFor / goNext all assume runs -1 … n.
+ */
+const FlybyRow = ({
+  milestone: f,
+  isDarkMode,
+  fg,
+  faint,
+}: {
+  milestone: Milestone;
+  isDarkMode: boolean;
+  fg: string;
+  faint: string;
+}) => (
+  <div className="relative pl-14 pr-6 py-12 flex items-center" aria-label={`Passing: ${f.title}`}>
+    {/* Marker sitting on the descent line */}
+    <span
+      className="absolute left-[33px] w-[11px] h-[11px] rounded-full border"
+      style={{
+        backgroundColor: isDarkMode ? "#ffffff" : "#000000",
+        borderColor: isDarkMode ? "rgba(0,0,0,0.45)" : `hsl(${f.accentColor})`,
+      }}
+      aria-hidden="true"
+    />
+    <div className="flex flex-col gap-1">
+      <p
+        className="font-mono text-[9px] uppercase tracking-[0.4em]"
+        style={{ color: isDarkMode ? "rgba(0,0,0,0.5)" : `hsl(${f.accentColor})` }}
+      >
+        Passing · {yearOf(f)}
+      </p>
+      <p className="text-lg font-semibold tracking-tight" style={{ color: fg }}>{f.title}</p>
+      {f.role && (
+        <p className="font-mono text-[10px] uppercase tracking-[0.25em]" style={{ color: faint }}>
+          {f.role} · {formatRange(f)}
+        </p>
+      )}
+    </div>
+  </div>
+);
 
 const MobileIndex = () => {
   const { isDarkMode } = useTheme();
@@ -106,6 +164,11 @@ const MobileIndex = () => {
   const blinkTlRef = useRef<gsap.core.Timeline | null>(null);
   const wipeRef = useRef<HTMLDivElement>(null);
   const wipeTlRef = useRef<gsap.core.Timeline | null>(null);
+  // The descent: a dashed line running the length of the page through every
+  // milestone, with a brighter overlay showing how far you've travelled. Desktop
+  // draws this across the orrery; vertically it is the same idea rotated 90°.
+  const descentRef = useRef<HTMLDivElement>(null);
+  const descentFillRef = useRef<HTMLDivElement>(null);
 
   // Base planet size, gently varied per project so the system keeps its scale story
   const baseSize = Math.min(Math.round(dimensions.width * 0.5), 230) || 180;
@@ -119,7 +182,7 @@ const MobileIndex = () => {
   // is usable immediately; sprites just avoid popping in mid-scroll)
   useEffect(() => {
     const urls = [
-      ...projects.map(p => getPlanetSprite(p.id, isDarkMode)).filter(Boolean) as string[],
+      ...projects.map(p => getSpriteByType(p.planetType, isDarkMode)).filter(Boolean) as string[],
       ...(isDarkMode ? ["/stardark.gif"] : ["/stargif.gif", "/starhd.png"]),
     ];
     urls.forEach(src => { const img = new Image(); img.src = src; });
@@ -163,6 +226,17 @@ const MobileIndex = () => {
           const end = last.offsetTop - vh * 0.5;
           const p = Math.min(1, Math.max(0, (y - start) / Math.max(1, end - start)));
           fillRef.current.style.height = `${p * 100}%`;
+        }
+
+        // The descent line fills to wherever the viewport's midpoint has reached,
+        // measured against the line's own box rather than the tour stops — so it
+        // keeps tracking smoothly across the flyby rows between sections.
+        const descent = descentRef.current;
+        if (descent && descentFillRef.current) {
+          const top = descent.offsetTop;
+          const h = descent.offsetHeight;
+          const p = Math.min(1, Math.max(0, (y + vh * 0.5 - top) / Math.max(1, h)));
+          descentFillRef.current.style.height = `${p * 100}%`;
         }
       });
     };
@@ -492,18 +566,50 @@ const MobileIndex = () => {
         </section>
 
         {/* ---- PLANET ENCOUNTERS ---- */}
-        {projects.map((project, i) => {
+        <div ref={descentRef} className="relative">
+          {/* The descent line, running the length of the flight through every
+              milestone. Sections carry a pl-11 gutter, so it sits in clear space at
+              the left without colliding with any content. */}
+          <div className="absolute left-[38px] top-0 bottom-0 w-px pointer-events-none" aria-hidden="true">
+            <div
+              className="absolute inset-0"
+              style={{
+                backgroundImage: `repeating-linear-gradient(to bottom, ${hairline} 0 10px, transparent 10px 26px)`,
+              }}
+            />
+            <div
+              ref={descentFillRef}
+              className="absolute top-0 left-0 w-px"
+              style={{
+                height: "0%",
+                backgroundImage: `repeating-linear-gradient(to bottom, ${
+                  isDarkMode ? "rgba(0,0,0,0.7)" : "rgba(255,255,255,0.8)"
+                } 0 10px, transparent 10px 26px)`,
+              }}
+            />
+          </div>
+
+          {/* Flybys that predate the first stop have no preceding section to hang
+              off, so they lead the descent. */}
+          {flybys.filter(f => f.afterStop < 0).map(({ milestone: f }) => (
+            <FlybyRow key={`flyby-${f.id}`} milestone={f} isDarkMode={isDarkMode} fg={fg} faint={faint} />
+          ))}
+
+          {projects.map((project, i) => {
           const accent = isDarkMode ? "#000000" : `hsl(${project.accentColor})`;
-          const spriteUrl = getPlanetSprite(project.id, isDarkMode);
+          const spriteUrl = getSpriteByType(project.planetType, isDarkMode);
           const right = i % 2 === 1; // planets alternate sides along the flight path
           const size = planetSizes[i];
+          const milestone = stops[i];
+          const ledTo = milestone ? getLedTo(milestone) : undefined;
+          const passing = flybys.filter(f => f.afterStop === i);
 
           return (
+            <React.Fragment key={project.id}>
             <section
-              key={project.id}
               ref={el => { sectionRefs.current[i] = el; }}
               data-idx={i}
-              className="relative min-h-[100svh] flex flex-col justify-center overflow-hidden pl-11 pr-6 pt-16 pb-28"
+              className="relative min-h-[100svh] flex flex-col justify-center overflow-hidden pl-14 pr-6 pt-16 pb-28"
               aria-label={`Project: ${project.title}`}
             >
               {/* The planet's orbit sweeps through its section */}
@@ -537,37 +643,39 @@ const MobileIndex = () => {
 
               {/* Mission log — full width on phones, capped on tablets */}
               <div className="mt-8 flex flex-col gap-4 w-full max-w-[560px]" style={{ color: fg }}>
-                <p
-                  className="mob-reveal font-mono text-[11px] uppercase tracking-[0.35em] font-semibold"
-                  style={{ color: isDarkMode ? "rgba(0,0,0,0.55)" : `hsl(${project.accentColor})` }}
-                >
-                  Orbit 0{i + 1} <span className="opacity-50">/ 0{n}</span>
-                </p>
-                <h2 className="mob-reveal mob-d1 text-3xl font-bold tracking-tight leading-tight drop-shadow-md">
-                  {project.title}
-                </h2>
+                <div className="mob-reveal flex items-baseline gap-3 flex-wrap">
+                  <p
+                    className="font-mono text-[11px] uppercase tracking-[0.35em] font-semibold"
+                    style={{ color: isDarkMode ? "rgba(0,0,0,0.55)" : `hsl(${project.accentColor})` }}
+                  >
+                    Milestone 0{i + 1} <span className="opacity-50">/ 0{n}</span>
+                  </p>
+                  {/* The path mixes work built with places worked — say which. */}
+                  <span
+                    className={`font-mono text-[9px] uppercase tracking-[0.3em] px-2 py-0.5 rounded-full border ${
+                      isDarkMode ? "border-black/25" : "border-white/25"
+                    }`}
+                    style={{ color: faint }}
+                  >
+                    {milestone?.kind === "role" ? "Role" : "Build"}
+                  </span>
+                </div>
+                <div className="mob-reveal mob-d1 flex flex-col gap-1.5">
+                  <h2 className="text-3xl font-bold tracking-tight leading-tight drop-shadow-md">
+                    {project.title}
+                  </h2>
+                  {milestone?.role && (
+                    <p className="text-base font-light" style={{ color: muted }}>{milestone.role}</p>
+                  )}
+                  {milestone && (
+                    <p className="font-mono text-[10px] uppercase tracking-[0.25em]" style={{ color: faint }}>
+                      {formatRange(milestone)}
+                    </p>
+                  )}
+                </div>
                 <p className="mob-reveal mob-d2 text-[15px] leading-relaxed font-light" style={{ color: muted }}>
                   {project.description}
                 </p>
-
-                <div className="mob-reveal mob-d2">
-                  <div
-                    className="flex justify-between font-mono text-[10px] uppercase tracking-[0.25em]"
-                    style={{ color: faint }}
-                  >
-                    <span>Mission status</span>
-                    <span>{project.completionPercent}%</span>
-                  </div>
-                  <div
-                    className="mt-1.5 h-[2px] w-full rounded-full"
-                    style={{ backgroundColor: isDarkMode ? "rgba(0,0,0,0.12)" : "rgba(255,255,255,0.15)" }}
-                  >
-                    <div
-                      className="h-full rounded-full"
-                      style={{ width: `${project.completionPercent}%`, backgroundColor: accent }}
-                    />
-                  </div>
-                </div>
 
                 <div className="mob-reveal mob-d3 flex flex-wrap gap-2">
                   {project.stack.map(tech => (
@@ -604,10 +712,34 @@ const MobileIndex = () => {
                     </a>
                   )}
                 </div>
+
+                {/* The causal chain — what this milestone led to. It is the last thing
+                    read before the descent carries on, so it bridges into the next. */}
+                {ledTo && (
+                  <p
+                    className="mob-reveal mob-d3 mt-1 font-mono text-[10px] uppercase tracking-[0.25em]"
+                    style={{ color: faint }}
+                  >
+                    <span className="opacity-60">→ Led to</span>{" "}
+                    <span style={{ color: isDarkMode ? "rgba(0,0,0,0.8)" : "rgba(255,255,255,0.9)" }}>
+                      {ledTo.title}
+                    </span>
+                  </p>
+                )}
               </div>
             </section>
+
+            {/* Flyby: a minor milestone passed between stops. Deliberately a short
+                row rather than a full screen — it is something you go past, not
+                something you stop at. Kept out of sectionRefs so it never enters the
+                rail's index space, which nextIdx/wipeColorFor/goNext all assume. */}
+            {passing.map(({ milestone: f }) => (
+              <FlybyRow key={`flyby-${f.id}`} milestone={f} isDarkMode={isDarkMode} fg={fg} faint={faint} />
+            ))}
+            </React.Fragment>
           );
         })}
+        </div>
 
         {/* ---- DEEP SPACE OUTRO (contact) ---- */}
         <section
@@ -678,9 +810,15 @@ const MobileIndex = () => {
                 aria-label={`Fly to ${project.title}`}
                 aria-current={activeIdx === i ? "true" : undefined}
               >
+                {/* Roles are diamonds, builds are dots — the rail shows the path is
+                    two kinds of thing without needing a legend. */}
                 <span
-                  className={`w-2 h-2 rounded-full transition-all duration-500 ${activeIdx === i ? "opacity-100 scale-[1.8]" : "opacity-40 scale-100"}`}
-                  style={{ backgroundColor: isDarkMode ? "#000000" : `hsl(${project.accentColor})` }}
+                  className={`w-2 h-2 transition-all duration-500 ${activeIdx === i ? "opacity-100 scale-[1.8]" : "opacity-40 scale-100"}`}
+                  style={{
+                    backgroundColor: isDarkMode ? "#000000" : `hsl(${project.accentColor})`,
+                    borderRadius: stops[i]?.kind === "role" ? "1px" : "9999px",
+                    rotate: stops[i]?.kind === "role" ? "45deg" : undefined,
+                  }}
                 />
               </button>
             ))}
@@ -792,8 +930,8 @@ const MobileIndex = () => {
               borderRadius: "50%",
               overflow: "hidden",
               display: "block",
-              backgroundImage: `url('${getPlanetSprite(projects[nextIdx].id, isDarkMode)}')`,
-              backgroundSize: `${40 * SPRITE_COLS}px ${40 * 3}px`,
+              backgroundImage: `url('${getSpriteByType(projects[nextIdx].planetType, isDarkMode)}')`,
+              backgroundSize: getSpriteSheetSize(40),
               backgroundPosition: "0px 0px",
             }}
           />

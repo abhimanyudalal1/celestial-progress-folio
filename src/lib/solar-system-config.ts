@@ -28,17 +28,24 @@ export const getPlanetPosition = (
 };
 
 /**
- * Calculates orbit radii based on the base dimension (min(width, height))
+ * Radius of a single orbit. `orbitIndex` is 1-based, matching `project.orbitIndex`.
+ * Each orbit sits one step further out than the last, which is what makes distance
+ * from the sun readable as time along the career path.
  */
-export const getOrbitRadii = (baseDimension: number) => {
-    const baseRadius = baseDimension * 0.4;
-    return {
-        r1: baseRadius * 2.0,
-        r2: baseRadius * 3.0,
-        r3: baseRadius * 4.0,
-        r4: baseRadius * 5.0,
-        r5: baseRadius * 6.0,
-    };
+export const getOrbitRadius = (orbitIndex: number, baseDimension: number): number =>
+    baseDimension * 0.4 * (orbitIndex + 1);
+
+/**
+ * Calculates orbit radii based on the base dimension (min(width, height)).
+ * Callers index this as `r${orbitIndex}`, so it is built out past any realistic
+ * milestone count — the old hardcoded r1..r5 returned undefined for a 6th body.
+ */
+export const getOrbitRadii = (baseDimension: number, count = 12): Record<string, number> => {
+    const radii: Record<string, number> = {};
+    for (let i = 1; i <= count; i++) {
+        radii[`r${i}`] = getOrbitRadius(i, baseDimension);
+    }
+    return radii;
 };
 
 /**

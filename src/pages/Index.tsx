@@ -1,13 +1,15 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
 import Hero from "@/components/Hero";
-import ProjectPanel from "@/components/ProjectPanel";
-import SolarSystem from "@/components/SolarSystem";
+import SolarSystem3D, { makeCameraState, type CameraState } from "@/components/SolarSystem3D";
+import MeteorCursor from "@/components/MeteorCursor";
 import Stars from "@/components/Stars";
 import { DynamicNavbar, NavbarViewMode } from "@/components/DynamicNavbar";
-import { PlanetProject } from "@/components/Planet";
 import { CosmicLoading } from "@/components/CosmicLoading";
 import { toLegacyProjects } from "@/data/projects";
+import { stops, flybys, getLedTo, formatRange, yearOf } from "@/data/milestones";
+import { PLANET_SHEETS } from "@/lib/planet-sprites";
+import { dockPose, departurePose, revealPose } from "@/lib/scene-3d";
 import { ExternalLink, Github, Mail, Linkedin, Twitter } from "lucide-react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -33,7 +35,6 @@ if (typeof performance !== 'undefined') {
 }
 
 const DesktopIndex = () => {
-  const [selectedProject, setSelectedProject] = useState<PlanetProject | null>(null);
   const [navMode, setNavMode] = useState<NavbarViewMode>('default');
   const { isDarkMode } = useTheme();
   const dimensions = useWindowSize();
@@ -63,21 +64,9 @@ const DesktopIndex = () => {
   useEffect(() => {
     // Only the current theme's spritesheets are needed to draw the scene; the other
     // theme's set is another ~4MB that used to be pulled down in parallel with the intro.
-    const lightSprites = [
-      '/Lava%20World%20-%201909546053%20-%20spritesheet.png',
-      '/Gas%20giant%201%20-%203542928846%20-%20spritesheet.png',
-      '/Terran%20Wet%20-%203542928846%20-%20spritesheet.png',
-      '/Terran%20Dry%20-%203542928846%20-%20spritesheet.png',
-      '/Ice%20World%20-%201909546053%20-%20spritesheet.png',
-    ];
-
-    const darkSprites = [
-      '/Islands%20-%20330873532%20-%20spritesheetdark.png',
-      '/Gas%20giant%202%20-%20330873532%20-%20spritesheetdark.png',
-      '/Terran%20Wet%20-%20330873532%20-%20spritesheetdark.png',
-      '/Terran%20Dry%20-%20330873532%20-%20spritesheetdark.png',
-      '/Ice%20World%20-%20330873532%20-%20spritesheetdark.png',
-    ];
+    const sheets = Object.values(PLANET_SHEETS);
+    const lightSprites = sheets.map(s => s.light);
+    const darkSprites = sheets.map(s => s.dark);
 
     const sceneImages = [
       '/stargif.gif',
@@ -143,6 +132,24 @@ const DesktopIndex = () => {
   const focusCardRefs = useRef<(HTMLDivElement | null)[]>([]);
   const sidebarNodeRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const orbitRingRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+  // Camera pose for the 3D flight. A plain mutable object rather than state: GSAP
+  // tweens its numbers straight from the scrubbed timeline and the scene's render
+  // loop reads it each frame, so the entire flight runs without a single re-render.
+  const cameraStateRef = useRef<CameraState>(
+    makeCameraState(typeof window !== 'undefined' ? window.innerWidth / window.innerHeight : 1.6)
+  );
+  // Revealed fraction of the travelled path, read by the scene the same way.
+  // GSAP tweens the ref object's own `current` property directly.
+  const trailProgressRef = useRef(0);
+
+  // Screen-space labels raised by each flyby as it is passed
+  const flybyLabelRefs = useRef<(HTMLDivElement | null)[]>([]);
+  // Year readout at the rail head, written imperatively from onUpdate
+  const yearRef = useRef<HTMLSpanElement>(null);
+  // Live warp level handed to the starfield. A ref rather than state because it is
+  // rewritten on every scroll frame — see StarsProps.warpSource.
+  const warpRef = useRef(0);
 
   // Navigation State storage for GSAP progress
   const timelineRef = useRef<gsap.core.Timeline | null>(null);
@@ -235,44 +242,27 @@ const DesktopIndex = () => {
       const cRect = container.getBoundingClientRect();
       const cw = cRect.width;
       const ch = cRect.height;
-      const containerCx = cRect.left + cw / 2;
-      const containerCy = cRect.top + ch / 2;
+      const aspect = cw / Math.max(1, ch);
 
-      const planetGroups = Array.from(container.querySelectorAll<SVGGElement>('.planet-group'));
-      const orbitEls = Array.from(container.querySelectorAll<SVGEllipseElement>('.solar-system-stage ellipse'));
-      if (planetGroups.length < projectsData.length) return;
-
-      // Compute the camera pose (pan + zoom of the scene wrapper) that places each
-      // planet at the fixed focus point (left third, where the scrim porthole sits).
-      // All coordinates are relative to the container center, which is also the
-      // wrapper's transform origin — so a point p under scale s and translation t
-      // lands at p*s + t.
-      const fx = 0.32 * cw - cw / 2;
-      const fy = 0.46 * ch - ch / 2;
-      const poses = projectsData.map((_, i) => {
-        const group = planetGroups[i];
-        const spriteEl = group.querySelector('.planet-inner') ?? group;
-        const r = (spriteEl as Element).getBoundingClientRect();
-        const px = r.left + r.width / 2 - containerCx;
-        const py = r.top + r.height / 2 - containerCy;
-
-        // Zoom each planet to a similar apparent size, from its *measured* on-screen
-        // size (the 3D perspective foreshortens planets, so config sizes are wrong here)
-        const apparentDiameter = Math.max(r.width, 8);
-        const scale = Math.min(3.4, Math.max(1.4, (ch * 0.30) / apparentDiameter));
-
-        return {
-          x: fx - px * scale,
-          y: fy - py * scale,
-          scale,
-        };
-      });
+      // Camera poses are analytic now. The 2D tour had to measure live planet rects
+      // and solve `p*s + t` to place each one at the focus point, because the scene
+      // was a CSS-transformed plane. In a real 3D scene the layout is known up front
+      // (lib/scene-3d) and the camera simply goes where it belongs — no measurement,
+      // nothing to race against layout.
+      const poses = stops.map((_, i) => dockPose(i, aspect));
+      const departure = departurePose(aspect);
+      const reveal = revealPose(aspect);
 
       const tourEnd = TOUR_START + poses.length * TOUR_PER_PLANET;
       const totalScroll = 1000 + projectsData.length * 1300 + 1500;
 
-      // Fade the scroll hint in once the tour is armed (one-shot, not scrubbed)
-      if (hintRef.current) {
+
+      // Fade the scroll hint in once the tour is armed (one-shot, not scrubbed).
+      // Guarded on actually being at the top: this effect re-runs whenever the
+      // debounced window size settles, and unguarded it would raise the hint again
+      // over whatever the reader had already scrolled to — including the final
+      // pull-back reveal, where it read as "scroll to begin" over the outro.
+      if (hintRef.current && window.scrollY < 10) {
         gsap.to(hintRef.current, { opacity: 1, duration: 0.8, delay: 0.2 });
       }
 
@@ -315,6 +305,36 @@ const DesktopIndex = () => {
               }
             });
 
+            // Warp: peaks mid-leg and falls to zero as the camera settles on a planet.
+            // The camera tween runs for the first 1.8 of each 4-unit slot, so warp is
+            // shaped over that window and held at zero for the dwell that follows.
+            {
+              const legPos = (t - TOUR_START) / TOUR_PER_PLANET;
+              const withinLeg = legPos - Math.floor(legPos);
+              const travelFraction = 1.8 / TOUR_PER_PLANET;
+              let w = 0;
+              if (t > TOUR_START && t < tourEnd && withinLeg < travelFraction) {
+                // Half-sine over the travel window: still at both ends, fastest between
+                w = Math.sin((withinLeg / travelFraction) * Math.PI);
+              }
+              warpRef.current = w;
+            }
+
+            // Year readout. Between two stops it shows the crossing (2023 ▸ 2024) so
+            // the transit reads as time passing rather than as dead scroll.
+            if (yearRef.current) {
+              const legRaw = (t - TOUR_START) / TOUR_PER_PLANET;
+              const leg = Math.max(0, Math.min(poses.length - 1, legRaw));
+              const from = stops[Math.floor(leg)];
+              const to = stops[Math.min(stops.length - 1, Math.floor(leg) + 1)];
+              let label = '';
+              if (from) {
+                const travelling = currentIdx === -1 && to && yearOf(to) !== yearOf(from);
+                label = travelling ? `${yearOf(from)} ▸ ${yearOf(to)}` : yearOf(from);
+              }
+              if (yearRef.current.textContent !== label) yearRef.current.textContent = label;
+            }
+
             // Sidebar, return button and scrim hit-area are only live while touring
             const inTour = t >= TOUR_START + 1.2 && t <= tourEnd + 0.3;
             const sidebarParent = document.getElementById('project-sidebar');
@@ -327,6 +347,7 @@ const DesktopIndex = () => {
               returnBtn.style.opacity = inTour ? '1' : '0';
               returnBtn.style.pointerEvents = inTour ? 'auto' : 'none';
             }
+            if (yearRef.current) yearRef.current.style.opacity = inTour ? '1' : '0';
             if (focusScrimRef.current) {
               // While touring, the dimmed space becomes a click target to zoom back out
               focusScrimRef.current.style.pointerEvents = inTour ? 'auto' : 'none';
@@ -348,7 +369,7 @@ const DesktopIndex = () => {
         }
       });
 
-      // Departure: hint dissolves, gentle dolly-in so the first camera move feels continuous
+      // ---- Departure -------------------------------------------------------
       if (hintRef.current) {
         // immediateRender off + explicit from, so reversing to the top restores the hint
         tl.fromTo(hintRef.current,
@@ -356,10 +377,17 @@ const DesktopIndex = () => {
           { opacity: 0, y: 16, duration: 0.5, immediateRender: false },
           0);
       }
-      tl.to(sceneWrapperRef.current, { scale: 1.06, duration: 1, ease: "power1.inOut" }, 0);
+      // The identity overlay belongs to the establishing shot only; once the flight
+      // starts the frame is the milestone cards'.
+      if (heroRef.current) {
+        tl.fromTo(heroRef.current,
+          { opacity: 1 },
+          { opacity: 0, duration: 0.8, ease: 'power2.in', immediateRender: false },
+          0.2);
+      }
 
-      // Depth-of-field scrim: blurs and dims everything outside the porthole at the
-      // focus point. It stays up for the whole tour — planets fly into the clear zone.
+      // Depth-of-field scrim: dims and blurs everything outside the porthole the
+      // held planet flies into, so the card stays readable over a moving starfield.
       if (focusScrimRef.current) {
         tl.fromTo(focusScrimRef.current,
           { opacity: 0 },
@@ -370,24 +398,41 @@ const DesktopIndex = () => {
           TOUR_START + poses.length * TOUR_PER_PLANET - 0.6);
       }
 
-      // Visit each planet in place
+      // ---- The flight ------------------------------------------------------
+      // GSAP tweens the plain camera-state object; the render loop reads it every
+      // frame and moves the actual PerspectiveCamera. Nothing here touches React or
+      // the DOM, so scrubbing the whole flight costs no re-renders.
+      const cam = cameraStateRef.current;
+      gsap.set(cam, {
+        px: departure.pos.x, py: departure.pos.y, pz: departure.pos.z,
+        ax: departure.aim.x, ay: departure.aim.y, az: departure.aim.z,
+      });
+
+      const flyTo = (pose: typeof departure, at: number, duration: number, ease: string) => {
+        tl.to(cam, {
+          px: pose.pos.x, py: pose.pos.y, pz: pose.pos.z,
+          duration, ease, immediateRender: false,
+        }, at);
+        // The aim leads the move slightly and settles sooner than the position, so
+        // the camera swings onto the next planet while still closing on it rather
+        // than rotating after it has already arrived.
+        tl.to(cam, {
+          ax: pose.aim.x, ay: pose.aim.y, az: pose.aim.z,
+          duration: duration * 0.75, ease: 'power2.out', immediateRender: false,
+        }, at);
+      };
+
       poses.forEach((pose, i) => {
         const t = TOUR_START + i * TOUR_PER_PLANET;
 
-        // Camera glides so the planet arrives at its focus point, magnified
-        tl.to(sceneWrapperRef.current, {
-          x: pose.x,
-          y: pose.y,
-          scale: pose.scale,
-          duration: 1.8,
-          ease: "power2.inOut"
-        }, t);
+        // Accelerate away from the last milestone, decelerate onto the next.
+        flyTo(pose, t, 1.8, 'power2.inOut');
 
-        // Its orbit line brightens while in focus
-        if (orbitEls[i]) {
-          tl.to(orbitEls[i], { opacity: 1, duration: 0.5 }, t + 0.8);
-          tl.to(orbitEls[i], { opacity: 0.7, duration: 0.5 }, t + 3.4);
-        }
+        // The path draws itself in behind the camera as it covers each leg
+        tl.to(trailProgressRef, {
+          current: poses.length > 1 ? i / (poses.length - 1) : 1,
+          duration: 1.8, ease: 'power2.inOut', immediateRender: false,
+        }, t);
 
         // Mission-log card drifts in on the open right side
         const card = focusCardRefs.current[i];
@@ -416,17 +461,36 @@ const DesktopIndex = () => {
         }
       });
 
-      // Return: pull the camera back out to reveal the whole system...
-      tl.to(sceneWrapperRef.current, {
-        x: 0,
-        y: 0,
-        scale: 0.9,
-        duration: 2,
-        ease: "power2.inOut"
-      }, tourEnd);
+      // ---- Flybys ----------------------------------------------------------
+      // Minor milestones passed mid-transit. Label only — a flyby is something you
+      // go past, so it gets no camera stop of its own.
+      const flybyTime = (f: typeof flybys[number]) =>
+        Math.max(
+          TOUR_START + 0.9,
+          TOUR_START + (f.afterStop + f.slot) * TOUR_PER_PLANET + TOUR_FOCUS_OFFSET
+        );
 
-      // ...then let it dim into deep space while the contact outro surfaces
-      tl.to(solarSystemRef.current, { opacity: 0.12, filter: 'blur(8px)', duration: 1.4, ease: "power1.inOut" }, tourEnd + 0.8);
+      flybys.forEach((flyby, fi) => {
+        const label = flybyLabelRefs.current[fi];
+        if (!label) return;
+        const at = flybyTime(flyby);
+        tl.fromTo(label,
+          { opacity: 0, y: 14, filter: 'blur(6px)' },
+          { opacity: 1, y: 0, filter: 'blur(0px)', duration: 0.5, ease: 'power2.out' },
+          at - 0.6);
+        tl.to(label, { opacity: 0, y: -14, filter: 'blur(6px)', duration: 0.5, ease: 'power2.in' }, at + 0.7);
+      });
+
+
+      // ---- The reveal ------------------------------------------------------
+      // The camera climbs away from the last milestone and looks back down over the
+      // whole system, so the entire travelled path is legible in one frame. This is
+      // the payoff the outro lands on top of.
+      flyTo(reveal, tourEnd, 2.4, 'power2.inOut');
+      tl.to(trailProgressRef, { current: 1, duration: 1.2, ease: 'power1.out', immediateRender: false }, tourEnd);
+
+      // ...then the scene recedes while the contact outro surfaces over it
+      tl.to(solarSystemRef.current, { opacity: 0.28, filter: 'blur(3px)', duration: 1.4, ease: "power1.inOut" }, tourEnd + 1.4);
       tl.fromTo(outroRef.current,
         { opacity: 0, scale: 0.92, y: 60 },
         { opacity: 1, scale: 1, y: 0, duration: 1.6, ease: "power3.out" },
@@ -445,6 +509,10 @@ const DesktopIndex = () => {
       ctx.revert();
     };
   }, [sceneReady, projectsData.length, dimensions]);
+
+  // The 3D scene has built itself and drawn a frame. The intro sweep also arms the
+  // tour; whichever lands first wins, and the later one is a harmless no-op set.
+  const handleSceneReady = () => setSceneReady(true);
 
   // Corners of the screen darken while the cursor rests on a planet — a quiet
   // "focusing" cue. Driven straight through the ref (CSS handles the fade), so
@@ -570,6 +638,7 @@ const DesktopIndex = () => {
         isInitialLoad={false}
         isAppLoaded={true}
         active={starsActive || isCosmicLoadingComplete}
+        warpSource={warpRef}
       />
 
       <div ref={domWrapperRef}>
@@ -600,7 +669,9 @@ const DesktopIndex = () => {
 
             {/* Nodes */}
             <div className="relative h-full flex flex-col justify-between items-center">
-               {projectsData.map((project, i) => (
+               {projectsData.map((project, i) => {
+                 const isRole = stops[i]?.kind === 'role';
+                 return (
                  <button
                    key={`sidebar-node-${project.id}`}
                    ref={el => { if (sidebarNodeRefs.current) sidebarNodeRefs.current[i] = el; }}
@@ -612,40 +683,62 @@ const DesktopIndex = () => {
                       className="node-label absolute right-6 whitespace-nowrap font-mono text-[10px] uppercase tracking-[0.25em] opacity-0 translate-x-1 transition-all duration-500 group-hover:opacity-60 group-hover:translate-x-0"
                       style={{ color: isDarkMode ? 'rgba(0,0,0,0.75)' : 'rgba(255,255,255,0.85)' }}
                     >
-                      0{i + 1} · {project.title}
+                      {stops[i] ? yearOf(stops[i]) : `0${i + 1}`} · {project.title}
                     </span>
+                    {/* Roles are diamonds, builds are dots — the rail has to show the
+                        path is two kinds of thing without needing a legend. */}
                     <span
-                      className="node-dot w-2 h-2 rounded-full opacity-40 scale-100 transition-all duration-500"
-                      style={{ backgroundColor: isDarkMode ? '#000000' : `hsl(${project.accentColor})` }}
+                      className="node-dot w-2 h-2 opacity-40 scale-100 transition-all duration-500"
+                      style={{
+                        backgroundColor: isDarkMode ? '#000000' : `hsl(${project.accentColor})`,
+                        borderRadius: isRole ? '1px' : '9999px',
+                        transform: isRole ? 'rotate(45deg)' : undefined,
+                      }}
                     />
                  </button>
-               ))}
+                 );
+               })}
+            </div>
+
+            {/* Year readout — makes "further out" legible as time rather than leaving
+                it as a metaphor the viewer has to infer. Written from onUpdate. */}
+            <div className="absolute -top-7 left-1/2 -translate-x-1/2 whitespace-nowrap">
+              <span
+                ref={yearRef}
+                className="font-mono text-[10px] uppercase tracking-[0.3em] opacity-0 transition-opacity duration-500"
+                style={{ color: isDarkMode ? 'rgba(0,0,0,0.65)' : 'rgba(255,255,255,0.75)' }}
+              />
             </div>
           </div>
-
-          {/* The Scene (Camera Target): hero sun + solar system, panned & zoomed by the tour */}
+          {/* The scene. The camera lives inside the 3D canvas now, so this wrapper no
+              longer transforms anything — the flight is real camera movement, not a
+              panned and scaled plane. initialSweepRef is kept for the intro sweep. */}
           <div ref={initialSweepRef} className="absolute inset-0 w-full h-full origin-center">
-            <div
-              ref={sceneWrapperRef}
-              className="absolute inset-0 w-full h-full origin-center"
-              style={{ willChange: 'transform' }}
-            >
-              <div ref={heroRef} className="absolute inset-0 z-20 pointer-events-none flex items-center justify-center">
+            <div ref={sceneWrapperRef} className="absolute inset-0 w-full h-full">
+
+              {/* Mounted here rather than inside the renderer: it used to live in the
+                  SVG solar system, which the 3D swap retired. It is fixed-position
+                  and renderer-agnostic, so the scene is the wrong owner for it. */}
+              <MeteorCursor />
+
+              <div ref={solarSystemRef} className="absolute inset-0 z-30">
+                <SolarSystem3D
+                  cameraState={cameraStateRef}
+                  trailProgress={trailProgressRef}
+                  onPlanetClick={scrollToPlanet}
+                  onPlanetHover={handlePlanetHover}
+                  onReady={handleSceneReady}
+                />
+              </div>
+
+              {/* Identity, in the DOM above the canvas rather than as text in the
+                  scene — see Hero. Fades out the moment the flight departs. */}
+              <div ref={heroRef} className="absolute inset-0 z-40 pointer-events-none">
                 <Hero />
               </div>
-
-              <div ref={solarSystemRef} className="absolute inset-0 z-30 flex items-center justify-center pointer-events-none">
-                <div className="pointer-events-auto w-full h-full">
-                  <SolarSystem
-                    selectedProject={selectedProject}
-                    setSelectedProject={setSelectedProject}
-                    onPlanetClick={scrollToPlanet}
-                    onPlanetHover={handlePlanetHover}
-                  />
-                </div>
-              </div>
             </div>
           </div>
+
 
           {/* Depth-of-field scrim: blurs & dims the scene except the porthole at the
               focus point, keeping the held planet crisp and the card text readable */}
@@ -728,15 +821,44 @@ const DesktopIndex = () => {
                   className="flex flex-col gap-5 max-w-xl items-start opacity-0 pointer-events-none"
                   style={{ color: isDarkMode ? '#000000' : '#ffffff' }}
                 >
-                  <p
-                    className="font-mono text-xs md:text-sm uppercase tracking-[0.35em] font-semibold"
-                    style={{ color: isDarkMode ? 'rgba(0,0,0,0.55)' : `hsl(${project.accentColor})` }}
-                  >
-                    Orbit 0{index + 1} <span className="opacity-50">/ 0{projectsData.length}</span>
-                  </p>
-                  <h2 className="text-4xl md:text-6xl font-bold tracking-tight leading-tight drop-shadow-md">
-                    {project.title}
-                  </h2>
+                  <div className="flex items-baseline gap-4 flex-wrap">
+                    <p
+                      className="font-mono text-xs md:text-sm uppercase tracking-[0.35em] font-semibold"
+                      style={{ color: isDarkMode ? 'rgba(0,0,0,0.55)' : `hsl(${project.accentColor})` }}
+                    >
+                      Milestone 0{index + 1} <span className="opacity-50">/ 0{projectsData.length}</span>
+                    </p>
+                    {/* Which kind of milestone this is — the whole path mixes work
+                        built with places worked, so the badge does real work here. */}
+                    <span
+                      className={`font-mono text-[10px] uppercase tracking-[0.3em] px-2.5 py-1 rounded-full border ${
+                        isDarkMode ? 'border-black/25' : 'border-white/25'
+                      }`}
+                      style={{ color: isDarkMode ? 'rgba(0,0,0,0.6)' : 'rgba(255,255,255,0.7)' }}
+                    >
+                      {stops[index]?.kind === 'role' ? 'Role' : 'Build'}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-col gap-2">
+                    <h2 className="text-4xl md:text-6xl font-bold tracking-tight leading-tight drop-shadow-md">
+                      {project.title}
+                    </h2>
+                    {stops[index]?.role && (
+                      <p className="text-lg md:text-xl font-light" style={{ color: isDarkMode ? '#333' : '#ddd' }}>
+                        {stops[index].role}
+                      </p>
+                    )}
+                    {stops[index] && (
+                      <p
+                        className="font-mono text-[11px] uppercase tracking-[0.25em]"
+                        style={{ color: isDarkMode ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.55)' }}
+                      >
+                        {formatRange(stops[index])}
+                      </p>
+                    )}
+                  </div>
+
                   <p className="text-base md:text-lg leading-relaxed font-light" style={{ color: isDarkMode ? '#444' : '#ccc' }}>
                     {project.description}
                   </p>
@@ -751,6 +873,21 @@ const DesktopIndex = () => {
                       </span>
                     ))}
                   </div>
+
+                  {/* The causal chain. This single line is what turns a sequence of
+                      adjacent facts into a story, so it is deliberately the last thing
+                      read before the camera moves on. */}
+                  {stops[index] && getLedTo(stops[index]) && (
+                    <p
+                      className="font-mono text-[11px] md:text-xs uppercase tracking-[0.25em]"
+                      style={{ color: isDarkMode ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.55)' }}
+                    >
+                      <span className="opacity-60">→ Led to</span>{' '}
+                      <span style={{ color: isDarkMode ? 'rgba(0,0,0,0.8)' : 'rgba(255,255,255,0.9)' }}>
+                        {getLedTo(stops[index])!.title}
+                      </span>
+                    </p>
+                  )}
 
                   <div className="flex gap-4 mt-1 justify-start">
                     {project.links.github && (
@@ -779,6 +916,47 @@ const DesktopIndex = () => {
                 </div>
               </div>
             ))}
+          </div>
+
+          {/* Flyby labels. The marker itself rides the trail in scene space; the type
+              stays here in screen space so the camera zoom can't magnify it. Sits under
+              the porthole rather than in the card column — a flyby is something you
+              pass, not something you stop to read. */}
+          <div className="absolute inset-0 z-40 pointer-events-none">
+            {flybys.map((flyby, fi) => {
+              const m = flyby.milestone;
+              return (
+                <div
+                  key={`flyby-label-${m.id}`}
+                  className="absolute -translate-x-1/2"
+                  style={{ left: '32%', top: '72%' }}
+                >
+                  <div
+                    ref={(el) => { flybyLabelRefs.current[fi] = el; }}
+                    className="flex flex-col items-center gap-1.5 text-center opacity-0"
+                    style={{ color: isDarkMode ? '#000000' : '#ffffff' }}
+                  >
+                    <p
+                      className="font-mono text-[10px] uppercase tracking-[0.4em]"
+                      style={{ color: isDarkMode ? 'rgba(0,0,0,0.5)' : `hsl(${m.accentColor})` }}
+                    >
+                      Passing · {yearOf(m)}
+                    </p>
+                    <p className="text-xl md:text-2xl font-semibold tracking-tight whitespace-nowrap">
+                      {m.title}
+                    </p>
+                    {m.role && (
+                      <p
+                        className="font-mono text-[10px] uppercase tracking-[0.25em]"
+                        style={{ color: isDarkMode ? 'rgba(0,0,0,0.55)' : 'rgba(255,255,255,0.6)' }}
+                      >
+                        {m.role}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
 
           {/* Orbiting quick-link satellites: small glassy icons revolving slowly around
@@ -904,13 +1082,6 @@ const DesktopIndex = () => {
           </div>
 
       </div>
-
-      {selectedProject && (
-        <ProjectPanel
-          project={selectedProject}
-          onClose={() => setSelectedProject(null)}
-        />
-      )}
 
       {/* Spotify Footer */}
       <div className="fixed bottom-4 right-4 z-[100] opacity-15 hover:opacity-80 transition-opacity duration-300">

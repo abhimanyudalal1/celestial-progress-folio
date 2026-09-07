@@ -37,6 +37,18 @@ interface StarsProps {
   sizeScale?: number;
   /** When false the render loop is parked — used while the opaque intro covers the canvas. */
   active?: boolean;
+  /**
+   * Live 0-1 warp level. Elongates stars into streaks radiating from `warpFocus`,
+   * which is what actually sells forward motion — the scene geometry is a tilted
+   * plane and cannot do it alone. High while the camera travels between milestones,
+   * zero while it holds on one.
+   *
+   * It is a ref, not a number, on purpose: the tour updates this on every scroll
+   * frame, and a prop would re-render the whole page mid-camera-move.
+   */
+  warpSource?: { current: number };
+  /** Vanishing point the streaks radiate from, in viewport fractions. */
+  warpFocus?: { x: number; y: number };
 }
 
 // Glow sprites for layers 2-4 are baked into a single atlas texture at startup, so a frame
@@ -55,6 +67,10 @@ const LAYER1_TINTS = 64;
 // through a linear remap that lifts the floor while keeping the relative spread, so the
 // field still varies rather than turning into uniform pinpricks. Size and alpha only — the
 // star count, positions and motion are untouched.
+// Streak length at full warp for a layer-1 star; multiplied by the star's layer, so
+// the closest layer trails ~4x further than the most distant one.
+const WARP_STREAK_PX = 22;
+
 const DARK_SIZE_BASE = 0.7;
 const DARK_SIZE_GAIN = 1.3;
 const DARK_ALPHA_FLOOR = 0.35;
@@ -76,6 +92,8 @@ const Stars = ({
   densityScale = 1,
   sizeScale = 1,
   active = true,
+  warpSource,
+  warpFocus = { x: 0.32, y: 0.46 },
 }: StarsProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number>();
@@ -90,9 +108,22 @@ const Stars = ({
   const lastDimensionsRef = useRef({ width: dimensions.width, height: dimensions.height });
   const glowAtlasRef = useRef<{ canvas: HTMLCanvasElement; dark: boolean } | null>(null);
 
+  // The caller owns the warp ref so it can write it from a scroll handler; the local
+  // fallback keeps the loop working when no warp source is supplied at all.
+  const localWarpRef = useRef(0);
+  const warpRef = warpSource ?? localWarpRef;
+  const warpFocusRef = useRef(warpFocus);
+
   useEffect(() => {
     isDarkModeRef.current = isDarkMode;
   }, [isDarkMode]);
+
+  useEffect(() => {
+    warpFocusRef.current = warpFocus;
+    // Depends on the coordinates, not the object: the default is an inline literal,
+    // so a whole-object dependency would re-run this on every single render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [warpFocus.x, warpFocus.y]);
 
   const [explosionStarted, setExplosionStarted] = useState(!isInitialLoad);
   const explosionStartedRef = useRef(!isInitialLoad);
@@ -361,6 +392,14 @@ const Stars = ({
       const mouseY = mouseRef.current.y;
       const darkFill = 'black';
 
+      // Warp state, hoisted for the same reason as everything above it
+      const warpAmount = warpRef.current;
+      const warpX = warpFocusRef.current.x * width;
+      const warpY = warpFocusRef.current.y * height;
+      // Stars past this distance from the vanishing point streak at full length
+      const warpReach = Math.max(width, height) * 0.5;
+      const warpStroke = dark ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.6)';
+
       let allSettled = true;
       let lastFill = '';
       let lastAlpha = -1;
@@ -468,6 +507,28 @@ const Stars = ({
               star.atlasX, star.atlasY, GLOW_CELL, GLOW_CELL,
               finalX - glowSize, finalY - glowSize, glowSize * 2, glowSize * 2
             );
+          }
+          // Warp streak: a tail trailing back toward the vanishing point, so the star
+          // reads as rushing past. Only the ~470 glow-layer stars are streaked — the
+          // 2500 distant dots below are the hot loop and are left alone.
+          if (warpAmount > 0.02) {
+            const dx = finalX - warpX;
+            const dy = finalY - warpY;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist > 1) {
+              // Closer to the vanishing point means less apparent motion, and nearer
+              // layers streak further — that difference is what reads as depth.
+              const reach = Math.min(1, dist / warpReach);
+              const len = warpAmount * reach * star.layer * WARP_STREAK_PX;
+              if (len > 1.5) {
+                ctx.strokeStyle = warpStroke;
+                ctx.lineWidth = Math.max(0.6, star.size * 0.9);
+                ctx.beginPath();
+                ctx.moveTo(finalX, finalY);
+                ctx.lineTo(finalX - (dx / dist) * len, finalY - (dy / dist) * len);
+                ctx.stroke();
+              }
+            }
           }
         } else {
           // Simple drawing for distant stars (Layer 1) - huge performance boost

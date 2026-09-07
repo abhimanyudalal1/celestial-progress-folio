@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import gsap from "gsap";
 import "./PlanetSplit.css";
 import { useTheme } from "@/contexts/ThemeContext";
+import type { PlanetType } from "@/lib/planet-sprites";
 
 export interface PlanetProject {
   id: string;
@@ -17,6 +18,8 @@ export interface PlanetProject {
   orbitIndex: number;
   planetSize?: number;
   planetImage?: number;
+  /** Which spritesheet pair this body renders with. See lib/planet-sprites. */
+  planetType?: PlanetType;
 }
 
 interface PlanetProps {

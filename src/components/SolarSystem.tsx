@@ -8,6 +8,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import MeteorCursor from "./MeteorCursor";
 import { Github, Linkedin, Mail } from "lucide-react";
 import { toLegacyProjects } from "@/data/projects";
+import { getSpriteByType, SPRITE_COLS, SPRITE_ROWS, SPRITE_FRAMES } from "@/lib/planet-sprites";
 
 interface SolarSystemProps {
   selectedProject: PlanetProject | null;
@@ -66,16 +67,18 @@ const SolarSystem = ({ selectedProject, setSelectedProject, onPlanetClick, onPla
           const project = projects[index];
           if (!project) return;
 
-          const planetFps = 3.0 - (index * 0.3);
-          const frame = Math.floor(elapsed * planetFps) % 150;
+          // Later planets spin fractionally slower; floored so the outermost body in a
+          // long path never stalls or reverses once index grows past the old 5.
+          const planetFps = Math.max(0.6, 3.0 - (index * 0.3));
+          const frame = Math.floor(elapsed * planetFps) % SPRITE_FRAMES;
           if (lastDrawnFrame[index] === frame) return;
           lastDrawnFrame[index] = frame;
 
           const planetRadius = baseDimension * (project.planetSize || 0.07);
           const planetW = planetRadius * 2;
 
-          const xPos = -(frame % 50) * planetW;
-          const yPos = -Math.floor(frame / 50) * planetW;
+          const xPos = -(frame % SPRITE_COLS) * planetW;
+          const yPos = -Math.floor(frame / SPRITE_COLS) * planetW;
 
           planetDiv.style.backgroundPosition = `${xPos}px ${yPos}px`;
         }
@@ -408,34 +411,18 @@ const SolarSystem = ({ selectedProject, setSelectedProject, onPlanetClick, onPla
                       >
                         {/* Planet rendering - Images for all planets */}
                         {(() => {
-                          let spriteUrl = "";
-                          switch (project.id) {
-                            case "1":
-                              spriteUrl = isDarkMode ? "/Islands%20-%20330873532%20-%20spritesheetdark.png" : "/Lava%20World%20-%201909546053%20-%20spritesheet.png";
-                              break;
-                            case "2":
-                              spriteUrl = isDarkMode ? "/Gas%20giant%202%20-%20330873532%20-%20spritesheetdark.png" : "/Gas%20giant%201%20-%203542928846%20-%20spritesheet.png";
-                              break;
-                            case "3":
-                              spriteUrl = isDarkMode ? "/Terran%20Wet%20-%20330873532%20-%20spritesheetdark.png" : "/Terran%20Wet%20-%203542928846%20-%20spritesheet.png";
-                              break;
-                            case "4":
-                              spriteUrl = isDarkMode ? "/Terran%20Dry%20-%20330873532%20-%20spritesheetdark.png" : "/Terran%20Dry%20-%203542928846%20-%20spritesheet.png";
-                              break;
-                            case "5":
-                              spriteUrl = isDarkMode ? "/Ice%20World%20-%20330873532%20-%20spritesheetdark.png" : "/Ice%20World%20-%201909546053%20-%20spritesheet.png";
-                              break;
-                            default:
-                              return (
-                                <circle
-                                  r={planetRadius}
-                                  fill={project.accentColor}
-                                  className="transition-all duration-300"
-                                />
-                              );
+                          const spriteUrl = getSpriteByType(project.planetType, isDarkMode);
+                          if (!spriteUrl) {
+                            return (
+                              <circle
+                                r={planetRadius}
+                                fill={project.accentColor}
+                                className="transition-all duration-300"
+                              />
+                            );
                           }
 
-                          // Wait until refs are assigned before the style is applied via GSAP, 
+                          // Wait until refs are assigned before the style is applied via GSAP,
                           // but give it an initial state
                           return (
                             <foreignObject
@@ -459,8 +446,7 @@ const SolarSystem = ({ selectedProject, setSelectedProject, onPlanetClick, onPla
                                   width: '100%',
                                   height: '100%',
                                   backgroundImage: `url('${spriteUrl}')`,
-                                  // Grid is 50 columns by 3 rows
-                                  backgroundSize: `${planetRadius * 2 * 50}px ${planetRadius * 2 * 3}px`,
+                                  backgroundSize: `${planetRadius * 2 * SPRITE_COLS}px ${planetRadius * 2 * SPRITE_ROWS}px`,
                                   backgroundRepeat: 'no-repeat',
                                   backgroundPosition: '0px 0px'
                                 }}

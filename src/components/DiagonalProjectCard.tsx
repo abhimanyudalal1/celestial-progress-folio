@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { ExternalLink, Github, ChevronRight } from 'lucide-react';
 import { Project } from '@/data/projects';
 import { useTheme } from '@/contexts/ThemeContext';
+import { getSpriteByType, getSpriteSheetSize } from '@/lib/planet-sprites';
 
 interface DiagonalProjectCardProps {
   project: Project;
@@ -12,21 +13,12 @@ interface DiagonalProjectCardProps {
   onExpand: (index: number | null) => void;
 }
 
-// Planet spritesheets (50 cols × 3 rows) — same art as the solar system hero
-const PLANET_SPRITES: Record<string, { light: string; dark: string }> = {
-  lava: { light: '/Lava%20World%20-%201909546053%20-%20spritesheet.png', dark: '/Islands%20-%20330873532%20-%20spritesheetdark.png' },
-  cracked: { light: '/Gas%20giant%201%20-%203542928846%20-%20spritesheet.png', dark: '/Gas%20giant%202%20-%20330873532%20-%20spritesheetdark.png' },
-  terran: { light: '/Terran%20Wet%20-%203542928846%20-%20spritesheet.png', dark: '/Terran%20Wet%20-%20330873532%20-%20spritesheetdark.png' },
-  ringed: { light: '/Terran%20Dry%20-%203542928846%20-%20spritesheet.png', dark: '/Terran%20Dry%20-%20330873532%20-%20spritesheetdark.png' },
-  ice: { light: '/Ice%20World%20-%201909546053%20-%20spritesheet.png', dark: '/Ice%20World%20-%20330873532%20-%20spritesheetdark.png' },
-};
-
 // Static first frame of a planet spritesheet, rendered as a circle
 const PlanetSprite = ({ type, size, isDarkMode, glow }: {
   type: string; size: number; isDarkMode: boolean; glow?: string;
 }) => {
-  const sprite = PLANET_SPRITES[type];
-  if (!sprite) return null;
+  const spriteUrl = getSpriteByType(type, isDarkMode);
+  if (!spriteUrl) return null;
   return (
     <div
       aria-hidden="true"
@@ -34,8 +26,8 @@ const PlanetSprite = ({ type, size, isDarkMode, glow }: {
         width: size,
         height: size,
         borderRadius: '50%',
-        backgroundImage: `url('${isDarkMode ? sprite.dark : sprite.light}')`,
-        backgroundSize: `${size * 50}px ${size * 3}px`,
+        backgroundImage: `url('${spriteUrl}')`,
+        backgroundSize: getSpriteSheetSize(size),
         backgroundPosition: '0px 0px',
         backgroundRepeat: 'no-repeat',
         boxShadow: glow,

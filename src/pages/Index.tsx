@@ -44,67 +44,85 @@ const DesktopIndex = () => {
   }, []);
 
   // Loading States
-  const [isAppLoaded, setIsAppLoaded] = useState(hasLoadedBefore);
   const [isCosmicLoadingComplete, setIsCosmicLoadingComplete] = useState(hasLoadedBefore);
+  // The 2D starfield sits behind the opaque intro, so its render loop stays parked until
+  // the intro begins fading out — no point burning frames on pixels nobody can see.
+  const [starsActive, setStarsActive] = useState(hasLoadedBefore);
   // The scroll tour can only be built once the intro sweep has landed the scene at rest,
   // because it measures the real on-screen planet positions.
   const [sceneReady, setSceneReady] = useState(false);
 
-  // Preload heavy assets
+  // Snapshot of the theme when the page mounted, for the one-shot preloader below.
+  const isDarkModeAtMount = useRef(isDarkMode);
+
+  // Preload heavy assets.
+  // Nothing here sets React state: decoding several MB of spritesheets while the intro is
+  // running used to re-render the page mid-sweep, and the completion flag was unused anyway.
+  // Scene-critical sprites are fetched right away; off-route images wait for idle time so
+  // their download and decode never compete with the intro.
   useEffect(() => {
-    const imagesToLoad = [
+    // Only the current theme's spritesheets are needed to draw the scene; the other
+    // theme's set is another ~4MB that used to be pulled down in parallel with the intro.
+    const lightSprites = [
+      '/Lava%20World%20-%201909546053%20-%20spritesheet.png',
+      '/Gas%20giant%201%20-%203542928846%20-%20spritesheet.png',
+      '/Terran%20Wet%20-%203542928846%20-%20spritesheet.png',
+      '/Terran%20Dry%20-%203542928846%20-%20spritesheet.png',
+      '/Ice%20World%20-%201909546053%20-%20spritesheet.png',
+    ];
+
+    const darkSprites = [
+      '/Islands%20-%20330873532%20-%20spritesheetdark.png',
+      '/Gas%20giant%202%20-%20330873532%20-%20spritesheetdark.png',
+      '/Terran%20Wet%20-%20330873532%20-%20spritesheetdark.png',
+      '/Terran%20Dry%20-%20330873532%20-%20spritesheetdark.png',
+      '/Ice%20World%20-%20330873532%20-%20spritesheetdark.png',
+    ];
+
+    const sceneImages = [
       '/stargif.gif',
       '/starhd.png',
       '/Star%20-%20188959248%20-%20spritesheet.png',
-      '/Islands%20-%20330873532%20-%20spritesheetdark.png',
-      '/Lava%20World%20-%201909546053%20-%20spritesheet.png',
-      '/Gas%20giant%202%20-%20330873532%20-%20spritesheetdark.png',
-      '/Gas%20giant%201%20-%203542928846%20-%20spritesheet.png',
-      '/Terran%20Wet%20-%20330873532%20-%20spritesheetdark.png',
-      '/Terran%20Wet%20-%203542928846%20-%20spritesheet.png',
-      '/Terran%20Dry%20-%20330873532%20-%20spritesheetdark.png',
-      '/Terran%20Dry%20-%203542928846%20-%20spritesheet.png',
-      '/Ice%20World%20-%20330873532%20-%20spritesheetdark.png',
-      '/Ice%20World%20-%201909546053%20-%20spritesheet.png',
+      ...(isDarkModeAtMount.current ? darkSprites : lightSprites),
+    ];
+
+    const deferredImages = [
+      // The other theme, ready for a toggle
+      ...(isDarkModeAtMount.current ? lightSprites : darkSprites),
       // About page images
       '/me.webp',
       '/me_dark.webp',
       // Blogs page images (webp versions are much smaller)
       '/domedark.webp',
-      '/domelight.webp'
+      '/domelight.webp',
     ];
 
-    let loadedCount = 0;
-    let hasFailed = false;
-
-    const checkDone = () => {
-      console.log(`[Preload] ${loadedCount}/${imagesToLoad.length} loaded`);
-      if (loadedCount >= imagesToLoad.length && !hasFailed) {
-        console.log('[Preload] All images loaded, setting isAppLoaded=true');
-        setIsAppLoaded(true);
-      }
+    const preload = (src: string) => {
+      const img = new Image();
+      // Hand the decode to a background thread so it can't stall an animation frame.
+      img.decoding = 'async';
+      img.src = src;
     };
 
-    imagesToLoad.forEach(src => {
-      const img = new Image();
-      img.onload = () => {
-        loadedCount++;
-        checkDone();
-      };
-      img.onerror = () => {
-        loadedCount++; // even if fails, continue to prevent infinite loading
-        checkDone();
-      };
-      img.src = src;
-    });
+    sceneImages.forEach(preload);
 
-    // Fallback timeout just in case it takes too long or errors silently
-    const timeout = setTimeout(() => {
-      console.log('[Preload] Fallback timeout fired, forcing isAppLoaded=true');
-      setIsAppLoaded(true);
-    }, 8000);
+    const idle = (window as Window & { requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number })
+      .requestIdleCallback;
+    let idleHandle: number | undefined;
+    let timeoutHandle: number | undefined;
+    const loadDeferred = () => deferredImages.forEach(preload);
 
-    return () => clearTimeout(timeout);
+    if (idle) {
+      idleHandle = idle(loadDeferred, { timeout: 10000 });
+    } else {
+      timeoutHandle = window.setTimeout(loadDeferred, 8000);
+    }
+
+    return () => {
+      const cancelIdle = (window as Window & { cancelIdleCallback?: (h: number) => void }).cancelIdleCallback;
+      if (idleHandle !== undefined && cancelIdle) cancelIdle(idleHandle);
+      if (timeoutHandle !== undefined) clearTimeout(timeoutHandle);
+    };
   }, []);
 
   // Projects Data
@@ -540,8 +558,8 @@ const DesktopIndex = () => {
     }}>
       {!isCosmicLoadingComplete && !hasLoadedBefore && (
         <CosmicLoading
+          onFadeStart={() => setStarsActive(true)}
           onComplete={() => {
-            console.log('[Index] Cosmic loading complete, cleanup');
             setIsCosmicLoadingComplete(true);
             sessionStorage.setItem('hasPlayedIntro', 'true'); // Mark as played for client-side navigation
           }}
@@ -551,6 +569,7 @@ const DesktopIndex = () => {
       <Stars
         isInitialLoad={false}
         isAppLoaded={true}
+        active={starsActive || isCosmicLoadingComplete}
       />
 
       <div ref={domWrapperRef}>

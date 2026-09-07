@@ -11,6 +11,9 @@ export function BackgroundMusic() {
     // Create the audio object once on mount
     if (!audioRef.current) {
       audioRef.current = new Audio('/interstellat.mp3');
+      // Without this the browser starts pulling the full ~2MB track during page load,
+      // competing with the intro's sprite downloads. It is fetched on the first play.
+      audioRef.current.preload = 'none';
       audioRef.current.loop = true;
       audioRef.current.volume = 0.3; // Subtle background volume
     }

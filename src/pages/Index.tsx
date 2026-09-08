@@ -9,7 +9,7 @@ import { CosmicLoading } from "@/components/CosmicLoading";
 import { toLegacyProjects } from "@/data/projects";
 import { stops, flybys, getLedTo, formatRange, yearOf } from "@/data/milestones";
 import { PLANET_SHEETS } from "@/lib/planet-sprites";
-import { dockPose, departurePose, revealPose } from "@/lib/scene-3d";
+import { dockPosition, departurePose, revealPose, flightPath } from "@/lib/scene-3d";
 import { ExternalLink, Github, Mail, Linkedin, Twitter } from "lucide-react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -147,9 +147,6 @@ const DesktopIndex = () => {
   const flybyLabelRefs = useRef<(HTMLDivElement | null)[]>([]);
   // Year readout at the rail head, written imperatively from onUpdate
   const yearRef = useRef<HTMLSpanElement>(null);
-  // Live warp level handed to the starfield. A ref rather than state because it is
-  // rewritten on every scroll frame — see StarsProps.warpSource.
-  const warpRef = useRef(0);
 
   // Navigation State storage for GSAP progress
   const timelineRef = useRef<gsap.core.Timeline | null>(null);
@@ -249,9 +246,12 @@ const DesktopIndex = () => {
       // was a CSS-transformed plane. In a real 3D scene the layout is known up front
       // (lib/scene-3d) and the camera simply goes where it belongs — no measurement,
       // nothing to race against layout.
-      const poses = stops.map((_, i) => dockPose(i, aspect));
+      const poses = stops.map((_, i) => dockPosition(i));
       const departure = departurePose(aspect);
       const reveal = revealPose(aspect);
+      // The flight curve and the arc-length parameter of every dock and drift point.
+      // Must match the one the scene builds — both come from lib/scene-3d.
+      const path = flightPath(aspect);
 
       const tourEnd = TOUR_START + poses.length * TOUR_PER_PLANET;
       const totalScroll = 1000 + projectsData.length * 1300 + 1500;
@@ -305,20 +305,12 @@ const DesktopIndex = () => {
               }
             });
 
-            // Warp: peaks mid-leg and falls to zero as the camera settles on a planet.
-            // The camera tween runs for the first 1.8 of each 4-unit slot, so warp is
-            // shaped over that window and held at zero for the dwell that follows.
-            {
-              const legPos = (t - TOUR_START) / TOUR_PER_PLANET;
-              const withinLeg = legPos - Math.floor(legPos);
-              const travelFraction = 1.8 / TOUR_PER_PLANET;
-              let w = 0;
-              if (t > TOUR_START && t < tourEnd && withinLeg < travelFraction) {
-                // Half-sine over the travel window: still at both ends, fastest between
-                w = Math.sin((withinLeg / travelFraction) * Math.PI);
-              }
-              warpRef.current = w;
-            }
+            // NOTE: the 2D starfield's radial warp is deliberately no longer driven
+            // from here. It streaked from a fixed screen point while the 3D scene
+            // streams along real camera velocity, so the two disagreed about which
+            // way you were travelling — which is what made the flight read as a side
+            // view. Motion cues now come solely from the scene's own streak field,
+            // which follows actual displacement and is correct under rotation too.
 
             // Year readout. Between two stops it shows the crossing (2023 ▸ 2024) so
             // the transit reads as time passing rather than as dead scroll.
@@ -399,34 +391,41 @@ const DesktopIndex = () => {
       }
 
       // ---- The flight ------------------------------------------------------
-      // GSAP tweens the plain camera-state object; the render loop reads it every
-      // frame and moves the actual PerspectiveCamera. Nothing here touches React or
-      // the DOM, so scrubbing the whole flight costs no re-renders.
+      // One continuous curve rather than five straight moves. GSAP scrubs a single
+      // parameter `u` along it; the render loop reads that and positions the real
+      // camera. Nothing here touches React or the DOM, so the whole flight scrubs
+      // without a re-render.
       const cam = cameraStateRef.current;
       gsap.set(cam, {
-        px: departure.pos.x, py: departure.pos.y, pz: departure.pos.z,
+        u: 0,
+        aimBlend: 1,
+        holdIndex: -1,
         ax: departure.aim.x, ay: departure.aim.y, az: departure.aim.z,
       });
 
-      const flyTo = (pose: typeof departure, at: number, duration: number, ease: string) => {
-        tl.to(cam, {
-          px: pose.pos.x, py: pose.pos.y, pz: pose.pos.z,
-          duration, ease, immediateRender: false,
-        }, at);
-        // The aim leads the move slightly and settles sooner than the position, so
-        // the camera swings onto the next planet while still closing on it rather
-        // than rotating after it has already arrived.
-        tl.to(cam, {
-          ax: pose.aim.x, ay: pose.aim.y, az: pose.aim.z,
-          duration: duration * 0.75, ease: 'power2.out', immediateRender: false,
-        }, at);
-      };
-
-      poses.forEach((pose, i) => {
+      poses.forEach((_, i) => {
         const t = TOUR_START + i * TOUR_PER_PLANET;
 
-        // Accelerate away from the last milestone, decelerate onto the next.
-        flyTo(pose, t, 1.8, 'power2.inOut');
+        // Release the previous milestone and look down the path. This is what makes
+        // the leg read as forward flight rather than a sideways tracking shot: view
+        // direction and velocity become the same vector.
+        tl.to(cam, { aimBlend: 0, duration: 0.3, ease: 'power2.in', immediateRender: false }, t);
+        // Retarget only once we are already looking ahead, so the swing away from the
+        // old planet and the swing onto the new one never fight.
+        tl.set(cam, { holdIndex: i }, t + 0.45);
+
+        // Transit: accelerate off the last drift, decelerate onto the dock
+        tl.to(cam, { u: path.dockU[i], duration: 1.8, ease: 'power2.inOut', immediateRender: false }, t);
+        // Swing onto the planet over the back half of the approach, finishing at
+        // t+1.6 — a beat BEFORE the move itself ends at t+1.8. That last 0.2 is the
+        // camera settling with the planet already framed, which is what makes the
+        // arrival read as landing rather than as still swinging on arrival.
+        tl.to(cam, { aimBlend: 1, duration: 0.55, ease: 'power2.out', immediateRender: false }, t + 1.05);
+
+        // Hold: keep drifting along a slow arc around the planet while the card is up.
+        // Linear and never zero — the dead stop here was what made the first pass feel
+        // like five separate moves instead of one flight.
+        tl.to(cam, { u: path.driftU[i], duration: 2.2, ease: 'none', immediateRender: false }, t + 1.8);
 
         // The path draws itself in behind the camera as it covers each leg
         tl.to(trailProgressRef, {
@@ -437,15 +436,18 @@ const DesktopIndex = () => {
         // Mission-log card drifts in on the open right side
         const card = focusCardRefs.current[i];
         if (card) {
+          // Enters only once the camera has settled (aim swing completes at t+1.6).
+          // Arriving at t+1.1 meant the card was already up while the view was still
+          // rotating onto the planet, which is what made arrivals feel unresolved.
           tl.fromTo(card,
             { opacity: 0, x: 80, filter: 'blur(8px)' },
-            { opacity: 1, x: 0, filter: 'blur(0px)', duration: 0.7, ease: "power2.out" },
-            t + 1.1);
-          tl.set(card, { pointerEvents: 'auto' }, t + 1.1);
+            { opacity: 1, x: 0, filter: 'blur(0px)', duration: 0.6, ease: "power2.out" },
+            t + 1.7);
+          tl.set(card, { pointerEvents: 'auto' }, t + 1.7);
           tl.to(card,
-            { opacity: 0, x: -60, filter: 'blur(6px)', duration: 0.6, ease: "power2.in" },
-            t + 3.3);
-          tl.set(card, { pointerEvents: 'none' }, t + 3.9);
+            { opacity: 0, x: -60, filter: 'blur(6px)', duration: 0.55, ease: "power2.in" },
+            t + 3.45);
+          tl.set(card, { pointerEvents: 'none' }, t + 4.0);
         }
 
         // Orbiting quick-link satellites materialize around the held planet
@@ -454,10 +456,10 @@ const DesktopIndex = () => {
           tl.fromTo(ring,
             { opacity: 0, scale: 0.85 },
             { opacity: 1, scale: 1, duration: 0.6, ease: "power2.out" },
-            t + 1.2);
-          tl.set(ring, { pointerEvents: 'auto' }, t + 1.2);
-          tl.to(ring, { opacity: 0, scale: 0.9, duration: 0.5, ease: "power2.in" }, t + 3.3);
-          tl.set(ring, { pointerEvents: 'none' }, t + 3.8);
+            t + 1.8);
+          tl.set(ring, { pointerEvents: 'auto' }, t + 1.8);
+          tl.to(ring, { opacity: 0, scale: 0.9, duration: 0.5, ease: "power2.in" }, t + 3.4);
+          tl.set(ring, { pointerEvents: 'none' }, t + 3.9);
         }
       });
 
@@ -486,7 +488,13 @@ const DesktopIndex = () => {
       // The camera climbs away from the last milestone and looks back down over the
       // whole system, so the entire travelled path is legible in one frame. This is
       // the payoff the outro lands on top of.
-      flyTo(reveal, tourEnd, 2.4, 'power2.inOut');
+      tl.to(cam, { aimBlend: 0, duration: 0.6, ease: 'power2.in', immediateRender: false }, tourEnd);
+      tl.set(cam, {
+        holdIndex: -1,
+        ax: reveal.aim.x, ay: reveal.aim.y, az: reveal.aim.z,
+      }, tourEnd + 0.7);
+      tl.to(cam, { u: 1, duration: 2.4, ease: 'power2.inOut', immediateRender: false }, tourEnd);
+      tl.to(cam, { aimBlend: 1, duration: 1.2, ease: 'power2.out', immediateRender: false }, tourEnd + 1.0);
       tl.to(trailProgressRef, { current: 1, duration: 1.2, ease: 'power1.out', immediateRender: false }, tourEnd);
 
       // ...then the scene recedes while the contact outro surfaces over it
@@ -638,7 +646,6 @@ const DesktopIndex = () => {
         isInitialLoad={false}
         isAppLoaded={true}
         active={starsActive || isCosmicLoadingComplete}
-        warpSource={warpRef}
       />
 
       <div ref={domWrapperRef}>

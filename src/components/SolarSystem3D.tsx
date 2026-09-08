@@ -8,9 +8,12 @@ import {
   CAMERA_FOV,
   CAMERA_NEAR,
   SUN_RADIUS,
+  bankAngle,
   departurePose,
+  flightPath,
   planetPosition,
   planetRadius,
+  resolveCamera,
 } from "@/lib/scene-3d";
 
 /**
@@ -31,15 +34,28 @@ import {
  * near-field stars that actually whip past.
  */
 
-/** Camera pose, mutated in place by the scroll timeline and read every frame. */
+/**
+ * Camera state, mutated in place by the scroll timeline and read every frame.
+ *
+ * Position is a single parameter along the flight curve rather than three
+ * coordinates: the flight is one continuous path, so there is only one thing to
+ * animate, and the curve supplies tangents for look-ahead and banking for free.
+ */
 export interface CameraState {
-  px: number; py: number; pz: number;
+  /** 0-1 arc length along the flight curve. */
+  u: number;
+  /** 0 = look along direction of travel, 1 = look at the hold target. */
+  aimBlend: number;
+  /** Milestone to frame when blended in; < 0 uses the explicit aim below. */
+  holdIndex: number;
   ax: number; ay: number; az: number;
 }
 
 export const makeCameraState = (aspect: number): CameraState => {
   const d = departurePose(aspect);
-  return { px: d.pos.x, py: d.pos.y, pz: d.pos.z, ax: d.aim.x, ay: d.aim.y, az: d.aim.z };
+  // Opens framed on the establishing shot: parked at the curve's start, looking at
+  // the composed aim rather than down the path.
+  return { u: 0, aimBlend: 1, holdIndex: -1, ax: d.aim.x, ay: d.aim.y, az: d.aim.z };
 };
 
 interface Props {
@@ -244,8 +260,39 @@ const SolarSystem3D = ({ cameraState, onPlanetClick, onPlanetHover, onReady, tra
       return pts;
     };
 
-    makeField(2600, 25, 240, 1.5, dark ? 0.55 : 0.85); // near — the speed cue
-    makeField(1800, 300, 900, 6, dark ? 0.35 : 0.5);   // far — depth backdrop
+    makeField(2200, 25, 240, 1.5, dark ? 0.5 : 0.8); // near — ambient depth
+    makeField(1800, 300, 900, 6, dark ? 0.35 : 0.5); // far — backdrop
+
+    // ---- Streaks -----------------------------------------------------------
+    // The speed cue. A world-static field thins out as the camera leaves it, so this
+    // one is *camera-local*: stars live in a cube centred on the camera and wrap into
+    // it as the camera moves, keeping density constant anywhere in the system.
+    //
+    // Each star is a line segment whose tail trails by the camera's actual per-frame
+    // displacement, so the streaks follow real motion — including rotation, which the
+    // old 2D radial warp could not express, and which is why that warp disagreed with
+    // the scene about which way you were travelling.
+    const STREAKS = 1200;
+    const STREAK_BOX = 130;
+    const streakHeads = new Float32Array(STREAKS * 3);
+    for (let i = 0; i < STREAKS; i++) {
+      streakHeads[i * 3] = (Math.random() - 0.5) * STREAK_BOX;
+      streakHeads[i * 3 + 1] = (Math.random() - 0.5) * STREAK_BOX;
+      streakHeads[i * 3 + 2] = (Math.random() - 0.5) * STREAK_BOX;
+    }
+    const streakVerts = new Float32Array(STREAKS * 6);
+    const streakGeo = track(new THREE.BufferGeometry());
+    streakGeo.setAttribute("position", new THREE.BufferAttribute(streakVerts, 3));
+    const streakMat = track(new THREE.LineBasicMaterial({
+      color: dark ? 0x000000 : 0xffffff,
+      transparent: true,
+      opacity: dark ? 0.5 : 0.7,
+      depthWrite: false,
+      blending: dark ? THREE.NormalBlending : THREE.AdditiveBlending,
+    }));
+    const streaks = new THREE.LineSegments(streakGeo, streakMat);
+    streaks.frustumCulled = false;
+    scene.add(streaks);
 
     // ---- Picking -----------------------------------------------------------
     const raycaster = new THREE.Raycaster();
@@ -277,7 +324,15 @@ const SolarSystem3D = ({ cameraState, onPlanetClick, onPlanetHover, onReady, tra
     renderer.domElement.addEventListener("pointerdown", onClick);
 
     // ---- Loop --------------------------------------------------------------
+    const path = flightPath(width / height);
+    const posVec = new THREE.Vector3();
     const aimVec = new THREE.Vector3();
+    const explicitAim = new THREE.Vector3();
+    const prevPos = new THREE.Vector3();
+    const delta = new THREE.Vector3();
+    let havePrev = false;
+    let roll = 0;
+
     const start = Date.now();
     const lastFrame: number[] = [];
     let raf = 0;
@@ -287,8 +342,30 @@ const SolarSystem3D = ({ cameraState, onPlanetClick, onPlanetHover, onReady, tra
       raf = requestAnimationFrame(tick);
 
       const cs = cameraState.current;
-      camera.position.set(cs.px, cs.py, cs.pz);
-      aimVec.set(cs.ax, cs.ay, cs.az);
+      explicitAim.set(cs.ax, cs.ay, cs.az);
+      resolveCamera(
+        path, cs.u, cs.aimBlend, cs.holdIndex, explicitAim,
+        camera.aspect, posVec, aimVec
+      );
+
+      // How far the camera actually moved this frame — drives the streaks
+      if (havePrev) delta.subVectors(posVec, prevPos);
+      else delta.set(0, 0, 0);
+      prevPos.copy(posVec);
+      havePrev = true;
+
+      camera.position.copy(posVec);
+
+      // Bank into turns, damped so it eases rather than snapping, and scaled down as
+      // the camera settles onto a milestone so cards are never read at an angle.
+      const targetRoll = bankAngle(path, cs.u) * (1 - THREE.MathUtils.clamp(cs.aimBlend, 0, 1));
+      roll += (targetRoll - roll) * 0.08;
+      if (Math.abs(roll) > 1e-4) {
+        const forward = aimVec.clone().sub(posVec).normalize();
+        camera.up.set(0, 1, 0).applyAxisAngle(forward, roll);
+      } else {
+        camera.up.set(0, 1, 0);
+      }
       camera.lookAt(aimVec);
 
       // Step each planet's flipbook. Only the texture offset changes — no upload.
@@ -307,6 +384,35 @@ const SolarSystem3D = ({ cameraState, onPlanetClick, onPlanetHover, onReady, tra
       if (trailProgress) {
         const n = Math.round(THREE.MathUtils.clamp(trailProgress.current, 0, 1) * trailPts.length);
         trailGeo.setDrawRange(0, n);
+      }
+
+      // Streaks: wrap each star into the cube around the camera, then trail its tail
+      // back along the frame's displacement. At rest the segments collapse to zero
+      // length and draw nothing, so one object covers moving and still with no toggle.
+      {
+        const half = STREAK_BOX / 2;
+        const cx = posVec.x, cy = posVec.y, cz = posVec.z;
+        // Long streaks at speed, but capped so a fast scrub can't smear the whole screen
+        const k = Math.min(6, 2.5);
+        for (let i = 0; i < STREAKS; i++) {
+          const i3 = i * 3;
+          let hx = streakHeads[i3], hy = streakHeads[i3 + 1], hz = streakHeads[i3 + 2];
+          // Keep coordinates relative to the camera inside [-half, half]
+          hx -= delta.x; hy -= delta.y; hz -= delta.z;
+          if (hx > half) hx -= STREAK_BOX; else if (hx < -half) hx += STREAK_BOX;
+          if (hy > half) hy -= STREAK_BOX; else if (hy < -half) hy += STREAK_BOX;
+          if (hz > half) hz -= STREAK_BOX; else if (hz < -half) hz += STREAK_BOX;
+          streakHeads[i3] = hx; streakHeads[i3 + 1] = hy; streakHeads[i3 + 2] = hz;
+
+          const i6 = i * 6;
+          streakVerts[i6] = cx + hx;
+          streakVerts[i6 + 1] = cy + hy;
+          streakVerts[i6 + 2] = cz + hz;
+          streakVerts[i6 + 3] = cx + hx + delta.x * k;
+          streakVerts[i6 + 4] = cy + hy + delta.y * k;
+          streakVerts[i6 + 5] = cz + hz + delta.z * k;
+        }
+        streakGeo.attributes.position.needsUpdate = true;
       }
 
       renderer.render(scene, camera);

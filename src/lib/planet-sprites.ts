@@ -39,6 +39,16 @@ export const PLANET_SHEETS = {
   },
 } as const;
 
+/**
+ * The sun. Same 50x3 flipbook layout as the planets — these sheets were already in
+ * public/ (and the light one was already being preloaded), so the star renders as
+ * real animated art rather than the procedural radial gradient it used to be.
+ */
+export const SUN_SHEET = {
+  light: "/Star_dark%20-%202548694337%20-%20spritesheet.png",
+  dark: "/Star%20-%20330873532%20-%20spritesheetdark.png",
+} as const;
+
 export type PlanetType = keyof typeof PLANET_SHEETS;
 
 export const PLANET_TYPES = Object.keys(PLANET_SHEETS) as PlanetType[];

@@ -8,7 +8,7 @@ import { DynamicNavbar, NavbarViewMode } from "@/components/DynamicNavbar";
 import { CosmicLoading } from "@/components/CosmicLoading";
 import { toLegacyProjects } from "@/data/projects";
 import { stops, flybys, getLedTo, formatRange, yearOf } from "@/data/milestones";
-import { PLANET_SHEETS } from "@/lib/planet-sprites";
+import { PLANET_SHEETS, SUN_SHEET } from "@/lib/planet-sprites";
 import { dockPosition, departurePose, revealPose, flightPath } from "@/lib/scene-3d";
 import { ExternalLink, Github, Mail, Linkedin, Twitter } from "lucide-react";
 import gsap from "gsap";
@@ -71,7 +71,8 @@ const DesktopIndex = () => {
     const sceneImages = [
       '/stargif.gif',
       '/starhd.png',
-      '/Star%20-%20188959248%20-%20spritesheet.png',
+      // The star sheet the scene actually uses for this theme
+      isDarkModeAtMount.current ? SUN_SHEET.dark : SUN_SHEET.light,
       ...(isDarkModeAtMount.current ? darkSprites : lightSprites),
     ];
 
@@ -254,7 +255,9 @@ const DesktopIndex = () => {
       const path = flightPath(aspect);
 
       const tourEnd = TOUR_START + poses.length * TOUR_PER_PLANET;
-      const totalScroll = 1000 + projectsData.length * 1300 + 1500;
+      // Trimmed to three quarters of its original length — the full-length version
+      // spent too long between milestones for the amount of content on each.
+      const totalScroll = (1000 + projectsData.length * 1300 + 1500) * 0.75;
 
 
       // Fade the scroll hint in once the tour is armed (one-shot, not scrubbed).

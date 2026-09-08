@@ -16,7 +16,7 @@ import { stops } from "@/data/milestones";
  * /grid-view overlay, and narrowing its spread would silently move that too.
  */
 
-const SUN_RADIUS_VALUE = 9;
+const SUN_RADIUS_VALUE = 5;
 export const SUN_RADIUS = SUN_RADIUS_VALUE;
 
 /**
@@ -32,7 +32,7 @@ const ANGLE_SPAN = 40;
 // the planet at `planetRadius * DOCK_DISTANCE`. At 36 the first dock landed 4.1 units
 // from the origin — inside a sun of radius 9 — and the camera flew through the star.
 const ORBIT_INNER = 50;
-const ORBIT_STEP = 20;
+const ORBIT_STEP = 60;
 
 /**
  * Dock standoff, in planet radii.
@@ -71,6 +71,68 @@ export const CAMERA_FAR = 4000;
 
 /** How far ahead along the curve the camera looks while in transit. */
 const LOOK_AHEAD = 0.06;
+
+/**
+ * THE SPIRAL
+ *
+ * The camera corkscrews around its own line of travel instead of sliding straight
+ * down it. Amplitude scales with (1 - aimBlend): full mid-transit, exactly zero once
+ * the camera has swung onto a milestone, so cards are never read from a rolling
+ * camera.
+ *
+ * Every leg spirals *differently* — its own width, rate, handedness, starting phase
+ * and wobble. A fixed helix reads as machinery after the second leg; varying them is
+ * what keeps the flight feeling unpredictable.
+ *
+ * The variation is seeded, not live-random: the camera pose has to be a pure function
+ * of scroll position. Anything sampled per frame would jitter, and scrubbing back up
+ * would not retrace the same path. `legSpiral` hashes the leg index instead, so it is
+ * stable across reloads and identical in both directions.
+ */
+export const HELIX_RADIUS = 6.5;
+export const HELIX_TURNS = 3;
+/** Peak roll (radians) the spiral rocks the horizon by, before per-leg scaling. */
+export const HELIX_ROLL_FOLLOW = 0;
+
+/** Deterministic [0,1) from an integer. Standard hash-sine; no allocation. */
+const hash01 = (n: number): number => {
+  const x = Math.sin(n * 127.1 + 311.7) * 43758.5453;
+  return x - Math.floor(x);
+};
+
+export interface LegSpiral {
+  radius: number;
+  turns: number;
+  dir: number;
+  phase: number;
+  wobAmp: number;
+  wobFreq: number;
+  rollScale: number;
+}
+
+/** The spiral this leg flies. Seeded from the leg index — see the note above. */
+export const legSpiral = (leg: number): LegSpiral => {
+  const h = (k: number) => hash01(leg * 7 + k);
+  return {
+    radius: 0.6 + h(1) * 0.95,          // 0.60 - 1.55 x HELIX_RADIUS
+    turns: 0.55 + h(2) * 1.5,           // half a turn to two turns per leg
+    dir: h(3) < 0.5 ? -1 : 1,           // handedness flips
+    phase: h(4) * Math.PI * 2,          // enters the spiral at a different point
+    wobAmp: 0.18 + h(5) * 0.42,         // breaks the circle into something wandering
+    wobFreq: 0.29 + h(6) * 0.53,        // incommensurate, so it never quite repeats
+    rollScale: 0.55 + h(7) * 0.75,
+  };
+};
+
+/**
+ * Which leg of the flight `u` falls in. Leg i is the run up to dock i; the index past
+ * the last dock is the final climb to the reveal. Parameters change only at docks,
+ * where spiral amplitude is already zero, so switching them is discontinuity-free.
+ */
+export const legIndexAt = (path: FlightPath, u: number): number => {
+  for (let i = 0; i < path.dockU.length; i++) if (u <= path.dockU[i]) return i;
+  return path.dockU.length;
+};
 
 const count = () => Math.max(1, stops.length);
 
@@ -175,15 +237,41 @@ export const driftEndPosition = (index: number): THREE.Vector3 => {
 };
 
 /** Opening shot: near the sun, looking out along the path with every stop in frame. */
+/**
+ * Where the sun sits in the opening shot, as screen fractions. Composed low and
+ * right of centre, so the identity overlay owns the upper left and the system arcs
+ * up and away above the star.
+ */
+export const SUN_FOCUS_X = 0.57;
+export const SUN_FOCUS_Y = 0.82;
+/** Sun diameter in the opening shot, as a fraction of frame height. */
+export const SUN_FRAME_FRACTION = 0.656;
+
 export const departurePose = (aspect: number): CameraPose => {
   const first = planetPosition(0);
   const outward = first.clone().normalize();
-  const pos = outward.clone().multiplyScalar(-(SUN_RADIUS * 12)).setY(SUN_RADIUS * 2.2);
-  const target = first.clone().multiplyScalar(0.3);
-  // Composed right of centre so the identity overlay owns the left column. Kept at
-  // 0.58 rather than further out: this offset rotates the whole view, and at 0.66 it
-  // was eating more than a third of the horizontal frustum on its own.
-  return { pos, aim: aimOffset(pos, target, aspect, pos.distanceTo(target), 0.58, 0.46) };
+  // Raised well above the orbital plane. Dropping the sun to 0.82 pushes everything
+  // else down the frame with it, and this is the height at which the whole fan still
+  // fits — verified against 4:3, which is the binding aspect ratio.
+  const pos = outward.clone().multiplyScalar(-(SUN_RADIUS * 10)).setY(SUN_RADIUS * 4.6);
+  // Aimed at the sun itself rather than at a point along the path: that is the only
+  // way to land the star at an exact spot on screen.
+  const target = new THREE.Vector3(0, 0, 0);
+  return {
+    pos,
+    aim: aimOffset(pos, target, aspect, pos.distanceTo(target), SUN_FOCUS_X, SUN_FOCUS_Y),
+  };
+};
+
+/**
+ * Sprite scale that makes the sun the requested fraction of frame height in the
+ * opening shot. Derived from the camera distance rather than hardcoded, so moving
+ * the camera can never silently change how big the star reads.
+ */
+export const sunSpriteScale = (aspect: number): number => {
+  const d = departurePose(aspect).pos.length();
+  const tanHalfY = Math.tan(((CAMERA_FOV / 2) * Math.PI) / 180);
+  return SUN_FRAME_FRACTION * 2 * d * tanHalfY;
 };
 
 /** Final shot: pulled back and above, so the whole travelled path reads at once. */
@@ -292,6 +380,31 @@ export const flightPath = (aspect: number): FlightPath => {
  * held milestone through the focus offset so the card column stays clear. In transit
  * it is 0; it swings to 1 only on arrival.
  */
+const _tan = new THREE.Vector3();
+const _right = new THREE.Vector3();
+const _up = new THREE.Vector3();
+
+/**
+ * Perpendicular frame around the curve's tangent at `u`, used to spiral the camera
+ * around its own direction of travel. Falls back to the Z axis where the tangent is
+ * near-vertical and the world-up cross product would collapse.
+ */
+const tangentFrame = (path: FlightPath, u: number) => {
+  path.curve.getTangentAt(THREE.MathUtils.clamp(u, 0, 1), _tan).normalize();
+  const ref = Math.abs(_tan.y) > 0.95 ? new THREE.Vector3(0, 0, 1) : WORLD_UP;
+  _right.copy(_tan).cross(ref).normalize();
+  _up.copy(_right).cross(_tan).normalize();
+  return { tangent: _tan, right: _right, up: _up };
+};
+
+/** Phase of the spiral at `u` for a given leg. Shared by the offset and the roll. */
+export const helixPhase = (u: number, sp: LegSpiral): number =>
+  sp.phase + u * Math.PI * 2 * HELIX_TURNS * sp.turns * sp.dir;
+
+/** The slow secondary wobble that keeps the spiral from being a clean circle. */
+const helixWobble = (u: number, sp: LegSpiral): number =>
+  Math.sin(u * Math.PI * 2 * HELIX_TURNS * sp.wobFreq + sp.phase * 1.7) * sp.wobAmp;
+
 export const resolveCamera = (
   path: FlightPath,
   u: number,
@@ -304,6 +417,20 @@ export const resolveCamera = (
 ): void => {
   const t = THREE.MathUtils.clamp(u, 0, 1);
   path.curve.getPointAt(t, outPos);
+
+  // Spiral: displace around the tangent, at full strength only while in transit
+  const active = 1 - THREE.MathUtils.clamp(aimBlend, 0, 1);
+  if (active > 0.001) {
+    const sp = legSpiral(legIndexAt(path, t));
+    const amp = active * HELIX_RADIUS * sp.radius;
+    const { right, up } = tangentFrame(path, t);
+    const phase = helixPhase(t, sp);
+    const wob = helixWobble(t, sp);
+    // The wobble is added unevenly to the two axes so the cross-section is a drifting
+    // ellipse rather than a circle — that asymmetry is most of the "uncertainty".
+    outPos.addScaledVector(right, (Math.cos(phase) + wob) * amp);
+    outPos.addScaledVector(up, (Math.sin(phase) - wob * 0.7) * amp);
+  }
 
   // Travel-direction aim: a point further along the curve
   path.curve.getPointAt(Math.min(1, t + LOOK_AHEAD), outAim);
@@ -326,8 +453,14 @@ export const resolveCamera = (
   outAim.lerp(target, blend);
 };
 
-/** Roll angle (radians) for how sharply the curve is turning at `u`. */
-export const bankAngle = (path: FlightPath, u: number): number => {
+/**
+ * Roll angle (radians): how sharply the curve is turning, plus the corkscrew's own
+ * rotation so the horizon travels with the spiral instead of the camera merely
+ * sliding around a circle while staying level.
+ *
+ * Both terms scale with (1 - aimBlend), so roll is exactly zero at every dock.
+ */
+export const bankAngle = (path: FlightPath, u: number, aimBlend = 0): number => {
   const t = THREE.MathUtils.clamp(u, 0.001, 0.999);
   const d = 0.01;
   const a = path.curve.getTangentAt(Math.max(0, t - d));
@@ -335,6 +468,14 @@ export const bankAngle = (path: FlightPath, u: number): number => {
   // Signed turn about the world up axis
   const cross = a.clone().cross(b);
   const sign = Math.sign(cross.y) || 1;
-  const angle = a.angleTo(b);
-  return THREE.MathUtils.clamp(angle * sign * 3.2, -0.21, 0.21); // ~12deg cap
+  const bank = THREE.MathUtils.clamp(a.angleTo(b) * sign * 3.2, -0.21, 0.21); // ~12deg cap
+
+  const active = 1 - THREE.MathUtils.clamp(aimBlend, 0, 1);
+  // Rocks with the spiral rather than tracking its raw phase. The phase accumulates
+  // to tens of radians across the flight, and scaling that by `active` at a dock would
+  // unwind the horizon through several full rotations on the way to level. Taking
+  // its sine keeps the roll bounded and periodic, so it fades to zero cleanly.
+  const sp = legSpiral(legIndexAt(path, t));
+  const spin = Math.sin(helixPhase(t, sp)) * HELIX_ROLL_FOLLOW * sp.rollScale;
+  return (bank + spin) * active;
 };

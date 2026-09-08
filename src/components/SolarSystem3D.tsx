@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { useTheme } from "@/contexts/ThemeContext";
 import { stops } from "@/data/milestones";
-import { getSpriteByType, SPRITE_COLS, SPRITE_ROWS, SPRITE_FRAMES } from "@/lib/planet-sprites";
+import { getSpriteByType, SUN_SHEET, SPRITE_COLS, SPRITE_ROWS, SPRITE_FRAMES } from "@/lib/planet-sprites";
 import {
   CAMERA_FAR,
   CAMERA_FOV,
@@ -14,6 +14,7 @@ import {
   planetPosition,
   planetRadius,
   resolveCamera,
+  sunSpriteScale,
 } from "@/lib/scene-3d";
 
 /**
@@ -124,26 +125,29 @@ const SolarSystem3D = ({ cameraState, onPlanetClick, onPlanetHover, onReady, tra
     renderer.setClearColor(0x000000, 0);
     mount.appendChild(renderer.domElement);
 
+    const loader = new THREE.TextureLoader();
     const disposables: { dispose(): void }[] = [];
     const track = <T extends { dispose(): void }>(x: T) => { disposables.push(x); return x; };
 
     // ---- Sun ---------------------------------------------------------------
     // A glow sprite rather than geometry: it is a light source in the fiction, and
     // a billboard reads better than a lit sphere with no other lights in the scene.
-    const sunTex = track(
-      dark
-        ? radialTexture("rgba(16,16,16,1)", "rgba(16,16,16,0)", 128, 0.26)
-        : radialTexture("rgba(255,238,180,1)", "rgba(255,140,30,0)", 128, 0.2)
-    );
+    // The real star art, stepped through the same 50x3 flipbook as the planets, so
+    // the sun has a live churning surface instead of a static radial gradient.
+    const sunTex = track(loader.load(dark ? SUN_SHEET.dark : SUN_SHEET.light));
+    sunTex.colorSpace = THREE.SRGBColorSpace;
+    sunTex.repeat.set(1 / SPRITE_COLS, 1 / SPRITE_ROWS);
+    sunTex.offset.set(0, 1 - 1 / SPRITE_ROWS);
+    sunTex.magFilter = THREE.LinearFilter;
+    sunTex.minFilter = THREE.LinearMipmapLinearFilter;
+
     const sunMat = track(new THREE.SpriteMaterial({
       map: sunTex,
       transparent: true,
-      opacity: dark ? 0.9 : 1,
       depthWrite: false,
-      blending: dark ? THREE.NormalBlending : THREE.AdditiveBlending,
     }));
     const sun = new THREE.Sprite(sunMat);
-    sun.scale.setScalar(SUN_RADIUS * 2.3);
+    sun.scale.setScalar(sunSpriteScale(width / height));
     scene.add(sun);
 
     // ---- Orbits ------------------------------------------------------------
@@ -172,7 +176,6 @@ const SolarSystem3D = ({ cameraState, onPlanetClick, onPlanetHover, onReady, tra
 
     // ---- Planets -----------------------------------------------------------
     // Sprites are billboards, so they face the camera from every angle for free.
-    const loader = new THREE.TextureLoader();
     const planetSprites: { sprite: THREE.Sprite; tex: THREE.Texture; fps: number }[] = [];
 
     stops.forEach((m, i) => {
@@ -211,6 +214,23 @@ const SolarSystem3D = ({ cameraState, onPlanetClick, onPlanetHover, onReady, tra
     }
     if (anchors.length) trailPts.push(anchors[anchors.length - 1].clone());
 
+    // The route ahead: the whole path, faint and dashed to match the orbit rings.
+    // Without it the opening shot is just scattered planets — this is what makes the
+    // hero read as an ordered journey before a single frame of it has been flown.
+    const routeGeo = track(new THREE.BufferGeometry().setFromPoints(trailPts));
+    const routeMat = track(new THREE.LineDashedMaterial({
+      color: dark ? 0x000000 : 0xffffff,
+      transparent: true,
+      opacity: dark ? 0.22 : 0.28,
+      dashSize: 2.2,
+      gapSize: 3.4,
+    }));
+    const route = new THREE.Line(routeGeo, routeMat);
+    route.computeLineDistances(); // required, or LineDashedMaterial draws solid
+    route.frustumCulled = false;
+    scene.add(route);
+
+    // The distance actually travelled, drawn over the route as the camera covers it
     const trailGeo = track(new THREE.BufferGeometry().setFromPoints(trailPts));
     const trailMat = track(new THREE.LineBasicMaterial({
       color: dark ? 0x000000 : 0xffffff,
@@ -260,8 +280,8 @@ const SolarSystem3D = ({ cameraState, onPlanetClick, onPlanetHover, onReady, tra
       return pts;
     };
 
-    makeField(2200, 25, 240, 1.5, dark ? 0.5 : 0.8); // near — ambient depth
-    makeField(1800, 300, 900, 6, dark ? 0.35 : 0.5); // far — backdrop
+    makeField(800, 25, 240, 1.5, dark ? 0.5 : 0.8); // near — ambient depth
+    makeField(1000, 300, 900, 6, dark ? 0.35 : 0.5); // far — backdrop
 
     // ---- Streaks -----------------------------------------------------------
     // The speed cue. A world-static field thins out as the camera leaves it, so this
@@ -335,6 +355,7 @@ const SolarSystem3D = ({ cameraState, onPlanetClick, onPlanetHover, onReady, tra
 
     const start = Date.now();
     const lastFrame: number[] = [];
+    let lastSunFrame = -1;
     let raf = 0;
     let announced = false;
 
@@ -348,6 +369,24 @@ const SolarSystem3D = ({ cameraState, onPlanetClick, onPlanetHover, onReady, tra
         camera.aspect, posVec, aimVec
       );
 
+      // Ambient drift. At rest the camera was perfectly frozen, which is what made
+      // the opening shot feel inert — the only motion on screen was sprite flipbooks.
+      // A slow lissajous keeps the parallax alive while the reader decides to scroll,
+      // and fades out over the first sliver of the flight so it never fights the
+      // scrubbed camera.
+      const idle = Math.max(0, 1 - cs.u / 0.05);
+      if (idle > 0.001) {
+        const ms = Date.now() * 0.001;
+        const amp = idle * 10.2;
+        posVec.x += Math.sin(ms * 0.11) * amp;
+        posVec.y += Math.sin(ms * 0.077 + 1.1) * amp * 0.8;
+        posVec.z += Math.cos(ms * 0.094) * amp;
+        // A touch less on the aim, so the drift reads as the camera breathing rather
+        // than the whole scene sliding
+        aimVec.x += Math.sin(ms * 0.083 + 2.2) * idle * 1.1;
+        aimVec.y += Math.cos(ms * 0.067) * idle * 0.9;
+      }
+
       // How far the camera actually moved this frame — drives the streaks
       if (havePrev) delta.subVectors(posVec, prevPos);
       else delta.set(0, 0, 0);
@@ -358,7 +397,7 @@ const SolarSystem3D = ({ cameraState, onPlanetClick, onPlanetHover, onReady, tra
 
       // Bank into turns, damped so it eases rather than snapping, and scaled down as
       // the camera settles onto a milestone so cards are never read at an angle.
-      const targetRoll = bankAngle(path, cs.u) * (1 - THREE.MathUtils.clamp(cs.aimBlend, 0, 1));
+      const targetRoll = bankAngle(path, cs.u, cs.aimBlend);
       roll += (targetRoll - roll) * 0.08;
       if (Math.abs(roll) > 1e-4) {
         const forward = aimVec.clone().sub(posVec).normalize();
@@ -368,8 +407,18 @@ const SolarSystem3D = ({ cameraState, onPlanetClick, onPlanetHover, onReady, tra
       }
       camera.lookAt(aimVec);
 
-      // Step each planet's flipbook. Only the texture offset changes — no upload.
+      // Step each flipbook. Only the texture offset changes — no upload.
       const elapsed = (Date.now() - start) / 1000;
+      {
+        const f = Math.floor(elapsed * 2.2) % SPRITE_FRAMES;
+        if (f !== lastSunFrame) {
+          lastSunFrame = f;
+          sunTex.offset.set(
+            (f % SPRITE_COLS) / SPRITE_COLS,
+            1 - (Math.floor(f / SPRITE_COLS) + 1) / SPRITE_ROWS
+          );
+        }
+      }
       for (let i = 0; i < planetSprites.length; i++) {
         const { tex, fps } = planetSprites[i];
         const frame = Math.floor(elapsed * fps) % SPRITE_FRAMES;
